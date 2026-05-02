@@ -15,6 +15,7 @@ function formatBalanceMessage(
     return `✅ *All Settled!*\n\nYou and *${contactName}* are all settled up. No outstanding balance.`;
   }
 
+  
   if (direction === "owed") {
     return (
       `💚 *You are owed money!*\n\n` +
