@@ -1,4 +1,5 @@
-import { Telegraf, Scenes, session } from 'telegraf';
+import { Telegraf, Scenes, session, Markup } from 'telegraf';
+import { Currency } from '@prisma/client';
 import { BotContext, SessionData } from '../models/types';
 import { addTransactionScene } from './scenes/addTransaction';
 import { startHandler } from './commands/start';
@@ -8,6 +9,7 @@ import { selectContactAction } from './commands/select';
 import { balanceHandler } from './commands/balance';
 import { logsHandler } from './commands/logs';
 import { helpHandler } from './commands/help';
+import { showCurrencyPicker, setCurrencyAction } from './commands/currency';
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 if (!BOT_TOKEN) {
@@ -42,6 +44,36 @@ bot.command('help', helpHandler);
 
 // Contact selection via callback
 bot.action(/^select_contact:(.+)$/, selectContactAction);
+
+// Currency picker and setter
+bot.action('set_currency', async (ctx) => {
+  await ctx.answerCbQuery();
+  await showCurrencyPicker(ctx);
+});
+
+bot.action(/^set_currency:(.+)$/, async (ctx) => {
+  await setCurrencyAction(ctx, ctx.match[1] as Currency);
+});
+
+bot.action('go_back_contact', async (ctx) => {
+  await ctx.answerCbQuery();
+  const contactName = ctx.session.activeContactName ?? 'Contact';
+  await ctx.editMessageText(
+    `✅ *Active Contact: ${contactName}*\n\nWhat would you like to do?`,
+    {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [
+          Markup.button.callback('💰 View Balance', 'view_balance'),
+          Markup.button.callback('📋 View Logs', 'view_logs'),
+        ],
+        [Markup.button.callback('➕ Add Transaction', 'add_transaction')],
+        [Markup.button.callback('💱 Set Currency', 'set_currency')],
+        [Markup.button.callback('👥 Back to Contacts', 'go_contacts')],
+      ]),
+    }
+  );
+});
 
 // Navigation callbacks
 bot.action('go_contacts', async (ctx) => {

@@ -3,11 +3,13 @@ import { BotContext } from '../../models/types';
 import { findOrCreateUser } from '../../services/userService';
 import { getRelationshipBetween } from '../../services/relationshipService';
 import { getBalance } from '../../services/transactionService';
+import { currencySymbol } from '../../utils/currency';
 
 function formatBalanceMessage(
   amount: number,
   direction: 'owed' | 'owes' | 'settled',
-  contactName: string
+  contactName: string,
+  symbol: string
 ): string {
   if (direction === 'settled') {
     return `✅ *All Settled!*\n\nYou and *${contactName}* are all settled up. No outstanding balance.`;
@@ -16,13 +18,13 @@ function formatBalanceMessage(
   if (direction === 'owed') {
     return (
       `💚 *You are owed money!*\n\n` +
-      `*${contactName}* owes you *$${amount.toFixed(2)}*`
+      `*${contactName}* owes you *${symbol}${amount.toFixed(2)}*`
     );
   }
 
   return (
     `❤️ *You owe money*\n\n` +
-    `You owe *${contactName}* *$${amount.toFixed(2)}*`
+    `You owe *${contactName}* *${symbol}${amount.toFixed(2)}*`
   );
 }
 
@@ -58,7 +60,8 @@ export async function balanceHandler(ctx: BotContext): Promise<void> {
     }
 
     const { amount, direction, contactName } = await getBalance(relationship.id, viewer.id);
-    const message = formatBalanceMessage(amount, direction, contactName);
+    const symbol = currencySymbol(relationship.currency);
+    const message = formatBalanceMessage(amount, direction, contactName, symbol);
 
     await ctx.reply(message, {
       parse_mode: 'Markdown',

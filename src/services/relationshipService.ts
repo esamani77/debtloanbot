@@ -1,4 +1,4 @@
-import { Relationship, User } from '@prisma/client';
+import { Currency, Relationship, User } from '@prisma/client';
 import prisma from '../db/prisma';
 import { calculateNetBalance } from '../utils/balanceCalc';
 
@@ -56,6 +56,19 @@ export async function getRelationshipBetween(
 }
 
 /**
+ * Updates the currency for a relationship.
+ */
+export async function updateRelationshipCurrency(
+  relationshipId: string,
+  currency: Currency
+): Promise<void> {
+  await prisma.relationship.update({
+    where: { id: relationshipId },
+    data: { currency },
+  });
+}
+
+/**
  * Returns all relationships for a user, including the contact user object
  * and pre-computed net balance from the user's perspective.
  */
@@ -88,6 +101,7 @@ export async function getUserRelationships(
         id: rel.id,
         userAId: rel.userAId,
         userBId: rel.userBId,
+        currency: rel.currency,
         createdAt: rel.createdAt,
       },
       contact,

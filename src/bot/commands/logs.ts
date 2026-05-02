@@ -5,8 +5,9 @@ import { findOrCreateUser } from '../../services/userService';
 import { getRelationshipBetween } from '../../services/relationshipService';
 import { getRecentTransactions } from '../../services/transactionService';
 import { TransactionSummary } from '../../models/types';
+import { currencySymbol } from '../../utils/currency';
 
-function formatTransaction(tx: TransactionSummary): string {
+function formatTransaction(tx: TransactionSummary, symbol: string): string {
   const date = tx.createdAt.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -18,7 +19,7 @@ function formatTransaction(tx: TransactionSummary): string {
   const addedBy = tx.addedByViewer ? 'You' : tx.addedByName;
   const noteText = tx.note ? `\n   📝 ${tx.note}` : '';
 
-  return `${typeIcon} *${typeLabel}* — $${tx.amount.toFixed(2)}\n   📅 ${date} · Added by ${addedBy}${noteText}`;
+  return `${typeIcon} *${typeLabel}* — ${symbol}${tx.amount.toFixed(2)}\n   📅 ${date} · Added by ${addedBy}${noteText}`;
 }
 
 export async function logsHandler(ctx: BotContext): Promise<void> {
@@ -54,6 +55,7 @@ export async function logsHandler(ctx: BotContext): Promise<void> {
     }
 
     const transactions = await getRecentTransactions(relationship.id, viewer.id, 10);
+    const symbol = currencySymbol(relationship.currency);
 
     if (transactions.length === 0) {
       await ctx.reply(
@@ -69,7 +71,7 @@ export async function logsHandler(ctx: BotContext): Promise<void> {
       return;
     }
 
-    const logLines = transactions.map(formatTransaction).join('\n\n');
+    const logLines = transactions.map((tx) => formatTransaction(tx, symbol)).join('\n\n');
 
     await ctx.reply(
       `📋 *Recent Transactions with ${contactName}*\n\n${logLines}`,

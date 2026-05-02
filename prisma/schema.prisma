@@ -22,6 +22,7 @@ model Relationship {
   userAId      String
   userB        User           @relation("UserB", fields: [userBId], references: [id])
   userBId      String
+  currency     Currency       @default(USD)
   createdAt    DateTime       @default(now())
   transactions Transaction[]
   @@unique([userAId, userBId])
@@ -42,4 +43,12 @@ model Transaction {
 enum TransactionType {
   DEBT
   LOAN
+}
+
+enum Currency {
+  USD
+  EUR
+  GBP
+  IRR
+  TRY
 }

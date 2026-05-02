@@ -2,11 +2,12 @@ import { Markup } from 'telegraf';
 import { BotContext } from '../../models/types';
 import { findOrCreateUser } from '../../services/userService';
 import { getUserRelationships } from '../../services/relationshipService';
+import { currencySymbol } from '../../utils/currency';
 
-function formatBalanceLabel(netBalance: number): string {
+function formatBalanceLabel(netBalance: number, symbol: string): string {
   if (netBalance === 0) return '✅ Settled';
-  if (netBalance > 0) return `🟢 Owed $${Math.abs(netBalance).toFixed(2)}`;
-  return `🔴 Owes $${Math.abs(netBalance).toFixed(2)}`;
+  if (netBalance > 0) return `🟢 Owed ${symbol}${Math.abs(netBalance).toFixed(2)}`;
+  return `🔴 Owes ${symbol}${Math.abs(netBalance).toFixed(2)}`;
 }
 
 export async function contactsHandler(ctx: BotContext): Promise<void> {
@@ -37,8 +38,9 @@ export async function contactsHandler(ctx: BotContext): Promise<void> {
     }
 
     const contactList = relationships
-      .map(({ contact, netBalance }, i) => {
-        const balanceLabel = formatBalanceLabel(netBalance);
+      .map(({ contact, netBalance, relationship }, i) => {
+        const symbol = currencySymbol(relationship.currency);
+        const balanceLabel = formatBalanceLabel(netBalance, symbol);
         return `${i + 1}. *${contact.name}* — ${balanceLabel}`;
       })
       .join('\n');

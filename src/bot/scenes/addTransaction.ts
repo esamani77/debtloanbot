@@ -1,13 +1,15 @@
 import { Scenes, Markup } from 'telegraf';
-import { TransactionType } from '@prisma/client';
+import { Currency, TransactionType } from '@prisma/client';
 import { BotContext } from '../../models/types';
 import { findUserByTelegramId, findUserById } from '../../services/userService';
 import { getRelationshipBetween } from '../../services/relationshipService';
 import { addTransaction } from '../../services/transactionService';
+import { currencySymbol } from '../../utils/currency';
 
 interface WizardState {
   transactionType?: TransactionType;
   amount?: number;
+  currency?: Currency;
 }
 
 export const addTransactionScene = new Scenes.WizardScene<BotContext>(
@@ -24,6 +26,15 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
     }
 
     const contactName = ctx.session.activeContactName ?? 'your contact';
+
+    // Load currency for this relationship upfront
+    if (ctx.from) {
+      const viewer = await findUserByTelegramId(String(ctx.from.id));
+      if (viewer) {
+        const rel = await getRelationshipBetween(viewer.id, ctx.session.activeContactId);
+        if (rel) (ctx.wizard.state as WizardState).currency = rel.currency;
+      }
+    }
 
     await ctx.reply(
       `Adding a transaction with *${contactName}*.\n\nWhat type of transaction is this?`,
@@ -66,7 +77,8 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
     (ctx.wizard.state as WizardState).transactionType = type;
 
     const typeLabel = type === TransactionType.DEBT ? '💸 I Borrowed (Debt)' : '💰 I Lent (Loan)';
-    await ctx.editMessageText(`Selected: *${typeLabel}*\n\nEnter the amount (e.g. 25.50):`, {
+    const sym = currencySymbol((ctx.wizard.state as WizardState).currency ?? Currency.USD);
+    await ctx.editMessageText(`Selected: *${typeLabel}*\n\nEnter the amount in ${sym} (e.g. 25.50):`, {
       parse_mode: 'Markdown',
     });
 
@@ -93,8 +105,9 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
 
     (ctx.wizard.state as WizardState).amount = amount;
 
+    const sym = currencySymbol((ctx.wizard.state as WizardState).currency ?? Currency.USD);
     await ctx.reply(
-      `Amount: *$${amount.toFixed(2)}*\n\nWould you like to add a note for this transaction?`,
+      `Amount: *${sym}${amount.toFixed(2)}*\n\nWould you like to add a note for this transaction?`,
       {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
@@ -177,6 +190,7 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
       const typeLabel =
         state.transactionType === TransactionType.DEBT ? '💸 Debt (I Borrowed)' : '💰 Loan (I Lent)';
       const contactName = ctx.session.activeContactName ?? 'contact';
+      const sym = currencySymbol(state.currency ?? Currency.USD);
 
       // Notify the other user
       const contact = await findUserById(contactId);
@@ -184,8 +198,8 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
         const viewerName = viewer.name;
         const notifyMsg =
           state.transactionType === TransactionType.DEBT
-            ? `💸 *${viewerName}* recorded a transaction with you:\nThey borrowed *$${transaction.amount.toFixed(2)}* from you.`
-            : `💰 *${viewerName}* recorded a transaction with you:\nThey lent *$${transaction.amount.toFixed(2)}* to you.`;
+            ? `💸 *${viewerName}* recorded a transaction with you:\nThey borrowed *${sym}${transaction.amount.toFixed(2)}* from you.`
+            : `💰 *${viewerName}* recorded a transaction with you:\nThey lent *${sym}${transaction.amount.toFixed(2)}* to you.`;
         const fullMsg = note ? `${notifyMsg}\nNote: ${note}` : notifyMsg;
         ctx.telegram.sendMessage(contact.telegramId, fullMsg, { parse_mode: 'Markdown' }).catch(() => {});
       }
@@ -193,7 +207,7 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
       await ctx.reply(
         `✅ *Transaction Saved!*\n\n` +
           `Type: ${typeLabel}\n` +
-          `Amount: *$${transaction.amount.toFixed(2)}*\n` +
+          `Amount: *${sym}${transaction.amount.toFixed(2)}*\n` +
           `With: ${contactName}` +
           (note ? `\nNote: ${note}` : ''),
         {
