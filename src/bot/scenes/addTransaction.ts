@@ -1,7 +1,7 @@
 import { Scenes, Markup } from 'telegraf';
 import { TransactionType } from '@prisma/client';
 import { BotContext } from '../../models/types';
-import { findUserByTelegramId } from '../../services/userService';
+import { findUserByTelegramId, findUserById } from '../../services/userService';
 import { getRelationshipBetween } from '../../services/relationshipService';
 import { addTransaction } from '../../services/transactionService';
 
@@ -177,6 +177,18 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
       const typeLabel =
         state.transactionType === TransactionType.DEBT ? '💸 Debt (I Borrowed)' : '💰 Loan (I Lent)';
       const contactName = ctx.session.activeContactName ?? 'contact';
+
+      // Notify the other user
+      const contact = await findUserById(contactId);
+      if (contact) {
+        const viewerName = viewer.name;
+        const notifyMsg =
+          state.transactionType === TransactionType.DEBT
+            ? `💸 *${viewerName}* recorded a transaction with you:\nThey borrowed *$${transaction.amount.toFixed(2)}* from you.`
+            : `💰 *${viewerName}* recorded a transaction with you:\nThey lent *$${transaction.amount.toFixed(2)}* to you.`;
+        const fullMsg = note ? `${notifyMsg}\nNote: ${note}` : notifyMsg;
+        ctx.telegram.sendMessage(contact.telegramId, fullMsg, { parse_mode: 'Markdown' }).catch(() => {});
+      }
 
       await ctx.reply(
         `✅ *Transaction Saved!*\n\n` +
