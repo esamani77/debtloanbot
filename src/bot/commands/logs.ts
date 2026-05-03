@@ -1,13 +1,15 @@
 import { Markup } from 'telegraf';
-import { TransactionType } from '@prisma/client';
+import { Language, TransactionType } from '@prisma/client';
 import { BotContext } from '../../models/types';
 import { findOrCreateUser } from '../../services/userService';
 import { getRelationshipBetween } from '../../services/relationshipService';
 import { getRecentTransactions } from '../../services/transactionService';
 import { TransactionSummary } from '../../models/types';
 import { currencySymbol } from '../../utils/currency';
+import { useT } from '../../i18n';
+import { Translations } from '../../i18n/types';
 
-function formatTransaction(tx: TransactionSummary, symbol: string): string {
+function formatTransaction(tx: TransactionSummary, symbol: string, T: Translations): string {
   const date = tx.createdAt.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -15,11 +17,11 @@ function formatTransaction(tx: TransactionSummary, symbol: string): string {
   });
 
   const typeIcon = tx.type === TransactionType.LOAN ? '💰' : '💸';
-  const typeLabel = tx.type === TransactionType.LOAN ? 'Loan' : 'Debt';
-  const addedBy = tx.addedByViewer ? 'You' : tx.addedByName;
+  const typeLabel = tx.type === TransactionType.LOAN ? T.logLoan : T.logDebt;
+  const addedBy = tx.addedByViewer ? T.logAddedByYou : tx.addedByName;
   const noteText = tx.note ? `\n   📝 ${tx.note}` : '';
 
-  return `${typeIcon} *${typeLabel}* — ${symbol}${tx.amount.toFixed(2)}\n   📅 ${date} · Added by ${addedBy}${noteText}`;
+  return `${typeIcon} *${typeLabel}* — ${symbol}${tx.amount.toFixed(2)}\n   📅 ${date} · ${addedBy}${noteText}`;
 }
 
 export async function logsHandler(ctx: BotContext): Promise<void> {
@@ -28,17 +30,18 @@ export async function logsHandler(ctx: BotContext): Promise<void> {
     return;
   }
 
+  const T = useT(ctx.session.userLanguage ?? Language.EN);
+
   if (!ctx.session.activeContactId) {
     await ctx.reply(
-      '⚠️ No contact selected. Please select a contact first.',
-      Markup.inlineKeyboard([[Markup.button.callback('📋 View Contacts', 'go_contacts')]])
+      T.errNoContact,
+      Markup.inlineKeyboard([[Markup.button.callback(T.btnContacts, 'go_contacts')]])
     );
     return;
   }
 
   const telegramId = String(ctx.from.id);
-  const name =
-    ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
+  const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
 
   try {
     const viewer = await findOrCreateUser(telegramId, name);
@@ -48,8 +51,8 @@ export async function logsHandler(ctx: BotContext): Promise<void> {
     const relationship = await getRelationshipBetween(viewer.id, contactId);
     if (!relationship) {
       await ctx.reply(
-        '⚠️ No relationship found with this contact.',
-        Markup.inlineKeyboard([[Markup.button.callback('📋 View Contacts', 'go_contacts')]])
+        T.errNoRelationship,
+        Markup.inlineKeyboard([[Markup.button.callback(T.btnContacts, 'go_contacts')]])
       );
       return;
     }
@@ -58,36 +61,30 @@ export async function logsHandler(ctx: BotContext): Promise<void> {
     const symbol = currencySymbol(relationship.currency);
 
     if (transactions.length === 0) {
-      await ctx.reply(
-        `📋 *Transaction Logs with ${contactName}*\n\nNo transactions yet. Add one to get started!`,
-        {
-          parse_mode: 'Markdown',
-          ...Markup.inlineKeyboard([
-            [Markup.button.callback('➕ Add Transaction', 'add_transaction')],
-            [Markup.button.callback('👥 View Contacts', 'go_contacts')],
-          ]),
-        }
-      );
+      await ctx.reply(T.logsEmpty(contactName), {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback(T.btnAdd, 'add_transaction')],
+          [Markup.button.callback(T.btnContacts, 'go_contacts')],
+        ]),
+      });
       return;
     }
 
-    const logLines = transactions.map((tx) => formatTransaction(tx, symbol)).join('\n\n');
+    const logLines = transactions.map((tx) => formatTransaction(tx, symbol, T)).join('\n\n');
 
-    await ctx.reply(
-      `📋 *Recent Transactions with ${contactName}*\n\n${logLines}`,
-      {
-        parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard([
-          [
-            Markup.button.callback('➕ Add Transaction', 'add_transaction'),
-            Markup.button.callback('💰 View Balance', 'view_balance'),
-          ],
-          [Markup.button.callback('👥 View Contacts', 'go_contacts')],
-        ]),
-      }
-    );
+    await ctx.reply(`${T.logsTitle(contactName)}\n\n${logLines}`, {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [
+          Markup.button.callback(T.btnAdd, 'add_transaction'),
+          Markup.button.callback(T.btnBalance, 'view_balance'),
+        ],
+        [Markup.button.callback(T.btnContacts, 'go_contacts')],
+      ]),
+    });
   } catch (error) {
-    await ctx.reply('Something went wrong. Please try again.');
+    await ctx.reply(T.errSomethingWrong);
     console.error('logs handler error:', error);
   }
 }

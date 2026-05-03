@@ -1,22 +1,20 @@
 import { Markup } from 'telegraf';
+import { Language } from '@prisma/client';
 import { BotContext } from '../../models/types';
 import { findUserById, findOrCreateUser } from '../../services/userService';
 import { getRelationshipBetween } from '../../services/relationshipService';
+import { useT } from '../../i18n';
 
-/**
- * Handles selection of an active contact via callback query.
- * Triggered by action(/^select_contact:(.+)$/) pattern.
- */
 export async function selectContactAction(ctx: BotContext): Promise<void> {
   if (!ctx.from || !ctx.match) {
     await ctx.answerCbQuery('Something went wrong. Please try again.');
     return;
   }
 
+  const T = useT(ctx.session.userLanguage ?? Language.EN);
   const contactId = ctx.match[1];
   const telegramId = String(ctx.from.id);
-  const name =
-    ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
+  const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
 
   try {
     await ctx.answerCbQuery();
@@ -25,39 +23,33 @@ export async function selectContactAction(ctx: BotContext): Promise<void> {
     const contact = await findUserById(contactId);
 
     if (!contact) {
-      await ctx.editMessageText('⚠️ Contact not found. They may have been removed.');
+      await ctx.editMessageText('⚠️ Contact not found.');
       return;
     }
 
-    // Verify relationship exists
     const relationship = await getRelationshipBetween(viewer.id, contactId);
     if (!relationship) {
-      await ctx.editMessageText(
-        '⚠️ No connection found with this user. Use /invite to connect.'
-      );
+      await ctx.editMessageText(T.errNoRelationship);
       return;
     }
 
     ctx.session.activeContactId = contactId;
     ctx.session.activeContactName = contact.name;
 
-    await ctx.editMessageText(
-      `✅ *Active Contact: ${contact.name}*\n\nWhat would you like to do?`,
-      {
-        parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard([
-          [
-            Markup.button.callback('💰 View Balance', 'view_balance'),
-            Markup.button.callback('📋 View Logs', 'view_logs'),
-          ],
-          [Markup.button.callback('➕ Add Transaction', 'add_transaction')],
-          [Markup.button.callback('💱 Set Currency', 'set_currency')],
-          [Markup.button.callback('👥 Back to Contacts', 'go_contacts')],
-        ]),
-      }
-    );
+    await ctx.editMessageText(T.selectActiveContact(contact.name), {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [
+          Markup.button.callback(T.btnBalance, 'view_balance'),
+          Markup.button.callback(T.btnLogs, 'view_logs'),
+        ],
+        [Markup.button.callback(T.btnAdd, 'add_transaction')],
+        [Markup.button.callback(T.btnSetCurrency, 'set_currency')],
+        [Markup.button.callback(T.btnBackContacts, 'go_contacts')],
+      ]),
+    });
   } catch (error) {
-    await ctx.reply('Something went wrong. Please try again.');
+    await ctx.reply(T.errSomethingWrong);
     console.error('select contact action error:', error);
   }
 }

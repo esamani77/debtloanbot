@@ -1,4 +1,4 @@
-import { User } from '@prisma/client';
+import { Language, User } from '@prisma/client';
 import prisma from '../db/prisma';
 
 /**
@@ -43,5 +43,18 @@ export async function findUserByTelegramId(telegramId: string): Promise<User | n
 export async function findUserById(id: string): Promise<User | null> {
   return prisma.user.findUnique({
     where: { id },
+  });
+}
+
+/**
+ * Updates the language preference for a user.
+ */
+export async function setUserLanguage(
+  telegramId: string,
+  language: Language
+): Promise<User> {
+  return prisma.user.update({
+    where: { telegramId },
+    data: { language },
   });
 }

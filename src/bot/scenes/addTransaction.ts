@@ -1,10 +1,11 @@
 import { Scenes, Markup } from 'telegraf';
-import { Currency, TransactionType } from '@prisma/client';
+import { Currency, Language, TransactionType } from '@prisma/client';
 import { BotContext } from '../../models/types';
 import { findUserByTelegramId, findUserById } from '../../services/userService';
 import { getRelationshipBetween } from '../../services/relationshipService';
 import { addTransaction } from '../../services/transactionService';
 import { currencySymbol } from '../../utils/currency';
+import { useT } from '../../i18n';
 
 interface WizardState {
   transactionType?: TransactionType;
@@ -17,17 +18,19 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
 
   // Step 0: Ask for transaction type
   async (ctx) => {
+    const T = useT(ctx.session.userLanguage ?? Language.EN);
+
     if (!ctx.session.activeContactId) {
       await ctx.reply(
-        '⚠️ No contact selected. Please use /contacts to select a contact first.',
-        Markup.inlineKeyboard([[Markup.button.callback('📋 View Contacts', 'go_contacts')]])
+        T.txNoContact,
+        Markup.inlineKeyboard([[Markup.button.callback(T.btnContacts, 'go_contacts')]])
       );
       return ctx.scene.leave();
     }
 
-    const contactName = ctx.session.activeContactName ?? 'your contact';
+    const contactName = ctx.session.activeContactName ?? '?';
 
-    // Load currency for this relationship upfront
+    // Pre-load relationship currency into wizard state
     if (ctx.from) {
       const viewer = await findUserByTelegramId(String(ctx.from.id));
       if (viewer) {
@@ -36,27 +39,26 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
       }
     }
 
-    await ctx.reply(
-      `Adding a transaction with *${contactName}*.\n\nWhat type of transaction is this?`,
-      {
-        parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard([
-          [
-            Markup.button.callback('💸 I Borrowed (Debt)', 'tx_type:DEBT'),
-            Markup.button.callback('💰 I Lent (Loan)', 'tx_type:LOAN'),
-          ],
-          [Markup.button.callback('❌ Cancel', 'tx_cancel')],
-        ]),
-      }
-    );
+    await ctx.reply(T.txTypeQuestion(contactName), {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [
+          Markup.button.callback(T.txTypeBorrow, 'tx_type:DEBT'),
+          Markup.button.callback(T.txTypeLend, 'tx_type:LOAN'),
+        ],
+        [Markup.button.callback(T.btnCancel, 'tx_cancel')],
+      ]),
+    });
 
     return ctx.wizard.next();
   },
 
   // Step 1: Handle type selection, ask for amount
   async (ctx) => {
+    const T = useT(ctx.session.userLanguage ?? Language.EN);
+
     if (!ctx.callbackQuery || !('data' in ctx.callbackQuery)) {
-      await ctx.reply('Please use the buttons above to select a transaction type.');
+      await ctx.reply(T.txUseButtons);
       return;
     }
 
@@ -64,41 +66,41 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
     await ctx.answerCbQuery();
 
     if (data === 'tx_cancel') {
-      await ctx.editMessageText('Transaction cancelled.');
+      await ctx.editMessageText(T.txCancelled);
       return ctx.scene.leave();
     }
 
     if (data !== 'tx_type:DEBT' && data !== 'tx_type:LOAN') {
-      await ctx.reply('Please use the buttons above to select a transaction type.');
+      await ctx.reply(T.txUseButtons);
       return;
     }
 
     const type = data === 'tx_type:DEBT' ? TransactionType.DEBT : TransactionType.LOAN;
     (ctx.wizard.state as WizardState).transactionType = type;
 
-    const typeLabel = type === TransactionType.DEBT ? '💸 I Borrowed (Debt)' : '💰 I Lent (Loan)';
+    const typeLabel = type === TransactionType.DEBT ? T.txTypeBorrow : T.txTypeLend;
     const sym = currencySymbol((ctx.wizard.state as WizardState).currency ?? Currency.USD);
-    await ctx.editMessageText(`Selected: *${typeLabel}*\n\nEnter the amount in ${sym} (e.g. 25.50):`, {
-      parse_mode: 'Markdown',
-    });
+
+    await ctx.editMessageText(T.txSelectedType(typeLabel, sym), { parse_mode: 'Markdown' });
 
     return ctx.wizard.next();
   },
 
   // Step 2: Validate amount, ask for note
   async (ctx) => {
+    const T = useT(ctx.session.userLanguage ?? Language.EN);
+
     if (!ctx.message || !('text' in ctx.message)) {
-      await ctx.reply('Please enter a valid amount as a number (e.g. 25.50):');
+      await ctx.reply(T.txEnterAmount);
       return;
     }
 
-    const amountText = ctx.message.text.trim();
-    const amount = parseFloat(amountText);
+    const amount = parseFloat(ctx.message.text.trim());
 
     if (isNaN(amount) || amount <= 0) {
       await ctx.reply(
-        '⚠️ Invalid amount. Please enter a positive number (e.g. 25.50):',
-        Markup.inlineKeyboard([[Markup.button.callback('❌ Cancel', 'tx_cancel')]])
+        T.txInvalidAmount,
+        Markup.inlineKeyboard([[Markup.button.callback(T.btnCancel, 'tx_cancel')]])
       );
       return;
     }
@@ -106,66 +108,60 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
     (ctx.wizard.state as WizardState).amount = amount;
 
     const sym = currencySymbol((ctx.wizard.state as WizardState).currency ?? Currency.USD);
-    await ctx.reply(
-      `Amount: *${sym}${amount.toFixed(2)}*\n\nWould you like to add a note for this transaction?`,
-      {
-        parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback('⏭ Skip Note', 'tx_skip_note')],
-          [Markup.button.callback('❌ Cancel', 'tx_cancel')],
-        ]),
-      }
-    );
+    await ctx.reply(T.txAmountConfirm(sym, amount.toFixed(2)), {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback(T.btnSkipNote, 'tx_skip_note')],
+        [Markup.button.callback(T.btnCancel, 'tx_cancel')],
+      ]),
+    });
 
     return ctx.wizard.next();
   },
 
-  // Step 3: Handle note or skip, save transaction
+  // Step 3: Handle note, save transaction
   async (ctx) => {
+    const T = useT(ctx.session.userLanguage ?? Language.EN);
     const state = ctx.wizard.state as WizardState;
     let note: string | undefined;
 
-    // Handle callback (Skip or Cancel)
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
       const data = ctx.callbackQuery.data;
       await ctx.answerCbQuery();
 
       if (data === 'tx_cancel') {
-        await ctx.editMessageText('Transaction cancelled.');
+        await ctx.editMessageText(T.txCancelled);
         return ctx.scene.leave();
       }
 
       if (data === 'tx_skip_note') {
         note = undefined;
-        await ctx.editMessageText('No note added.');
+        await ctx.editMessageText(T.txNoteSkipped);
       }
     } else if (ctx.message && 'text' in ctx.message) {
-      // Handle text note
       note = ctx.message.text.trim() || undefined;
     } else {
       await ctx.reply(
-        'Please type a note or press "Skip Note":',
-        Markup.inlineKeyboard([[Markup.button.callback('⏭ Skip Note', 'tx_skip_note')]])
+        T.txNoteOrSkip,
+        Markup.inlineKeyboard([[Markup.button.callback(T.btnSkipNote, 'tx_skip_note')]])
       );
       return;
     }
 
     if (!state.transactionType || state.amount === undefined) {
-      await ctx.reply('Something went wrong. Please start over with /add.');
+      await ctx.reply(T.txSomethingWrong);
       return ctx.scene.leave();
     }
 
     if (!ctx.from) {
-      await ctx.reply('Could not identify user. Please try again.');
+      await ctx.reply(T.errCannotIdentify);
       return ctx.scene.leave();
     }
 
-    const telegramId = String(ctx.from.id);
-
     try {
-      const viewer = await findUserByTelegramId(telegramId);
+      const viewer = await findUserByTelegramId(String(ctx.from.id));
       if (!viewer) {
-        await ctx.reply('User not found. Please send /start first.');
+        await ctx.reply(T.errUserNotFound);
         return ctx.scene.leave();
       }
 
@@ -173,9 +169,7 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
       const relationship = await getRelationshipBetween(viewer.id, contactId);
 
       if (!relationship) {
-        await ctx.reply(
-          '⚠️ No relationship found with this contact. Please invite them first using /invite.'
-        );
+        await ctx.reply(T.errNoRelationship);
         return ctx.scene.leave();
       }
 
@@ -188,41 +182,34 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
       });
 
       const typeLabel =
-        state.transactionType === TransactionType.DEBT ? '💸 Debt (I Borrowed)' : '💰 Loan (I Lent)';
-      const contactName = ctx.session.activeContactName ?? 'contact';
+        state.transactionType === TransactionType.DEBT ? T.txTypeLabelDebt : T.txTypeLabelLoan;
+      const contactName = ctx.session.activeContactName ?? '?';
       const sym = currencySymbol(state.currency ?? Currency.USD);
 
-      // Notify the other user
+      // Notify the contact in their own language
       const contact = await findUserById(contactId);
       if (contact) {
-        const viewerName = viewer.name;
+        const contactT = useT(contact.language);
         const notifyMsg =
           state.transactionType === TransactionType.DEBT
-            ? `💸 *${viewerName}* recorded a transaction with you:\nThey borrowed *${sym}${transaction.amount.toFixed(2)}* from you.`
-            : `💰 *${viewerName}* recorded a transaction with you:\nThey lent *${sym}${transaction.amount.toFixed(2)}* to you.`;
-        const fullMsg = note ? `${notifyMsg}\nNote: ${note}` : notifyMsg;
+            ? contactT.notifyBorrowed(viewer.name, sym, transaction.amount.toFixed(2))
+            : contactT.notifyLent(viewer.name, sym, transaction.amount.toFixed(2));
+        const fullMsg = note ? `${notifyMsg}\n${contactT.notifyNote(note)}` : notifyMsg;
         ctx.telegram.sendMessage(contact.telegramId, fullMsg, { parse_mode: 'Markdown' }).catch(() => {});
       }
 
-      await ctx.reply(
-        `✅ *Transaction Saved!*\n\n` +
-          `Type: ${typeLabel}\n` +
-          `Amount: *${sym}${transaction.amount.toFixed(2)}*\n` +
-          `With: ${contactName}` +
-          (note ? `\nNote: ${note}` : ''),
-        {
-          parse_mode: 'Markdown',
-          ...Markup.inlineKeyboard([
-            [
-              Markup.button.callback('💰 View Balance', 'view_balance'),
-              Markup.button.callback('📋 View Logs', 'view_logs'),
-            ],
-            [Markup.button.callback('➕ Add Another', 'add_transaction')],
-          ]),
-        }
-      );
+      await ctx.reply(T.txSaved(typeLabel, sym, transaction.amount.toFixed(2), contactName, note), {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [
+            Markup.button.callback(T.btnBalance, 'view_balance'),
+            Markup.button.callback(T.btnLogs, 'view_logs'),
+          ],
+          [Markup.button.callback(T.btnAddAnother, 'add_transaction')],
+        ]),
+      });
     } catch (error) {
-      await ctx.reply('Something went wrong while saving the transaction. Please try again.');
+      await ctx.reply(T.errSomethingWrong);
       console.error('addTransaction scene error:', error);
     }
 

@@ -1,14 +1,10 @@
 import { Markup } from 'telegraf';
+import { Language } from '@prisma/client';
 import { BotContext } from '../../models/types';
 import { findOrCreateUser } from '../../services/userService';
 import { getUserRelationships } from '../../services/relationshipService';
 import { currencySymbol } from '../../utils/currency';
-
-function formatBalanceLabel(netBalance: number, symbol: string): string {
-  if (netBalance === 0) return '✅ Settled';
-  if (netBalance > 0) return `🟢 Owed ${symbol}${Math.abs(netBalance).toFixed(2)}`;
-  return `🔴 Owes ${symbol}${Math.abs(netBalance).toFixed(2)}`;
-}
+import { useT } from '../../i18n';
 
 export async function contactsHandler(ctx: BotContext): Promise<void> {
   if (!ctx.from) {
@@ -16,9 +12,9 @@ export async function contactsHandler(ctx: BotContext): Promise<void> {
     return;
   }
 
+  const T = useT(ctx.session.userLanguage ?? Language.EN);
   const telegramId = String(ctx.from.id);
-  const name =
-    ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
+  const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
 
   try {
     const user = await findOrCreateUser(telegramId, name);
@@ -26,11 +22,11 @@ export async function contactsHandler(ctx: BotContext): Promise<void> {
 
     if (relationships.length === 0) {
       await ctx.reply(
-        '👥 *Your Contacts*\n\nNo contacts yet. Use /invite to connect with someone.',
+        `${T.contactsTitle}\n\n${T.contactsEmpty}`,
         {
           parse_mode: 'Markdown',
           ...Markup.inlineKeyboard([
-            [Markup.button.callback('📨 Get Invite Link', 'get_invite_link')],
+            [Markup.button.callback(T.btnInviteFriend, 'get_invite_link')],
           ]),
         }
       );
@@ -39,30 +35,29 @@ export async function contactsHandler(ctx: BotContext): Promise<void> {
 
     const contactList = relationships
       .map(({ contact, netBalance, relationship }, i) => {
-        const symbol = currencySymbol(relationship.currency);
-        const balanceLabel = formatBalanceLabel(netBalance, symbol);
+        const sym = currencySymbol(relationship.currency);
+        let balanceLabel: string;
+        if (netBalance === 0) balanceLabel = T.contactsBalanceSettled;
+        else if (netBalance > 0) balanceLabel = T.contactsBalanceOwed(sym, Math.abs(netBalance).toFixed(2));
+        else balanceLabel = T.contactsBalanceOwes(sym, Math.abs(netBalance).toFixed(2));
         return `${i + 1}. *${contact.name}* — ${balanceLabel}`;
       })
       .join('\n');
 
     const contactButtons = relationships.map(({ contact }) => [
-      Markup.button.callback(
-        `👤 ${contact.name}`,
-        `select_contact:${contact.id}`
-      ),
+      Markup.button.callback(`👤 ${contact.name}`, `select_contact:${contact.id}`),
     ]);
-
-    contactButtons.push([Markup.button.callback('📨 Invite a Friend', 'get_invite_link')]);
+    contactButtons.push([Markup.button.callback(T.btnInviteFriend, 'get_invite_link')]);
 
     await ctx.reply(
-      `👥 *Your Contacts*\n\n${contactList}\n\nSelect a contact to view details:`,
+      `${T.contactsTitle}\n\n${contactList}\n\n${T.contactsSelectPrompt}`,
       {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard(contactButtons),
       }
     );
   } catch (error) {
-    await ctx.reply('Something went wrong. Please try again.');
+    await ctx.reply(T.errSomethingWrong);
     console.error('contacts handler error:', error);
   }
 }

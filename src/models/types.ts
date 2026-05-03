@@ -1,10 +1,12 @@
 import { Context, Scenes } from 'telegraf';
-import { TransactionType } from '@prisma/client';
+import { Language, TransactionType } from '@prisma/client';
 
 // Must extend WizardSession so the stage middleware can store __scenes on the session
 export interface SessionData extends Scenes.WizardSession {
   activeContactId?: string;
   activeContactName?: string;
+  userLanguage?: Language;
+  pendingInvite?: string;
 }
 
 export interface BotContext extends Context {

@@ -10,6 +10,7 @@ model User {
   id           String         @id @default(cuid())
   telegramId   String         @unique
   name         String
+  language     Language       @default(EN)
   createdAt    DateTime       @default(now())
   relationshipsA Relationship[] @relation("UserA")
   relationshipsB Relationship[] @relation("UserB")
@@ -51,4 +52,9 @@ enum Currency {
   GBP
   IRR
   TRY
+}
+
+enum Language {
+  EN
+  FA
 }

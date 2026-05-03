@@ -1,53 +1,30 @@
-import { Markup } from "telegraf";
-import { BotContext } from "../../models/types";
-import { findOrCreateUser } from "../../services/userService";
-import { getRelationshipBetween } from "../../services/relationshipService";
-import { getBalance } from "../../services/transactionService";
-import { currencySymbol } from "../../utils/currency";
-
-function formatBalanceMessage(
-  amount: number,
-  direction: "owed" | "owes" | "settled",
-  contactName: string,
-  symbol: string,
-): string {
-  if (direction === "settled") {
-    return `✅ *All Settled!*\n\nYou and *${contactName}* are all settled up. No outstanding balance.`;
-  }
-
-  
-  if (direction === "owed") {
-    return (
-      `💚 *You are owed money!*\n\n` +
-      `*${contactName}* owes you *${symbol}${amount.toFixed(2)}*`
-    );
-  }
-
-  return (
-    `❤️ *You owe money*\n\n` +
-    `You owe *${contactName}* *${symbol}${amount.toFixed(2)}*`
-  );
-}
+import { Markup } from 'telegraf';
+import { Language } from '@prisma/client';
+import { BotContext } from '../../models/types';
+import { findOrCreateUser } from '../../services/userService';
+import { getRelationshipBetween } from '../../services/relationshipService';
+import { getBalance } from '../../services/transactionService';
+import { currencySymbol } from '../../utils/currency';
+import { useT } from '../../i18n';
 
 export async function balanceHandler(ctx: BotContext): Promise<void> {
   if (!ctx.from) {
-    await ctx.reply("Could not identify user. Please try again.");
+    await ctx.reply('Could not identify user. Please try again.');
     return;
   }
 
+  const T = useT(ctx.session.userLanguage ?? Language.EN);
+
   if (!ctx.session.activeContactId) {
     await ctx.reply(
-      "⚠️ No contact selected. Please select a contact first.",
-      Markup.inlineKeyboard([
-        [Markup.button.callback("📋 View Contacts", "go_contacts")],
-      ]),
+      T.errNoContact,
+      Markup.inlineKeyboard([[Markup.button.callback(T.btnContacts, 'go_contacts')]])
     );
     return;
   }
 
   const telegramId = String(ctx.from.id);
-  const name =
-    ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : "");
+  const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
 
   try {
     const viewer = await findOrCreateUser(telegramId, name);
@@ -56,38 +33,32 @@ export async function balanceHandler(ctx: BotContext): Promise<void> {
     const relationship = await getRelationshipBetween(viewer.id, contactId);
     if (!relationship) {
       await ctx.reply(
-        "⚠️ No relationship found with this contact.",
-        Markup.inlineKeyboard([
-          [Markup.button.callback("📋 View Contacts", "go_contacts")],
-        ]),
+        T.errNoRelationship,
+        Markup.inlineKeyboard([[Markup.button.callback(T.btnContacts, 'go_contacts')]])
       );
       return;
     }
 
-    const { amount, direction, contactName } = await getBalance(
-      relationship.id,
-      viewer.id,
-    );
-    const symbol = currencySymbol(relationship.currency);
-    const message = formatBalanceMessage(
-      amount,
-      direction,
-      contactName,
-      symbol,
-    );
+    const { amount, direction, contactName } = await getBalance(relationship.id, viewer.id);
+    const sym = currencySymbol(relationship.currency);
+
+    let message: string;
+    if (direction === 'settled') message = T.balanceSettled(contactName);
+    else if (direction === 'owed') message = T.balanceOwed(contactName, sym, amount.toFixed(2));
+    else message = T.balanceOwes(contactName, sym, amount.toFixed(2));
 
     await ctx.reply(message, {
-      parse_mode: "Markdown",
+      parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
         [
-          Markup.button.callback("📋 View Logs", "view_logs"),
-          Markup.button.callback("➕ Add Transaction", "add_transaction"),
+          Markup.button.callback(T.btnLogs, 'view_logs'),
+          Markup.button.callback(T.btnAdd, 'add_transaction'),
         ],
-        [Markup.button.callback("👥 View Contacts", "go_contacts")],
+        [Markup.button.callback(T.btnContacts, 'go_contacts')],
       ]),
     });
   } catch (error) {
-    await ctx.reply("Something went wrong. Please try again.");
-    console.error("balance handler error:", error);
+    await ctx.reply(T.errSomethingWrong);
+    console.error('balance handler error:', error);
   }
 }
