@@ -15,7 +15,7 @@ export async function patchRelationshipCurrency(req: Request, res: Response): Pr
 
   try {
     const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
-    const relationshipId = req.params.id;
+    const relationshipId = req.params.id as string;
 
     // Verify the viewer is part of this relationship
     const relationship = await prisma.relationship.findUnique({

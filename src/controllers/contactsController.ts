@@ -23,7 +23,7 @@ export async function listContacts(req: Request, res: Response): Promise<void> {
 export async function getContactBalance(req: Request, res: Response): Promise<void> {
   try {
     const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
-    const contactId = req.params.id;
+    const contactId = req.params.id as string;
 
     const relationship = await getRelationshipBetween(viewer.id, contactId);
     if (!relationship) {
@@ -41,7 +41,7 @@ export async function getContactBalance(req: Request, res: Response): Promise<vo
 export async function getContactLogs(req: Request, res: Response): Promise<void> {
   try {
     const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
-    const contactId = req.params.id;
+    const contactId = req.params.id as string;
     const limit = Math.min(Number(req.query.limit) || 20, 100);
 
     const relationship = await getRelationshipBetween(viewer.id, contactId);
