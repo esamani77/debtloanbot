@@ -2,15 +2,21 @@ import 'dotenv/config';
 import express from 'express';
 import { bot } from './bot';
 import healthRouter from './routes/health';
+import apiRouter from './routes/api';
+import cors from "cors";
+import morgan from "morgan";
 
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
 const NODE_ENV = process.env.NODE_ENV ?? 'development';
 
 const app = express();
 app.use(express.json());
+app.use(cors());
+app.use(morgan("dev"));
 
 // Mount routes
 app.use('/', healthRouter);
+app.use('/api', apiRouter);
 
 async function main(): Promise<void> {
   if (NODE_ENV === 'production') {

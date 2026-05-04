@@ -17,7 +17,9 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "pg": "^8.20.0",
-    "telegraf": "^4.16.3"
+    "telegraf": "^4.16.3",
+    "cors": "^2.8.6",
+    "morgan": "^1.10.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
