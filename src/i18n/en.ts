@@ -103,8 +103,8 @@ export const en: Translations = {
     '⚠️ No contact selected. Please use /contacts to select a contact first.',
   txTypeQuestion: (name) =>
     `Adding a transaction with *${name}*.\n\nWhat type of transaction is this?`,
-  txTypeBorrow: '💸 I Borrowed (Debt)',
-  txTypeLend: '💰 I Lent (Loan)',
+  txTypeBorrow: '🔴 I Borrowed',
+  txTypeLend: '🟢 I Lent',
   txUseButtons: 'Please use the buttons above to select a transaction type.',
   txSelectedType: (label, sym) =>
     `Selected: *${label}*\n\nEnter the amount in ${sym} (e.g. 25.50):`,

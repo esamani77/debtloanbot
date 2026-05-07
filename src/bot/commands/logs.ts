@@ -8,6 +8,7 @@ import { TransactionSummary } from '../../models/types';
 import { currencySymbol } from '../../utils/currency';
 import { useT } from '../../i18n';
 import { Translations } from '../../i18n/types';
+import { replyOrEdit } from '../utils';
 
 function formatTransaction(tx: TransactionSummary, symbol: string, T: Translations): string {
   const date = tx.createdAt.toLocaleDateString('en-US', {
@@ -33,9 +34,10 @@ export async function logsHandler(ctx: BotContext): Promise<void> {
   const T = useT(ctx.session.userLanguage ?? Language.EN);
 
   if (!ctx.session.activeContactId) {
-    await ctx.reply(
+    await replyOrEdit(
+      ctx,
       T.errNoContact,
-      Markup.inlineKeyboard([[Markup.button.callback(T.btnContacts, 'go_contacts')]])
+      Markup.inlineKeyboard([[Markup.button.callback(T.btnContacts, 'go_contacts')]]),
     );
     return;
   }
@@ -50,9 +52,10 @@ export async function logsHandler(ctx: BotContext): Promise<void> {
 
     const relationship = await getRelationshipBetween(viewer.id, contactId);
     if (!relationship) {
-      await ctx.reply(
+      await replyOrEdit(
+        ctx,
         T.errNoRelationship,
-        Markup.inlineKeyboard([[Markup.button.callback(T.btnContacts, 'go_contacts')]])
+        Markup.inlineKeyboard([[Markup.button.callback(T.btnContacts, 'go_contacts')]]),
       );
       return;
     }
@@ -61,7 +64,7 @@ export async function logsHandler(ctx: BotContext): Promise<void> {
     const symbol = currencySymbol(relationship.currency);
 
     if (transactions.length === 0) {
-      await ctx.reply(T.logsEmpty(contactName), {
+      await replyOrEdit(ctx, T.logsEmpty(contactName), {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
           [Markup.button.callback(T.btnAdd, 'add_transaction')],
@@ -73,7 +76,7 @@ export async function logsHandler(ctx: BotContext): Promise<void> {
 
     const logLines = transactions.map((tx) => formatTransaction(tx, symbol, T)).join('\n\n');
 
-    await ctx.reply(`${T.logsTitle(contactName)}\n\n${logLines}`, {
+    await replyOrEdit(ctx, `${T.logsTitle(contactName)}\n\n${logLines}`, {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
         [

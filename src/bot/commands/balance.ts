@@ -6,6 +6,7 @@ import { getRelationshipBetween } from '../../services/relationshipService';
 import { getBalance } from '../../services/transactionService';
 import { currencySymbol } from '../../utils/currency';
 import { useT } from '../../i18n';
+import { replyOrEdit } from '../utils';
 
 export async function balanceHandler(ctx: BotContext): Promise<void> {
   if (!ctx.from) {
@@ -16,9 +17,10 @@ export async function balanceHandler(ctx: BotContext): Promise<void> {
   const T = useT(ctx.session.userLanguage ?? Language.EN);
 
   if (!ctx.session.activeContactId) {
-    await ctx.reply(
+    await replyOrEdit(
+      ctx,
       T.errNoContact,
-      Markup.inlineKeyboard([[Markup.button.callback(T.btnContacts, 'go_contacts')]])
+      Markup.inlineKeyboard([[Markup.button.callback(T.btnContacts, 'go_contacts')]]),
     );
     return;
   }
@@ -32,9 +34,10 @@ export async function balanceHandler(ctx: BotContext): Promise<void> {
 
     const relationship = await getRelationshipBetween(viewer.id, contactId);
     if (!relationship) {
-      await ctx.reply(
+      await replyOrEdit(
+        ctx,
         T.errNoRelationship,
-        Markup.inlineKeyboard([[Markup.button.callback(T.btnContacts, 'go_contacts')]])
+        Markup.inlineKeyboard([[Markup.button.callback(T.btnContacts, 'go_contacts')]]),
       );
       return;
     }
@@ -47,7 +50,7 @@ export async function balanceHandler(ctx: BotContext): Promise<void> {
     else if (direction === 'owed') message = T.balanceOwed(contactName, sym, amount.toFixed(2));
     else message = T.balanceOwes(contactName, sym, amount.toFixed(2));
 
-    await ctx.reply(message, {
+    await replyOrEdit(ctx, message, {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
         [

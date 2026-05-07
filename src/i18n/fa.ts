@@ -105,8 +105,8 @@ export const fa: Translations = {
     '⚠️ مخاطبی انتخاب نشده. لطفاً ابتدا از /contacts یک مخاطب انتخاب کنید.',
   txTypeQuestion: (name) =>
     `در حال افزودن تراکنش با *${name}*.\n\nنوع تراکنش چیست؟`,
-  txTypeBorrow: '💸 قرض گرفتم (بدهی)',
-  txTypeLend: '💰 قرض دادم (وام)',
+  txTypeBorrow: '🔴 قرض گرفتم',
+  txTypeLend: '🟢 قرض دادم',
   txUseButtons: 'لطفاً از دکمه‌های بالا نوع تراکنش را انتخاب کنید.',
   txSelectedType: (label, sym) =>
     `انتخاب شد: *${label}*\n\nمبلغ را به ${sym} وارد کنید (مثلاً 25.50):`,

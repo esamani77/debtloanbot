@@ -5,6 +5,8 @@ import healthRouter from "./routes/health";
 import apiRouter from "./routes/api";
 import cors from "cors";
 import morgan from "morgan";
+import { apiReference } from "@scalar/express-api-reference";
+import { openapiSpec } from "./openapi";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const NODE_ENV = process.env.NODE_ENV ?? "development";
@@ -22,6 +24,20 @@ app.use(
 );
 
 app.use(morgan("‍dev"));
+
+// OpenAPI spec endpoint
+app.get("/openapi.json", (_req, res) => {
+  res.json(openapiSpec);
+});
+
+// Scalar API docs
+app.use(
+  "/docs",
+  apiReference({
+    spec: { url: "/openapi.json" },
+    theme: "saturn",
+  }),
+);
 
 // Mount routes
 app.use("/", healthRouter);
