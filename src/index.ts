@@ -7,7 +7,6 @@ import healthRouter from "./routes/health";
 import apiRouter from "./routes/api";
 import cors from "cors";
 import morgan from "morgan";
-import { apiReference } from "@scalar/express-api-reference";
 import { openapiSpec } from "./openapi";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -32,15 +31,6 @@ app.get("/openapi.json", (_req, res) => {
   res.json(openapiSpec);
 });
 
-// Scalar API docs
-app.use(
-  "/docs",
-  apiReference({
-    spec: { url: "/openapi.json" },
-    theme: "saturn",
-  }),
-);
-
 // Mount routes
 app.use("/", healthRouter);
 app.use("/api", apiRouter);
@@ -49,6 +39,15 @@ app.use("/api", apiRouter);
 Sentry.setupExpressErrorHandler(app);
 
 async function main(): Promise<void> {
+  // Dynamic import required: @scalar/express-api-reference is ESM-only
+  const { apiReference } = await import("@scalar/express-api-reference");
+  app.use(
+    "/docs",
+    apiReference({
+      spec: { url: "/openapi.json" },
+      theme: "saturn",
+    }),
+  );
   if (NODE_ENV === "production") {
     const WEBHOOK_URL = process.env.WEBHOOK_URL;
     if (!WEBHOOK_URL) {
