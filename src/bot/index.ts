@@ -13,6 +13,9 @@ import { showCurrencyPicker, setCurrencyAction } from './commands/currency';
 import { setLangAction } from './commands/language';
 import { findUserByTelegramId } from '../services/userService';
 import { useT } from '../i18n';
+import { en } from '../i18n/en';
+import { fa } from '../i18n/fa';
+import { Sentry } from '../sentry';
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 if (!BOT_TOKEN) {
@@ -56,23 +59,25 @@ bot.command('add', (ctx) => ctx.scene.enter('ADD_TRANSACTION'));
 bot.command('logs', logsHandler);
 bot.command('help', helpHandler);
 
-// Language selection
-bot.action(/^set_lang:(.+)$/, async (ctx) => {
-  await setLangAction(ctx, ctx.match[1] as Language);
-});
+// Language selection via ReplyKeyboard
+bot.hears('🇬🇧 English', async (ctx) => setLangAction(ctx, Language.EN));
+bot.hears('🇮🇷 فارسی', async (ctx) => setLangAction(ctx, Language.FA));
 
 bot.action('change_lang', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.reply(
     '🌐 Choose your language:\n\nزبان خود را انتخاب کنید:',
-    Markup.inlineKeyboard([
-      [
-        Markup.button.callback('🇬🇧 English', 'set_lang:EN'),
-        Markup.button.callback('🇮🇷 فارسی', 'set_lang:FA'),
-      ],
-    ])
+    Markup.keyboard([
+      [Markup.button.text('🇬🇧 English'), Markup.button.text('🇮🇷 فارسی')],
+    ]).resize().oneTime(),
   );
 });
+
+// Main menu ReplyKeyboard handlers
+bot.hears([en.btnContacts, fa.btnContacts], async (ctx) => contactsHandler(ctx));
+bot.hears([en.btnInviteFriend, fa.btnInviteFriend], async (ctx) => inviteHandler(ctx));
+bot.hears([en.btnHelp, fa.btnHelp], async (ctx) => helpHandler(ctx));
+bot.hears([en.btnAdd, fa.btnAdd], async (ctx) => ctx.scene.enter('ADD_TRANSACTION'));
 
 // Contact selection
 bot.action(/^select_contact:(.+)$/, selectContactAction);
@@ -140,6 +145,16 @@ bot.action('add_transaction', async (ctx) => {
 // Catch-all for unhandled callbacks
 bot.on('callback_query', async (ctx) => {
   await ctx.answerCbQuery('Unknown action.');
+});
+
+// Global bot error handler
+bot.catch((err, ctx) => {
+  Sentry.withScope((scope) => {
+    scope.setTag('updateType', ctx.updateType);
+    scope.setUser({ id: String(ctx.from?.id), username: ctx.from?.username });
+    Sentry.captureException(err);
+  });
+  console.error(`Bot error for update ${ctx.update.update_id}:`, err);
 });
 
 export default bot;

@@ -1,10 +1,10 @@
-import { Markup } from 'telegraf';
-import { BotContext } from '../../models/types';
-import { parseInvitePayload } from '../../utils/inviteLink';
+import { Markup } from "telegraf";
+import { BotContext } from "../../models/types";
+import { parseInvitePayload } from "../../utils/inviteLink";
 
 export async function startHandler(ctx: BotContext): Promise<void> {
   if (!ctx.from) {
-    await ctx.reply('Could not identify user. Please try again.');
+    await ctx.reply("Could not identify user. Please try again.");
     return;
   }
 
@@ -17,12 +17,9 @@ export async function startHandler(ctx: BotContext): Promise<void> {
   }
 
   await ctx.reply(
-    '🌐 Choose your language:\n\nزبان خود را انتخاب کنید:',
-    Markup.inlineKeyboard([
-      [
-        Markup.button.callback('🇬🇧 English', 'set_lang:EN'),
-        Markup.button.callback('🇮🇷 فارسی', 'set_lang:FA'),
-      ],
-    ])
+    "🌐 Choose your language:\n\nزبان خود را انتخاب کنید:",
+    Markup.keyboard([
+      [Markup.button.text("🇬🇧 English"), Markup.button.text("🇮🇷 فارسی")],
+    ]).resize().oneTime(),
   );
 }

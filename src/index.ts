@@ -1,4 +1,6 @@
 import "dotenv/config";
+import { initSentry, Sentry } from "./sentry";
+initSentry();
 import express from "express";
 import { bot } from "./bot";
 import healthRouter from "./routes/health";
@@ -43,6 +45,9 @@ app.use(
 app.use("/", healthRouter);
 app.use("/api", apiRouter);
 
+// Sentry error handler — must be after all routes
+Sentry.setupExpressErrorHandler(app);
+
 async function main(): Promise<void> {
   if (NODE_ENV === "production") {
     const WEBHOOK_URL = process.env.WEBHOOK_URL;
@@ -76,6 +81,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
+  Sentry.captureException(err);
   console.error("Failed to start DebtMate:", err);
   process.exit(1);
 });
