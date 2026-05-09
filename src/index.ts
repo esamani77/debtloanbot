@@ -39,15 +39,19 @@ app.use("/api", apiRouter);
 Sentry.setupExpressErrorHandler(app);
 
 async function main(): Promise<void> {
-  // Dynamic import required: @scalar/express-api-reference is ESM-only
-  const { apiReference } = await import("@scalar/express-api-reference");
-  app.use(
-    "/docs",
-    apiReference({
-      spec: { url: "/openapi.json" },
-      theme: "saturn",
-    }),
-  );
+  // @scalar/express-api-reference is ESM-only; skip in production where the
+  // bundler (esbuild) converts import() to require() and breaks on ESM packages.
+  if (NODE_ENV !== "production") {
+    const { apiReference } = await import("@scalar/express-api-reference");
+    app.use(
+      "/docs",
+      apiReference({
+        spec: { url: "/openapi.json" },
+        theme: "saturn",
+      }),
+    );
+  }
+
   if (NODE_ENV === "production") {
     const WEBHOOK_URL = process.env.WEBHOOK_URL;
     if (!WEBHOOK_URL) {
