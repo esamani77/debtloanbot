@@ -1,13 +1,20 @@
-import { Request, Response } from 'express';
-import { TransactionType } from '@prisma/client';
-import { findOrCreateUser, findUserById, getDisplayName } from '../services/userService';
-import { getRelationshipBetween } from '../services/relationshipService';
-import { addTransaction } from '../services/transactionService';
-import { bot } from '../bot';
-import { useT } from '../i18n';
-import { currencySymbol } from '../utils/currency';
+import { Request, Response } from "express";
+import { TransactionType } from "@prisma/client";
+import {
+  findOrCreateUser,
+  findUserById,
+  getDisplayName,
+} from "../services/userService";
+import { getRelationshipBetween } from "../services/relationshipService";
+import { addTransaction } from "../services/transactionService";
+import { bot } from "../bot";
+import { useT } from "../i18n";
+import { currencySymbol } from "../utils/currency";
 
-export async function createTransaction(req: Request, res: Response): Promise<void> {
+export async function createTransaction(
+  req: Request,
+  res: Response,
+): Promise<void> {
   const { contactId, amount, type, note } = req.body as {
     contactId?: string;
     amount?: number;
@@ -15,25 +22,30 @@ export async function createTransaction(req: Request, res: Response): Promise<vo
     note?: string;
   };
 
-  if (!contactId || typeof contactId !== 'string') {
-    res.status(400).json({ error: 'contactId is required.' });
+  if (!contactId || typeof contactId !== "string") {
+    res.status(400).json({ error: "contactId is required." });
     return;
   }
-  if (typeof amount !== 'number' || amount <= 0) {
-    res.status(400).json({ error: 'amount must be a positive number.' });
+  if (typeof amount !== "number" || amount <= 0) {
+    res.status(400).json({ error: "amount must be a positive number." });
     return;
   }
-  if (type !== 'LOAN' && type !== 'DEBT') {
-    res.status(400).json({ error: 'type must be LOAN or DEBT.' });
+  if (type !== "LOAN" && type !== "DEBT") {
+    res.status(400).json({ error: "type must be LOAN or DEBT." });
     return;
   }
 
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findOrCreateUser(
+      res.locals.telegramId,
+      res.locals.telegramName,
+    );
 
     const relationship = await getRelationshipBetween(viewer.id, contactId);
     if (!relationship) {
-      res.status(404).json({ error: 'No relationship found with this contact.' });
+      res
+        .status(404)
+        .json({ error: "No relationship found with this contact." });
       return;
     }
 
@@ -51,12 +63,22 @@ export async function createTransaction(req: Request, res: Response): Promise<vo
       const sym = currencySymbol(relationship.currency);
       const contactT = useT(contact.language);
       const notifyMsg =
-        type === 'DEBT'
-          ? contactT.notifyBorrowed(getDisplayName(viewer), sym, transaction.amount.toFixed(2))
-          : contactT.notifyLent(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
-      const fullMsg = note ? `${notifyMsg}\n${contactT.notifyNote(note)}` : notifyMsg;
+        type === "DEBT"
+          ? contactT.notifyBorrowed(
+              getDisplayName(viewer),
+              sym,
+              transaction.amount.toFixed(2),
+            )
+          : contactT.notifyLent(
+              getDisplayName(viewer),
+              sym,
+              transaction.amount.toFixed(2),
+            );
+      const fullMsg = note
+        ? `${notifyMsg}\n${contactT.notifyNote(note)}`
+        : notifyMsg;
       bot.telegram
-        .sendMessage(contact.telegramId, fullMsg, { parse_mode: 'Markdown' })
+        .sendMessage(contact.telegramId, fullMsg, { parse_mode: "Markdown" })
         .catch(() => {});
     }
 
@@ -69,6 +91,6 @@ export async function createTransaction(req: Request, res: Response): Promise<vo
       createdAt: transaction.createdAt,
     });
   } catch {
-    res.status(500).json({ error: 'Failed to create transaction.' });
+    res.status(500).json({ error: "Failed to create transaction." });
   }
 }

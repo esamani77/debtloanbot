@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { findOrCreateUser } from '../services/userService';
+import { findOrCreateUser, getDisplayName } from '../services/userService';
 import { getUserRelationships, getRelationshipBetween } from '../services/relationshipService';
 import { getBalance, getRecentTransactions } from '../services/transactionService';
 
@@ -10,7 +10,7 @@ export async function listContacts(req: Request, res: Response): Promise<void> {
 
     res.json(
       relationships.map(({ contact, relationship, netBalance }) => ({
-        contact: { id: contact.id, name: contact.name },
+        contact: { id: contact.id, name: getDisplayName(contact) },
         relationship: { id: relationship.id, currency: relationship.currency },
         netBalance,
       }))
