@@ -14,6 +14,9 @@ export interface Translations {
   btnSetCurrency: string;
   btnChangeLang: string;
   btnInviteFriend: string;
+  btnAccounts: string;
+  btnAddAccount: string;
+  btnWithdrawalInfo: string;
 
   // Common errors
   errCannotIdentify: string;
@@ -90,4 +93,24 @@ export interface Translations {
   currencyPickerTitle: (name: string) => string;
   currencyPickerDesc: string;
   currencyUpdated: (currLabel: string, name: string, symbol: string) => string;
+
+  // Bank accounts — own management
+  acctTitle: string;
+  acctEmpty: string;
+  acctItem: (index: number, bankName: string, name: string, cardNumber: string) => string;
+  acctEnterName: string;
+  acctEnterCardNumber: string;
+  acctInvalidCardNumber: string;
+  acctEnterAccountNumber: string;
+  acctEnterBankName: string;
+  acctSaved: string;
+  acctUpdated: string;
+  acctDeleted: string;
+  acctConfirmDelete: (bankName: string, name: string) => string;
+  acctCancelled: string;
+
+  // Withdrawal info — viewing a contact's accounts
+  withdrawalTitle: (contactName: string) => string;
+  withdrawalEmpty: (contactName: string) => string;
+  withdrawalItem: (bankName: string, name: string, cardNumber: string, accountNumber: string) => string;
 }

@@ -44,6 +44,7 @@ export async function selectContactAction(ctx: BotContext): Promise<void> {
           Markup.button.callback(T.btnLogs, 'view_logs'),
         ],
         [Markup.button.callback(T.btnAdd, 'add_transaction')],
+        [Markup.button.callback(T.btnWithdrawalInfo, `view_withdrawal:${contactId}`)],
         [Markup.button.callback(T.btnSetCurrency, 'set_currency')],
         [Markup.button.callback(T.btnBackContacts, 'go_contacts')],
       ]),

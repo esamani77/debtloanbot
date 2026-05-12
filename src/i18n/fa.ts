@@ -16,6 +16,9 @@ export const fa: Translations = {
   btnSetCurrency: '💱 تغییر ارز',
   btnChangeLang: '🌐 تغییر زبان',
   btnInviteFriend: '📨 دعوت دوست',
+  btnAccounts: '🏦 حساب‌های بانکی من',
+  btnAddAccount: '➕ افزودن حساب',
+  btnWithdrawalInfo: '💳 اطلاعات برداشت',
 
   // Common errors
   errCannotIdentify: 'شناسایی کاربر ممکن نیست. لطفاً دوباره تلاش کنید.',
@@ -69,7 +72,7 @@ export const fa: Translations = {
 
   // Invite
   inviteText: (link) =>
-    `📨 *لینک دعوت شما*\n\nاین لینک را با دوستتان به اشتراک بگذارید تا در DebtMate متصل شوید:\n\n\`${link}\`\n\nوقتی لینک را بزنند و ربات را شروع کنند، به‌طور خودکار متصل می‌شوید!`,
+    `📨 *لینک دعوت شما*\n\nاین لینک را با دوستتان به اشتراک بگذارید تا در DebtMate متصل شوید:\n\n${link}\n\nوقتی لینک را بزنند و ربات را شروع کنند، به‌طور خودکار متصل می‌شوید!`,
 
   // Contacts
   contactsTitle: '👥 *مخاطبین شما*',
@@ -132,6 +135,31 @@ export const fa: Translations = {
   notifyLent: (name, sym, amount) =>
     `💰 *${name}* یک تراکنش با شما ثبت کرد:\nآن‌ها *${sym}${amount}* به شما قرض دادند.`,
   notifyNote: (note) => `یادداشت: ${note}`,
+
+  // Bank accounts
+  acctTitle: '🏦 *حساب‌های بانکی شما*',
+  acctEmpty: 'هنوز حساب بانکی ثبت نشده. یک حساب اضافه کنید تا مخاطبین بتوانند پرداخت کنند.',
+  acctItem: (i, bankName, name, card) =>
+    `${i}. *${bankName}*\n   👤 ${name}  💳 ${card}`,
+  acctEnterName: '👤 نام صاحب حساب را وارد کنید:',
+  acctEnterCardNumber: '💳 شماره کارت را وارد کنید (۱۶ رقم):',
+  acctInvalidCardNumber: '⚠️ شماره کارت نامعتبر. لطفاً دقیقاً ۱۶ رقم وارد کنید:',
+  acctEnterAccountNumber: '🏦 شماره حساب یا شبا را وارد کنید (برای ریال با IR شروع می‌شود):',
+  acctEnterBankName: '🏛️ نام بانک را وارد کنید:',
+  acctSaved: '✅ حساب بانکی با موفقیت ذخیره شد!',
+  acctUpdated: '✅ حساب بانکی با موفقیت به‌روزرسانی شد!',
+  acctDeleted: '🗑️ حساب بانکی حذف شد.',
+  acctConfirmDelete: (bankName, name) =>
+    `🗑️ حذف *${bankName}* (${name})؟\n\nاین عملیات قابل بازگشت نیست.`,
+  acctCancelled: 'لغو شد.',
+
+  // Withdrawal info
+  withdrawalTitle: (contactName) =>
+    `💳 *حساب‌های بانکی ${contactName}*`,
+  withdrawalEmpty: (contactName) =>
+    `${contactName} هنوز حساب بانکی ثبت نکرده است.`,
+  withdrawalItem: (bankName, name, card, account) =>
+    `🏛️ *${bankName}*\n👤 ${name}\n💳 شماره کارت: \`${card}\`\n🔢 شماره حساب: \`${account}\``,
 
   // Currency
   currencyPickerTitle: (name) =>

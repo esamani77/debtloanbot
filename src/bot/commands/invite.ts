@@ -22,8 +22,7 @@ export async function inviteHandler(ctx: BotContext): Promise<void> {
     await ctx.reply(T.inviteText(inviteLink), {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.url('🔗 Open Invite Link', inviteLink)],
-        [Markup.button.callback(T.btnContacts, 'go_contacts')],
+        [Markup.button.url('📤 Share Invite Link', `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}`)],
       ]),
     });
   } catch (error) {

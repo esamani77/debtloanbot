@@ -16,6 +16,9 @@ export const en: Translations = {
   btnSetCurrency: '💱 Set Currency',
   btnChangeLang: '🌐 Change Language',
   btnInviteFriend: '📨 Invite a Friend',
+  btnAccounts: '🏦 My Bank Accounts',
+  btnAddAccount: '➕ Add Account',
+  btnWithdrawalInfo: '💳 Withdrawal Info',
 
   // Common errors
   errCannotIdentify: 'Could not identify user. Please try again.',
@@ -129,6 +132,31 @@ export const en: Translations = {
   notifyLent: (name, sym, amount) =>
     `💰 *${name}* recorded a transaction with you:\nThey lent *${sym}${amount}* to you.`,
   notifyNote: (note) => `Note: ${note}`,
+
+  // Bank accounts
+  acctTitle: '🏦 *Your Bank Accounts*',
+  acctEmpty: 'No bank accounts yet. Add one so contacts can pay you.',
+  acctItem: (i, bankName, name, card) =>
+    `${i}. *${bankName}*\n   👤 ${name}  💳 ${card}`,
+  acctEnterName: '👤 Enter the account holder name:',
+  acctEnterCardNumber: '💳 Enter the card number (16 digits):',
+  acctInvalidCardNumber: '⚠️ Invalid card number. Please enter exactly 16 digits:',
+  acctEnterAccountNumber: '🏦 Enter the account number (SHEBA/IBAN for IRR, e.g. IR…):',
+  acctEnterBankName: '🏛️ Enter the bank name:',
+  acctSaved: '✅ Bank account saved successfully!',
+  acctUpdated: '✅ Bank account updated successfully!',
+  acctDeleted: '🗑️ Bank account deleted.',
+  acctConfirmDelete: (bankName, name) =>
+    `🗑️ Delete *${bankName}* (${name})?\n\nThis cannot be undone.`,
+  acctCancelled: 'Cancelled.',
+
+  // Withdrawal info
+  withdrawalTitle: (contactName) =>
+    `💳 *Bank Accounts of ${contactName}*`,
+  withdrawalEmpty: (contactName) =>
+    `${contactName} hasn't added any bank accounts yet.`,
+  withdrawalItem: (bankName, name, card, account) =>
+    `🏛️ *${bankName}*\n👤 ${name}\n💳 Card: \`${card}\`\n🔢 Account: \`${account}\``,
 
   // Currency
   currencyPickerTitle: (name) =>

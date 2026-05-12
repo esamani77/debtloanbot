@@ -2,6 +2,7 @@ import { Telegraf, Scenes, session, Markup } from "telegraf";
 import { Currency, Language } from "@prisma/client";
 import { BotContext, SessionData } from "../models/types";
 import { addTransactionScene } from "./scenes/addTransaction";
+import { bankAccountScene } from "./scenes/bankAccount";
 import { startHandler } from "./commands/start";
 import { inviteHandler } from "./commands/invite";
 import { contactsHandler } from "./commands/contacts";
@@ -11,6 +12,13 @@ import { logsHandler } from "./commands/logs";
 import { helpHandler } from "./commands/help";
 import { showCurrencyPicker, setCurrencyAction } from "./commands/currency";
 import { setLangAction } from "./commands/language";
+import {
+  bankAccountsHandler,
+  handleDeleteConfirm,
+  handleDeleteExecute,
+  withdrawalInfoHandler,
+} from "./commands/bankAccounts";
+import { getBankAccountById } from "../services/bankAccountService";
 import { findUserByTelegramId } from "../services/userService";
 import { useT } from "../i18n";
 import { en } from "../i18n/en";
@@ -111,7 +119,10 @@ bot.use(async (ctx, next) => {
 });
 
 // Stage (scene) middleware
-const stage = new Scenes.Stage<BotContext>([addTransactionScene]);
+const stage = new Scenes.Stage<BotContext>([
+  addTransactionScene,
+  bankAccountScene,
+]);
 bot.use(stage.middleware());
 
 // Command handlers
@@ -122,6 +133,7 @@ bot.command("balance", balanceHandler);
 bot.command("add", (ctx) => ctx.scene.enter("ADD_TRANSACTION"));
 bot.command("logs", logsHandler);
 bot.command("help", helpHandler);
+bot.command("accounts", bankAccountsHandler);
 
 // Language selection via ReplyKeyboard
 bot.hears("🇬🇧 English", async (ctx) => setLangAction(ctx, Language.EN));
@@ -169,6 +181,7 @@ bot.action("go_back_contact", async (ctx) => {
   await ctx.answerCbQuery();
   const T = useT(ctx.session.userLanguage ?? Language.EN);
   const contactName = ctx.session.activeContactName ?? "?";
+  const contactId = ctx.session.activeContactId ?? "";
   await ctx.editMessageText(T.selectActiveContact(contactName), {
     parse_mode: "Markdown",
     ...Markup.inlineKeyboard([
@@ -177,6 +190,10 @@ bot.action("go_back_contact", async (ctx) => {
         Markup.button.callback(T.btnLogs, "view_logs"),
       ],
       [Markup.button.callback(T.btnAdd, "add_transaction")],
+      {
+        ...Markup.button.callback(T.btnWithdrawalInfo, "view_withdrawal"),
+        style: "primary",
+      } as any,
       [Markup.button.callback(T.btnSetCurrency, "set_currency")],
       [Markup.button.callback(T.btnBackContacts, "go_contacts")],
     ]),
@@ -212,6 +229,49 @@ bot.action("view_logs", async (ctx) => {
 bot.action("add_transaction", async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.scene.enter("ADD_TRANSACTION");
+});
+
+// Bank accounts
+bot.action("go_accounts", async (ctx) => {
+  await ctx.answerCbQuery();
+  await bankAccountsHandler(ctx);
+});
+
+bot.action("acct_add", async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.scene.enter("BANK_ACCOUNT", { mode: "add" });
+});
+
+bot.action(/^acct_edit:(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const accountId = ctx.match[1];
+  const account = await getBankAccountById(accountId);
+  if (!account) {
+    const T = useT(ctx.session.userLanguage ?? Language.EN);
+    await ctx.reply(T.errSomethingWrong);
+    return;
+  }
+  await ctx.scene.enter("BANK_ACCOUNT", {
+    mode: "edit",
+    editId: accountId,
+    prefillName: account.name,
+    prefillCardNumber: account.cardNumber,
+    prefillAccountNumber: account.accountNumber,
+    prefillBankName: account.bankName,
+  });
+});
+
+bot.action(/^acct_delete:(.+)$/, async (ctx) => {
+  await handleDeleteConfirm(ctx, ctx.match[1]);
+});
+
+bot.action(/^acct_delete_confirm:(.+)$/, async (ctx) => {
+  await handleDeleteExecute(ctx, ctx.match[1]);
+});
+
+// Withdrawal info for a contact
+bot.action(/^view_withdrawal:(.+)$/, async (ctx) => {
+  await withdrawalInfoHandler(ctx, ctx.match[1]);
 });
 
 // Membership re-check
