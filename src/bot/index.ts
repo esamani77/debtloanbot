@@ -12,6 +12,7 @@ import { logsHandler } from "./commands/logs";
 import { helpHandler } from "./commands/help";
 import { showCurrencyPicker, setCurrencyAction } from "./commands/currency";
 import { setLangAction } from "./commands/language";
+import { profileHandler } from "./commands/profile";
 import {
   bankAccountsHandler,
   handleDeleteConfirm,
@@ -134,6 +135,7 @@ bot.command("add", (ctx) => ctx.scene.enter("ADD_TRANSACTION"));
 bot.command("logs", logsHandler);
 bot.command("help", helpHandler);
 bot.command("accounts", bankAccountsHandler);
+bot.command("profile", profileHandler);
 
 // Language selection via ReplyKeyboard
 bot.hears("🇬🇧 English", async (ctx) => setLangAction(ctx, Language.EN));
@@ -162,6 +164,7 @@ bot.hears([en.btnHelp, fa.btnHelp], async (ctx) => helpHandler(ctx));
 bot.hears([en.btnAdd, fa.btnAdd], async (ctx) =>
   ctx.scene.enter("ADD_TRANSACTION"),
 );
+bot.hears([en.btnProfile, fa.btnProfile], async (ctx) => profileHandler(ctx));
 
 // Contact selection
 bot.action(/^select_contact:(.+)$/, selectContactAction);
@@ -229,6 +232,12 @@ bot.action("view_logs", async (ctx) => {
 bot.action("add_transaction", async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.scene.enter("ADD_TRANSACTION");
+});
+
+// Profile
+bot.action("view_profile", async (ctx) => {
+  await ctx.answerCbQuery();
+  await profileHandler(ctx);
 });
 
 // Bank accounts

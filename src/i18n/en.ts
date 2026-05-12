@@ -19,6 +19,12 @@ export const en: Translations = {
   btnAccounts: '🏦 My Bank Accounts',
   btnAddAccount: '➕ Add Account',
   btnWithdrawalInfo: '💳 Withdrawal Info',
+  btnProfile: '👤 Profile',
+
+  // Profile
+  profileTitle: '👤 *Your Profile*',
+  profileInfo: (name, lang) => `*Name:* ${name}\n*Language:* ${lang}`,
+  profileBtnBankAccounts: (n) => `🏦 Bank Accounts (${n})`,
 
   // Common errors
   errCannotIdentify: 'Could not identify user. Please try again.',

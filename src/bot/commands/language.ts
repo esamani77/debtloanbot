@@ -8,8 +8,9 @@ import { useT } from '../../i18n';
 
 export function mainMenuKeyboard(T: ReturnType<typeof useT>) {
   return Markup.keyboard([
-    [Markup.button.text(T.btnInviteFriend), Markup.button.text(T.btnContacts)],
-    [Markup.button.text(T.btnAdd), Markup.button.text(T.btnHelp)],
+    [Markup.button.text(T.btnContacts), Markup.button.text(T.btnAdd)],
+    [Markup.button.text(T.btnInviteFriend), Markup.button.text(T.btnProfile)],
+    [Markup.button.text(T.btnHelp)],
   ]).resize();
 }
 

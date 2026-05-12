@@ -19,6 +19,12 @@ export const fa: Translations = {
   btnAccounts: '🏦 حساب‌های بانکی من',
   btnAddAccount: '➕ افزودن حساب',
   btnWithdrawalInfo: '💳 اطلاعات برداشت',
+  btnProfile: '👤 پروفایل',
+
+  // Profile
+  profileTitle: '👤 *پروفایل شما*',
+  profileInfo: (name, lang) => `*نام:* ${name}\n*زبان:* ${lang}`,
+  profileBtnBankAccounts: (n) => `🏦 حساب‌های بانکی (${n})`,
 
   // Common errors
   errCannotIdentify: 'شناسایی کاربر ممکن نیست. لطفاً دوباره تلاش کنید.',

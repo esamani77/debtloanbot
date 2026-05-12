@@ -30,11 +30,14 @@ export async function bankAccountsHandler(ctx: BotContext): Promise<void> {
     const user = await findOrCreateUser(telegramId, fullName);
     const accounts = await getUserBankAccounts(user.id);
 
+    const backRow = [Markup.button.callback(T.btnBack, 'view_profile')];
+
     if (accounts.length === 0) {
       await ctx.reply(`${T.acctTitle}\n\n${T.acctEmpty}`, {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
           [Markup.button.callback(T.btnAddAccount, 'acct_add')],
+          backRow,
         ]),
       });
       return;
@@ -54,6 +57,7 @@ export async function bankAccountsHandler(ctx: BotContext): Promise<void> {
       ...Markup.inlineKeyboard([
         ...editDeleteRows,
         [Markup.button.callback(T.btnAddAccount, 'acct_add')],
+        backRow,
       ]),
     });
   } catch (error) {

@@ -17,6 +17,12 @@ export interface Translations {
   btnAccounts: string;
   btnAddAccount: string;
   btnWithdrawalInfo: string;
+  btnProfile: string;
+
+  // Profile
+  profileTitle: string;
+  profileInfo: (name: string, langLabel: string) => string;
+  profileBtnBankAccounts: (count: number) => string;
 
   // Common errors
   errCannotIdentify: string;
