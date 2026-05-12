@@ -1,6 +1,14 @@
 import { Translations } from './types';
 
 export const fa: Translations = {
+  // Nickname
+  nicknamePrompt: (defaultName) =>
+    `دیگران شما را با چه نامی بشناسند؟\n\n*پیش‌فرض:* ${defaultName}\n\nیک نام دلخواه تایپ کنید یا دکمه زیر را بزنید:`,
+  nicknameSet: (name) => `✅ نام نمایشی شما *${name}* تنظیم شد!`,
+  nicknameUpdated: (name) => `✅ نام نمایشی به *${name}* بروزرسانی شد.`,
+  btnKeepTelegramName: 'همان نام تلگرام',
+  btnChangeNickname: '✏️ تغییر نام نمایشی',
+
   // Buttons
   btnInvite: '📨 دریافت لینک دعوت',
   btnContacts: '📋 مخاطبین',

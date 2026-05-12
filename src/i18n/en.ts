@@ -1,6 +1,14 @@
 import { Translations } from './types';
 
 export const en: Translations = {
+  // Nickname
+  nicknamePrompt: (defaultName) =>
+    `What nickname should others see?\n\n*Default:* ${defaultName}\n\nType a custom nickname or press the button below:`,
+  nicknameSet: (name) => `✅ Your nickname is set to *${name}*!`,
+  nicknameUpdated: (name) => `✅ Nickname updated to *${name}*.`,
+  btnKeepTelegramName: 'Keep my Telegram name',
+  btnChangeNickname: '✏️ Change Nickname',
+
   // Buttons
   btnInvite: '📨 Get Invite Link',
   btnContacts: '📋 View Contacts',

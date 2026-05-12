@@ -1,7 +1,7 @@
 import { Markup } from 'telegraf';
 import { Language } from '@prisma/client';
 import { BotContext } from '../../models/types';
-import { findOrCreateUser, findUserById, setUserLanguage } from '../../services/userService';
+import { findOrCreateUser, findUserById, setUserLanguage, getDisplayName } from '../../services/userService';
 import { getOrCreateRelationship } from '../../services/relationshipService';
 import { parseInvitePayload } from '../../utils/inviteLink';
 import { useT } from '../../i18n';
@@ -29,6 +29,7 @@ export async function setLangAction(ctx: BotContext, language: Language): Promis
     ctx.session.userLanguage = language;
 
     const T = useT(language);
+    const isNew = user.createdAt.getTime() > Date.now() - 5000;
 
     const pendingInvite = ctx.session.pendingInvite;
     ctx.session.pendingInvite = undefined;
@@ -40,24 +41,25 @@ export async function setLangAction(ctx: BotContext, language: Language): Promis
         const inviter = await findUserById(inviterId);
 
         if (!inviter) {
-          await ctx.reply(T.startInviteInvalid(name), {
-            parse_mode: 'Markdown',
-            ...Markup.keyboard([
-              [Markup.button.text(T.btnInviteFriend), Markup.button.text(T.btnHelp)],
-            ]).resize(),
-          });
+          await ctx.reply(T.startInviteInvalid(name), { parse_mode: 'Markdown' });
+          if (isNew) {
+            await ctx.scene.enter('NICKNAME_SETUP', { telegramName: name, mode: 'onboarding' });
+          } else {
+            await ctx.reply('​', {
+              parse_mode: 'Markdown',
+              ...Markup.keyboard([
+                [Markup.button.text(T.btnInviteFriend), Markup.button.text(T.btnHelp)],
+              ]).resize(),
+            });
+          }
           return;
         }
 
         const { created } = await getOrCreateRelationship(user.id, inviter.id);
 
         if (created) {
-          await ctx.reply(T.startConnected(name, inviter.name), {
+          await ctx.reply(T.startConnected(name, getDisplayName(inviter)), {
             parse_mode: 'Markdown',
-            ...Markup.keyboard([
-              [Markup.button.text(T.btnContacts), Markup.button.text(T.btnAdd)],
-              [Markup.button.text(T.btnHelp)],
-            ]).resize(),
           });
 
           const inviterT = useT(inviter.language);
@@ -70,24 +72,32 @@ export async function setLangAction(ctx: BotContext, language: Language): Promis
             })
             .catch(() => {});
         } else {
-          await ctx.reply(T.startAlreadyConnected(name, inviter.name), {
+          await ctx.reply(T.startAlreadyConnected(name, getDisplayName(inviter)), {
             parse_mode: 'Markdown',
-            ...Markup.keyboard([
-              [Markup.button.text(T.btnContacts), Markup.button.text(T.btnHelp)],
-            ]).resize(),
           });
+        }
+
+        if (isNew) {
+          await ctx.scene.enter('NICKNAME_SETUP', { telegramName: name, mode: 'onboarding' });
+        } else {
+          await ctx.reply('​', { parse_mode: 'Markdown', ...mainMenuKeyboard(T) });
         }
         return;
       }
     }
 
-    const isReturning = user.createdAt.getTime() < Date.now() - 5000;
+    const isReturning = !isNew;
     const welcomeText = isReturning ? T.startWelcomeBack(name) : T.startWelcome(name);
 
-    await ctx.reply(welcomeText, {
-      parse_mode: 'Markdown',
-      ...mainMenuKeyboard(T),
-    });
+    if (isNew) {
+      await ctx.reply(welcomeText, { parse_mode: 'Markdown' });
+      await ctx.scene.enter('NICKNAME_SETUP', { telegramName: name, mode: 'onboarding' });
+    } else {
+      await ctx.reply(welcomeText, {
+        parse_mode: 'Markdown',
+        ...mainMenuKeyboard(T),
+      });
+    }
   } catch (error) {
     const T = useT(language);
     await ctx.reply(T.errSomethingWrong);

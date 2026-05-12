@@ -1,7 +1,7 @@
 import { Markup } from 'telegraf';
 import { Language } from '@prisma/client';
 import { BotContext } from '../../models/types';
-import { findOrCreateUser } from '../../services/userService';
+import { findOrCreateUser, getDisplayName } from '../../services/userService';
 import { getUserBankAccounts } from '../../services/bankAccountService';
 import { useT } from '../../i18n';
 
@@ -26,12 +26,13 @@ export async function profileHandler(ctx: BotContext): Promise<void> {
     const accounts = await getUserBankAccounts(user.id);
 
     const text =
-      `${T.profileTitle}\n\n${T.profileInfo(user.name, langLabel(user.language))}`;
+      `${T.profileTitle}\n\n${T.profileInfo(getDisplayName(user), langLabel(user.language))}`;
 
     await ctx.reply(text, {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
         [Markup.button.callback(T.profileBtnBankAccounts(accounts.length), 'go_accounts')],
+        [Markup.button.callback(T.btnChangeNickname, 'edit_nickname')],
         [Markup.button.callback(T.btnChangeLang, 'change_lang')],
       ]),
     });

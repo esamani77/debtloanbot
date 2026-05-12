@@ -1,4 +1,11 @@
 export interface Translations {
+  // Nickname
+  nicknamePrompt: (defaultName: string) => string;
+  nicknameSet: (name: string) => string;
+  nicknameUpdated: (name: string) => string;
+  btnKeepTelegramName: string;
+  btnChangeNickname: string;
+
   // Buttons
   btnInvite: string;
   btnContacts: string;

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { findOrCreateUser } from '../services/userService';
+import { findOrCreateUser, getDisplayName } from '../services/userService';
 
 export async function getMe(req: Request, res: Response): Promise<void> {
   try {
@@ -8,6 +8,8 @@ export async function getMe(req: Request, res: Response): Promise<void> {
       id: user.id,
       telegramId: user.telegramId,
       name: user.name,
+      nickname: user.nickname,
+      displayName: getDisplayName(user),
       language: user.language,
       createdAt: user.createdAt,
     });

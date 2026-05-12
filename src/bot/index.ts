@@ -3,6 +3,7 @@ import { Currency, Language } from "@prisma/client";
 import { BotContext, SessionData } from "../models/types";
 import { addTransactionScene } from "./scenes/addTransaction";
 import { bankAccountScene } from "./scenes/bankAccount";
+import { nicknameSetupScene } from "./scenes/nicknameSetup";
 import { startHandler } from "./commands/start";
 import { inviteHandler } from "./commands/invite";
 import { contactsHandler } from "./commands/contacts";
@@ -123,6 +124,7 @@ bot.use(async (ctx, next) => {
 const stage = new Scenes.Stage<BotContext>([
   addTransactionScene,
   bankAccountScene,
+  nicknameSetupScene,
 ]);
 bot.use(stage.middleware());
 
@@ -238,6 +240,12 @@ bot.action("add_transaction", async (ctx) => {
 bot.action("view_profile", async (ctx) => {
   await ctx.answerCbQuery();
   await profileHandler(ctx);
+});
+
+bot.action("edit_nickname", async (ctx) => {
+  await ctx.answerCbQuery();
+  const name = ctx.from?.first_name ?? '';
+  await ctx.scene.enter("NICKNAME_SETUP", { telegramName: name, mode: "edit" });
 });
 
 // Bank accounts

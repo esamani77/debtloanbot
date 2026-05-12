@@ -2,6 +2,7 @@ import { Transaction, TransactionType } from '@prisma/client';
 import prisma from '../db/prisma';
 import { calculateNetBalance } from '../utils/balanceCalc';
 import { TransactionSummary } from '../models/types';
+import { getDisplayName } from './userService';
 
 interface AddTransactionParams {
   relationshipId: string;
@@ -82,7 +83,7 @@ export async function getBalance(
     return {
       amount: absAmount,
       direction,
-      contactName: contact.name,
+      contactName: getDisplayName(contact),
     };
   } catch (error) {
     console.error('Failed to fetch balance:', error);
@@ -125,7 +126,7 @@ export async function getRecentTransactions(
       amount: tx.amount,
       type: tx.type,
       addedByViewer: tx.createdById === viewerId,
-      addedByName: tx.createdBy.name,
+      addedByName: getDisplayName(tx.createdBy),
       note: tx.note ?? undefined,
       createdAt: tx.createdAt,
     }));

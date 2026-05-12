@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { TransactionType } from '@prisma/client';
-import { findOrCreateUser, findUserById } from '../services/userService';
+import { findOrCreateUser, findUserById, getDisplayName } from '../services/userService';
 import { getRelationshipBetween } from '../services/relationshipService';
 import { addTransaction } from '../services/transactionService';
 import { bot } from '../bot';
@@ -52,8 +52,8 @@ export async function createTransaction(req: Request, res: Response): Promise<vo
       const contactT = useT(contact.language);
       const notifyMsg =
         type === 'DEBT'
-          ? contactT.notifyBorrowed(viewer.name, sym, transaction.amount.toFixed(2))
-          : contactT.notifyLent(viewer.name, sym, transaction.amount.toFixed(2));
+          ? contactT.notifyBorrowed(getDisplayName(viewer), sym, transaction.amount.toFixed(2))
+          : contactT.notifyLent(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
       const fullMsg = note ? `${notifyMsg}\n${contactT.notifyNote(note)}` : notifyMsg;
       bot.telegram
         .sendMessage(contact.telegramId, fullMsg, { parse_mode: 'Markdown' })

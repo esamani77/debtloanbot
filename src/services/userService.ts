@@ -1,6 +1,10 @@
 import { Language, User } from '@prisma/client';
 import prisma from '../db/prisma';
 
+export function getDisplayName(user: { name: string; nickname: string | null }): string {
+  return user.nickname ?? user.name;
+}
+
 /**
  * Finds an existing user by telegramId or creates a new one.
  */
@@ -43,6 +47,16 @@ export async function findUserByTelegramId(telegramId: string): Promise<User | n
 export async function findUserById(id: string): Promise<User | null> {
   return prisma.user.findUnique({
     where: { id },
+  });
+}
+
+/**
+ * Sets a custom nickname for a user. Pass null to clear (revert to Telegram name).
+ */
+export async function setNickname(telegramId: string, nickname: string | null): Promise<User> {
+  return prisma.user.update({
+    where: { telegramId },
+    data: { nickname },
   });
 }
 
