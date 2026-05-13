@@ -147,6 +147,15 @@ export const en: Translations = {
     `💰 *${name}* recorded a transaction with you:\nThey lent *${sym}${amount}* to you.`,
   notifyNote: (note) => `Note: ${note}`,
 
+  // Feedback
+  btnSendFeedback: '💬 Send Feedback',
+  btnSkipFeedback: '⏭ Skip',
+  feedbackPrompt: (name) =>
+    `💬 Send a feedback message to *${name}*.\n\nYou can send text, an image, a GIF, or a sticker.\nPress *Skip* if you don't want to send anything.`,
+  feedbackSkipped: 'Feedback skipped.',
+  feedbackSent: '✅ Your feedback was sent!',
+  feedbackReceived: (name) => `💬 *${name}* sent you a feedback message:`,
+
   // Bank accounts
   acctTitle: '🏦 *Your Bank Accounts*',
   acctEmpty: 'No bank accounts yet. Add one so contacts can pay you.',

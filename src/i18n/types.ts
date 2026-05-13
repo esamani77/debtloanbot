@@ -102,6 +102,14 @@ export interface Translations {
   notifyLent: (name: string, symbol: string, amount: string) => string;
   notifyNote: (note: string) => string;
 
+  // Feedback
+  btnSendFeedback: string;
+  btnSkipFeedback: string;
+  feedbackPrompt: (name: string) => string;
+  feedbackSkipped: string;
+  feedbackSent: string;
+  feedbackReceived: (name: string) => string;
+
   // Currency
   currencyPickerTitle: (name: string) => string;
   currencyPickerDesc: string;

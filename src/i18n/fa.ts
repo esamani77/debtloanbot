@@ -150,6 +150,15 @@ export const fa: Translations = {
     `💰 *${name}* یک تراکنش با شما ثبت کرد:\nآن‌ها *${sym}${amount}* به شما قرض دادند.`,
   notifyNote: (note) => `یادداشت: ${note}`,
 
+  // Feedback
+  btnSendFeedback: '💬 ارسال بازخورد',
+  btnSkipFeedback: '⏭ رد کردن',
+  feedbackPrompt: (name) =>
+    `💬 یک پیام بازخورد به *${name}* ارسال کنید.\n\nمی‌توانید متن، تصویر، GIF یا استیکر بفرستید.\nاگر نمی‌خواهید چیزی بفرستید، *رد کردن* را بزنید.`,
+  feedbackSkipped: 'بازخورد رد شد.',
+  feedbackSent: '✅ بازخورد شما ارسال شد!',
+  feedbackReceived: (name) => `💬 *${name}* یک پیام بازخورد برای شما فرستاد:`,
+
   // Bank accounts
   acctTitle: '🏦 *حساب‌های بانکی شما*',
   acctEmpty: 'هنوز حساب بانکی ثبت نشده. یک حساب اضافه کنید تا مخاطبین بتوانند پرداخت کنند.',

@@ -78,7 +78,14 @@ export async function createTransaction(
         ? `${notifyMsg}\n${contactT.notifyNote(note)}`
         : notifyMsg;
       bot.telegram
-        .sendMessage(contact.telegramId, fullMsg, { parse_mode: "Markdown" })
+        .sendMessage(contact.telegramId, fullMsg, {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId}` }],
+            ],
+          },
+        })
         .catch(() => {});
     }
 

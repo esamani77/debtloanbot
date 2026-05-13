@@ -4,6 +4,7 @@ import { BotContext, SessionData } from "../models/types";
 import { addTransactionScene } from "./scenes/addTransaction";
 import { bankAccountScene } from "./scenes/bankAccount";
 import { nicknameSetupScene } from "./scenes/nicknameSetup";
+import { feedbackScene } from "./scenes/feedbackScene";
 import { startHandler } from "./commands/start";
 import { inviteHandler } from "./commands/invite";
 import { contactsHandler } from "./commands/contacts";
@@ -125,6 +126,7 @@ const stage = new Scenes.Stage<BotContext>([
   addTransactionScene,
   bankAccountScene,
   nicknameSetupScene,
+  feedbackScene,
 ]);
 bot.use(stage.middleware());
 
@@ -289,6 +291,17 @@ bot.action(/^acct_delete_confirm:(.+)$/, async (ctx) => {
 // Withdrawal info for a contact
 bot.action(/^view_withdrawal:(.+)$/, async (ctx) => {
   await withdrawalInfoHandler(ctx, ctx.match[1]);
+});
+
+// Feedback on transaction notification
+bot.action(/^tx_feedback:(\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const viewerTelegramId = ctx.match[1];
+  const viewer = await findUserByTelegramId(viewerTelegramId);
+  await ctx.scene.enter("FEEDBACK", {
+    targetTelegramId: viewerTelegramId,
+    senderName: viewer?.name ?? "?",
+  });
 });
 
 // Membership re-check
