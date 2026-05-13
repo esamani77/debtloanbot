@@ -44,6 +44,8 @@ bot.use(
       activeContactName: undefined,
       userLanguage: undefined,
       pendingInvite: undefined,
+      feedbackTargetTelegramId: undefined,
+      feedbackTargetName: undefined,
     }),
   }),
 );
@@ -298,10 +300,10 @@ bot.action(/^tx_feedback:(\d+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const viewerTelegramId = ctx.match[1];
   const viewer = await findUserByTelegramId(viewerTelegramId);
-  await ctx.scene.enter("FEEDBACK", {
-    targetTelegramId: viewerTelegramId,
-    senderName: viewer?.name ?? "?",
-  });
+  // Store in session — wizard.state from ctx.scene.enter doesn't reliably persist between steps
+  ctx.session.feedbackTargetTelegramId = viewerTelegramId;
+  ctx.session.feedbackTargetName = viewer?.name ?? "?";
+  await ctx.scene.enter("FEEDBACK");
 });
 
 // Membership re-check

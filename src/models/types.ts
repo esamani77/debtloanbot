@@ -7,6 +7,8 @@ export interface SessionData extends Scenes.WizardSession {
   activeContactName?: string;
   userLanguage?: Language;
   pendingInvite?: string;
+  feedbackTargetTelegramId?: string;
+  feedbackTargetName?: string;
 }
 
 export interface BotContext extends Context {
