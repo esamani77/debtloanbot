@@ -134,4 +134,9 @@ export interface Translations {
   withdrawalTitle: (contactName: string) => string;
   withdrawalEmpty: (contactName: string) => string;
   withdrawalItem: (bankName: string, name: string, cardNumber: string, accountNumber: string) => string;
+
+  // Settlement request
+  btnSettlementRequest: string;
+  settlementRequestSent: (name: string) => string;
+  settlementRequestReceived: (name: string, sym: string, amount: string) => string;
 }

@@ -181,6 +181,12 @@ export const en: Translations = {
   withdrawalItem: (bankName, name, card, account) =>
     `🏛️ *${bankName}*\n👤 ${name}\n💳 Card: \`${card}\`\n🔢 Account: \`${account}\``,
 
+  // Settlement request
+  btnSettlementRequest: '💸 Request Settlement',
+  settlementRequestSent: (name) => `✅ Settlement request sent to *${name}*!`,
+  settlementRequestReceived: (name, sym, amount) =>
+    `📢 *${name}* is requesting you to settle your debt.\n\nYou owe them *${sym}${amount}*.\n\nPlease transfer the amount at your earliest convenience.`,
+
   // Currency
   currencyPickerTitle: (name) =>
     `💱 Select currency for transactions with *${name}*:`,

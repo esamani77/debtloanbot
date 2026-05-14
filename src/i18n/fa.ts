@@ -184,6 +184,12 @@ export const fa: Translations = {
   withdrawalItem: (bankName, name, card, account) =>
     `🏛️ *${bankName}*\n👤 ${name}\n💳 شماره کارت: \`${card}\`\n🔢 شماره حساب: \`${account}\``,
 
+  // Settlement request
+  btnSettlementRequest: '💸 درخواست تسویه',
+  settlementRequestSent: (name) => `✅ درخواست تسویه به *${name}* ارسال شد!`,
+  settlementRequestReceived: (name, sym, amount) =>
+    `📢 *${name}* از شما درخواست تسویه بدهی کرده است.\n\nشما به آن‌ها *${sym}${amount}* بدهکار هستید.\n\nلطفاً در اسرع وقت مبلغ را پرداخت کنید.`,
+
   // Currency
   currencyPickerTitle: (name) =>
     `💱 ارز تراکنش‌ها با *${name}* را انتخاب کنید:`,

@@ -22,7 +22,10 @@ import {
   withdrawalInfoHandler,
 } from "./commands/bankAccounts";
 import { getBankAccountById } from "../services/bankAccountService";
-import { findUserByTelegramId } from "../services/userService";
+import { findUserByTelegramId, findOrCreateUser } from "../services/userService";
+import { getRelationshipBetween } from "../services/relationshipService";
+import { getBalance } from "../services/transactionService";
+import { currencySymbol } from "../utils/currency";
 import { useT } from "../i18n";
 import { en } from "../i18n/en";
 import { fa } from "../i18n/fa";
@@ -304,6 +307,56 @@ bot.action(/^tx_feedback:(\d+)$/, async (ctx) => {
   ctx.session.feedbackTargetTelegramId = viewerTelegramId;
   ctx.session.feedbackTargetName = viewer?.name ?? "?";
   await ctx.scene.enter("FEEDBACK");
+});
+
+// Settlement request
+bot.action(/^settlement_req:(\d+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  if (!ctx.from) return;
+
+  const T = useT(ctx.session.userLanguage ?? Language.EN);
+  const debtorTelegramId = ctx.match[1];
+  const viewerTelegramId = String(ctx.from.id);
+  const viewerName = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : "");
+
+  try {
+    const viewer = await findOrCreateUser(viewerTelegramId, viewerName);
+    const debtor = await findUserByTelegramId(debtorTelegramId);
+    if (!debtor) {
+      await ctx.reply(T.errSomethingWrong);
+      return;
+    }
+
+    const relationship = await getRelationshipBetween(viewer.id, debtor.id);
+    if (!relationship) {
+      await ctx.reply(T.errSomethingWrong);
+      return;
+    }
+
+    const { amount, direction } = await getBalance(relationship.id, viewer.id);
+    if (direction !== "owed") {
+      await ctx.reply(T.errSomethingWrong);
+      return;
+    }
+
+    const sym = currencySymbol(relationship.currency);
+    const debtorT = useT(debtor.language);
+    const senderName = viewer.nickname ?? viewer.name;
+
+    await ctx.telegram
+      .sendMessage(
+        debtorTelegramId,
+        debtorT.settlementRequestReceived(senderName, sym, amount.toFixed(2)),
+        { parse_mode: "Markdown" },
+      )
+      .catch(() => {});
+
+    await ctx.reply(T.settlementRequestSent(debtor.nickname ?? debtor.name), {
+      parse_mode: "Markdown",
+    });
+  } catch {
+    await ctx.reply(T.errSomethingWrong);
+  }
 });
 
 // Membership re-check
