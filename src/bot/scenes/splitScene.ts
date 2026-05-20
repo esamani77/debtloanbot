@@ -117,7 +117,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     if (!data.startsWith('split_currency:')) return;
 
     d.currency = data.replace('split_currency:', '') as Currency;
-    await ctx.editMessageText(`✅ Currency: *${currencyLabel(d.currency)}*`, { parse_mode: 'Markdown' });
+    try { await ctx.editMessageText(`✅ Currency: *${currencyLabel(d.currency)}*`, { parse_mode: 'Markdown' }); } catch { /* message may not be editable */ }
     await ctx.reply(t.splitAskParticipantCount, {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([[Markup.button.callback(t.splitBtnCancel, 'split_cancel')]]),
@@ -227,7 +227,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     if (!data.startsWith('split_payer:')) return;
 
     d.currentBill.paidByIndex = parseInt(data.replace('split_payer:', ''), 10);
-    await ctx.editMessageText(t.splitAskSplitType, { ...splitTypeKeyboard(t) });
+    try { await ctx.editMessageText(t.splitAskSplitType, { ...splitTypeKeyboard(t) }); } catch { await ctx.reply(t.splitAskSplitType, { ...splitTypeKeyboard(t) }); }
     return ctx.wizard.next();
   },
 
@@ -255,7 +255,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
       d.currentBill.shares = shares;
       d.bills.push(d.currentBill as BillDraft);
       d.currentBill = {};
-      await ctx.editMessageText('✅ Split equally.', { parse_mode: 'Markdown' });
+      try { await ctx.editMessageText('✅ Split equally.', { parse_mode: 'Markdown' }); } catch { /* ignore */ }
       return showBillSummary(ctx);
     }
 
@@ -265,10 +265,11 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     const sym = currencySymbol(d.currency ?? Currency.USD);
     const isPercent = splitType === 'PERCENTAGE';
     const remaining = isPercent ? '100' : d.currentBill.totalAmount!.toFixed(2);
-    await ctx.editMessageText(
-      t.splitAskShare(d.participants[0], sym, remaining, isPercent),
-      { parse_mode: 'Markdown' },
-    );
+    try {
+      await ctx.editMessageText(t.splitAskShare(d.participants[0], sym, remaining, isPercent), { parse_mode: 'Markdown' });
+    } catch {
+      await ctx.reply(t.splitAskShare(d.participants[0], sym, remaining, isPercent), { parse_mode: 'Markdown' });
+    }
     return ctx.wizard.selectStep(8);
   },
 
@@ -342,7 +343,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     if (data === 'split_cancel') { await ctx.editMessageText(t.splitCancelled); return ctx.scene.leave(); }
 
     if (data === 'split_add_another') {
-      await ctx.editMessageText(t.splitAskBillName, { parse_mode: 'Markdown' });
+      try { await ctx.editMessageText(t.splitAskBillName, { parse_mode: 'Markdown' }); } catch { await ctx.reply(t.splitAskBillName, { parse_mode: 'Markdown' }); }
       d.currentBill = {};
       return ctx.wizard.selectStep(4);
     }
@@ -396,15 +397,13 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
 
       const sym = currencySymbol(d.currency ?? Currency.USD);
       const bankAccounts = await getBankAccountsForParticipants(d.participants);
-      await ctx.editMessageText(
-        t.splitBalanceSummary(d.participants, netBalances, sym),
-        {
-          parse_mode: 'Markdown',
-          ...Markup.inlineKeyboard([
-            [Markup.button.callback(t.splitBtnSettlementPlan, 'split_show_plan')],
-          ]),
-        },
-      );
+      const balanceMsg = t.splitBalanceSummary(d.participants, netBalances, sym);
+      const balanceKeyboard = Markup.inlineKeyboard([[Markup.button.callback(t.splitBtnSettlementPlan, 'split_show_plan')]]);
+      try {
+        await ctx.editMessageText(balanceMsg, { parse_mode: 'Markdown', ...balanceKeyboard });
+      } catch {
+        await ctx.reply(balanceMsg, { parse_mode: 'Markdown', ...balanceKeyboard });
+      }
     } catch (err) {
       console.error('Split calculate error:', err);
       await ctx.reply(t.errSomethingWrong);
@@ -427,15 +426,13 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     const transfers = simplifyDebts(d.participants, netBalances, d.currency ?? Currency.USD);
     const bankAccounts = await getBankAccountsForParticipants(d.participants);
 
-    await ctx.editMessageText(
-      t.splitSettlementPlan(transfers, sym, bankAccounts),
-      {
-        parse_mode: 'Markdown',
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback(t.splitBtnShare, 'split_share')],
-        ]),
-      },
-    );
+    const planMsg = t.splitSettlementPlan(transfers, sym, bankAccounts);
+    const shareKeyboard = Markup.inlineKeyboard([[Markup.button.callback(t.splitBtnShare, 'split_share')]]);
+    try {
+      await ctx.editMessageText(planMsg, { parse_mode: 'Markdown', ...shareKeyboard });
+    } catch {
+      await ctx.reply(planMsg, { parse_mode: 'Markdown', ...shareKeyboard });
+    }
     return ctx.wizard.next();
   },
 
@@ -454,7 +451,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     if (d.sessionId) await markSessionShared(d.sessionId);
 
     const link = `https://t.me/${BOT_USERNAME}?start=split_${token}`;
-    await ctx.editMessageText(t.splitShareLink(link, d.sessionName ?? null), { parse_mode: 'Markdown' });
+    try { await ctx.editMessageText(t.splitShareLink(link, d.sessionName ?? null), { parse_mode: 'Markdown' }); } catch { await ctx.reply(t.splitShareLink(link, d.sessionName ?? null), { parse_mode: 'Markdown' }); }
     ctx.session.splitDraft = undefined;
     return ctx.scene.leave();
   },
