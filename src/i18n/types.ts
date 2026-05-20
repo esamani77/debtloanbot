@@ -139,4 +139,42 @@ export interface Translations {
   btnSettlementRequest: string;
   settlementRequestSent: (name: string) => string;
   settlementRequestReceived: (name: string, sym: string, amount: string) => string;
+
+  // Bill Splitting
+  splitAskName: string;
+  splitBtnSkipName: string;
+  splitAskCurrency: string;
+  splitAskParticipantCount: string;
+  splitInvalidCount: string;
+  splitAskParticipantName: (index: number, total: number) => string;
+  splitParticipantsDone: (names: string[]) => string;
+  splitAskBillName: string;
+  splitAskBillAmount: (sym: string) => string;
+  splitInvalidAmount: string;
+  splitAskPayer: string;
+  splitAskSplitType: string;
+  splitBtnEqual: string;
+  splitBtnByPercentage: string;
+  splitBtnCustomAmount: string;
+  splitAskShare: (name: string, sym: string, remaining: string, isPercent: boolean) => string;
+  splitShareValidationError: (got: string, expected: string, isPercent: boolean) => string;
+  splitBillSummary: (bills: Array<{ name: string; totalAmount: number; paidBy: string }>, sym: string) => string;
+  splitBtnAddBill: string;
+  splitBtnCalculate: string;
+  splitBalanceSummary: (participants: string[], balances: number[], sym: string) => string;
+  splitBtnSettlementPlan: string;
+  splitSettlementPlan: (transfers: Array<{ from: string; to: string; amount: number }>, sym: string, bankAccounts: Record<string, Array<{ bankName: string; cardNumber: string; accountNumber: string; name: string }>>) => string;
+  splitBtnShare: string;
+  splitShareLink: (link: string, sessionName: string | null) => string;
+  splitSessionExpired: string;
+  splitSessionNotFound: string;
+  splitDraftFound: (name: string | null) => string;
+  splitBtnResume: string;
+  splitBtnStartNew: string;
+  splitsList: (sessions: Array<{ name: string | null; status: string; billCount: number; createdAt: Date }>) => string;
+  splitCancelled: string;
+  splitBtnCancel: string;
+  splitZeroAmountError: string;
+  splitMinParticipantsError: string;
+  splitSharedSummary: (sessionName: string | null, currency: string, createdAt: Date, participants: string[], balances: number[], transfers: Array<{ from: string; to: string; amount: number }>, sym: string, bankAccounts: Record<string, Array<{ bankName: string; cardNumber: string; accountNumber: string; name: string }>>) => string;
 }

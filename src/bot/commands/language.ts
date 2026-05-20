@@ -5,6 +5,9 @@ import { findOrCreateUser, findUserById, setUserLanguage, getDisplayName } from 
 import { getOrCreateRelationship } from '../../services/relationshipService';
 import { parseInvitePayload } from '../../utils/inviteLink';
 import { useT } from '../../i18n';
+import { getSessionByToken, getBankAccountsForParticipants } from '../../services/splitService';
+import { computeNetBalances, simplifyDebts } from '../../utils/debtSimplification';
+import { currencySymbol } from '../../utils/currency';
 
 export function mainMenuKeyboard(T: ReturnType<typeof useT>) {
   return Markup.keyboard([
@@ -30,6 +33,28 @@ export async function setLangAction(ctx: BotContext, language: Language): Promis
 
     const T = useT(language);
     const isNew = user.createdAt.getTime() > Date.now() - 5000;
+
+    // Handle pending split share token
+    const pendingSplitToken = ctx.session.pendingSplitToken;
+    if (pendingSplitToken) {
+      ctx.session.pendingSplitToken = undefined;
+      const result = await getSessionByToken(pendingSplitToken);
+      if (!result || result === 'expired') {
+        await ctx.reply(result === 'expired' ? T.splitSessionExpired : T.splitSessionNotFound, { parse_mode: 'Markdown' });
+      } else {
+        const netBalances = computeNetBalances(result.participants, result.bills);
+        const transfers = simplifyDebts(result.participants, netBalances, result.currency);
+        const bankAccounts = await getBankAccountsForParticipants(result.participants);
+        const sym = currencySymbol(result.currency);
+        await ctx.reply(
+          T.splitSharedSummary(result.name ?? null, result.currency, result.createdAt, result.participants, netBalances, transfers, sym, bankAccounts),
+          { parse_mode: 'Markdown' },
+        );
+      }
+      if (!isNew) await ctx.reply('​', { parse_mode: 'Markdown', ...mainMenuKeyboard(T) });
+      else await ctx.scene.enter('NICKNAME_SETUP', { telegramName: name, mode: 'onboarding' });
+      return;
+    }
 
     const pendingInvite = ctx.session.pendingInvite;
     ctx.session.pendingInvite = undefined;

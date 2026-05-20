@@ -73,6 +73,8 @@ export const fa: Translations = {
     `/balance — تراز با مخاطب فعال\n` +
     `/add — افزودن بدهی یا قرض\n` +
     `/logs — سوابق اخیر\n` +
+    `/split — شروع تقسیم هزینه گروهی\n` +
+    `/splits — مشاهده تقسیم‌های اخیر\n` +
     `/help — این پیام راهنما\n\n` +
     `*نحوه استفاده:*\n` +
     `۱. با /invite لینک خود را دریافت کنید\n` +
@@ -80,6 +82,10 @@ export const fa: Translations = {
     `۳. از /contacts مخاطب را انتخاب کنید\n` +
     `۴. با /add تراکنش ثبت کنید\n` +
     `۵. با /balance تراز را ببینید\n\n` +
+    `*تقسیم هزینه:*\n` +
+    `با /split هزینه‌های گروهی را عادلانه تقسیم کنید.\n` +
+    `شرکت‌کنندگان را اضافه کنید، هزینه‌ها را وارد کنید\n` +
+    `و یک لینک فقط‌خواندنی با گروهتان به اشتراک بگذارید.\n\n` +
     `*انواع تراکنش:*\n` +
     `💰 *وام* — شما قرض دادید (طلبکار هستید)\n` +
     `💸 *بدهی* — شما قرض گرفتید (بدهکار هستید)`,
@@ -197,4 +203,103 @@ export const fa: Translations = {
     'تمام تراکنش‌های موجود و آینده با این مخاطب با ارز انتخابی نمایش داده می‌شوند.',
   currencyUpdated: (label, name, sym) =>
     `✅ ارز به *${label}* تغییر یافت\n\nتمام تراکنش‌ها با *${name}* از این به بعد به ${sym} نمایش داده می‌شوند.`,
+
+  // Bill Splitting
+  splitAskName: '🧾 *شروع تقسیم هزینه*\n\nیک نام برای این جلسه بگذارید (مثلاً "سفر بارسلون"، "شام جمعه") یا رد کنید:',
+  splitBtnSkipName: '⏭ رد کردن',
+  splitAskCurrency: '💱 ارز این تقسیم را انتخاب کنید:',
+  splitAskParticipantCount: '👥 چند نفر در این هزینه سهیم هستند؟ یک عدد بین ۲ تا ۲۰ وارد کنید:',
+  splitInvalidCount: '⚠️ لطفاً یک عدد بین ۲ تا ۲۰ وارد کنید.',
+  splitAskParticipantName: (i, total) => `👤 نام شرکت‌کننده ${i} از ${total} را وارد کنید:`,
+  splitParticipantsDone: (names) => `✅ *شرکت‌کنندگان اضافه شدند:*\n${names.map((n, i) => `${i + 1}. ${n}`).join('\n')}\n\nحالا هزینه‌ها را اضافه کنید.`,
+  splitAskBillName: '📝 این هزینه مربوط به چه بود؟ (مثلاً "هتل"، "شام"، "تاکسی")',
+  splitAskBillAmount: (sym) => `💰 مبلغ را به ${sym} وارد کنید:`,
+  splitInvalidAmount: '⚠️ لطفاً یک عدد مثبت معتبر وارد کنید.',
+  splitAskPayer: '🙋 چه کسی این هزینه را پرداخت کرده؟',
+  splitAskSplitType: '⚖️ نحوه تقسیم را انتخاب کنید:',
+  splitBtnEqual: '⚖️ تقسیم مساوی',
+  splitBtnByPercentage: '📊 بر اساس درصد',
+  splitBtnCustomAmount: '💰 مبلغ دستی',
+  splitAskShare: (name, sym, remaining, isPercent) =>
+    isPercent
+      ? `📊 درصد *${name}*:\n\n_(باقیمانده: ${remaining}٪)_`
+      : `💰 مبلغ *${name}* (${sym}):\n\n_(باقیمانده: ${sym}${remaining})_`,
+  splitShareValidationError: (got, expected, isPercent) =>
+    isPercent
+      ? `⚠️ مجموع درصدها ${got}٪ شد — باید برابر ۱۰۰٪ باشد. لطفاً دوباره شروع کنید.`
+      : `⚠️ مجموع مبالغ ${got} شد — باید برابر ${expected} باشد. لطفاً دوباره شروع کنید.`,
+  splitBillSummary: (bills, sym) =>
+    `📋 *هزینه‌های ثبت‌شده:*\n\n${bills.map((b, i) => `${i + 1}. *${b.name}* — ${sym}${b.totalAmount.toFixed(2)} (پرداخت: ${b.paidBy})`).join('\n')}`,
+  splitBtnAddBill: '➕ افزودن هزینه دیگر',
+  splitBtnCalculate: '🧮 محاسبه',
+  splitBalanceSummary: (participants, balances, sym) => {
+    const lines = participants.map((p, i) => {
+      const b = balances[i];
+      if (b > 0.005) return `🟢 *${p}*: +${sym}${b.toFixed(2)} _(طلبکار)_`;
+      if (b < -0.005) return `🔴 *${p}*: -${sym}${Math.abs(b).toFixed(2)} _(بدهکار)_`;
+      return `⚪ *${p}*: تسویه`;
+    });
+    return `💰 *خلاصه تراز*\n\n${lines.join('\n')}`;
+  },
+  splitBtnSettlementPlan: '📋 نمایش برنامه تسویه',
+  splitSettlementPlan: (transfers, sym, bankAccounts) => {
+    if (transfers.length === 0) return '✅ *همه تسویه هستند — نیازی به انتقال نیست!*';
+    const lines = transfers.map((t) => {
+      let line = `• *${t.from}* → به *${t.to}*: ${sym}${t.amount.toFixed(2)}`;
+      const accts = bankAccounts[t.to];
+      if (accts && accts.length > 0) {
+        const a = accts[0];
+        line += `\n  🏛️ ${a.bankName} | 💳 \`${a.cardNumber}\``;
+      }
+      return line;
+    });
+    return `📋 *برنامه تسویه*\n\n${lines.join('\n\n')}`;
+  },
+  splitBtnShare: '🔗 اشتراک‌گذاری نتایج',
+  splitShareLink: (link, sessionName) =>
+    `🔗 *اشتراک‌گذاری این تقسیم${sessionName ? ` — ${sessionName}` : ''}*\n\n\`${link}\`\n\nهر کسی می‌تواند این لینک را باز کند و نتایج را ببیند.`,
+  splitSessionExpired: '⏰ این جلسه تقسیم منقضی شده است (لینک‌ها ۹۰ روز اعتبار دارند).',
+  splitSessionNotFound: '❌ جلسه تقسیم یافت نشد.',
+  splitDraftFound: (name) =>
+    `📋 شما یک تقسیم ناتمام${name ? ` (*${name}*)` : ''} در ۴۸ ساعت گذشته دارید.\n\nآیا می‌خواهید ادامه دهید یا جدید شروع کنید؟`,
+  splitBtnResume: '▶️ ادامه',
+  splitBtnStartNew: '🆕 شروع جدید',
+  splitsList: (sessions) => {
+    if (sessions.length === 0) return '📋 *تقسیم‌های شما*\n\nهنوز تقسیمی ندارید. از /split استفاده کنید.';
+    const statusEmoji: Record<string, string> = { DRAFT: '🟡', CALCULATED: '🟢', SHARED: '🔵' };
+    const lines = sessions.map((s, i) => {
+      const emoji = statusEmoji[s.status] ?? '⚪';
+      const name = s.name ?? 'بدون نام';
+      const date = s.createdAt.toLocaleDateString('fa-IR');
+      return `${i + 1}. ${emoji} *${name}* — ${s.billCount} هزینه · ${date}`;
+    });
+    return `📋 *تقسیم‌های اخیر شما*\n\n${lines.join('\n')}\n\n🟡 پیش‌نویس  🟢 محاسبه‌شده  🔵 اشتراک‌گذاری‌شده`;
+  },
+  splitCancelled: '❌ جلسه تقسیم لغو شد.',
+  splitBtnCancel: '❌ لغو',
+  splitZeroAmountError: '⚠️ مبلغ باید بیشتر از صفر باشد.',
+  splitMinParticipantsError: '⚠️ حداقل به ۲ شرکت‌کننده نیاز دارید.',
+  splitSharedSummary: (sessionName, currency, createdAt, participants, balances, transfers, sym, bankAccounts) => {
+    const title = sessionName ? `*${sessionName}*` : '*خلاصه تقسیم*';
+    const date = createdAt.toLocaleDateString('fa-IR');
+    const balanceLines = participants.map((p, i) => {
+      const b = balances[i];
+      if (b > 0.005) return `🟢 *${p}*: +${sym}${b.toFixed(2)}`;
+      if (b < -0.005) return `🔴 *${p}*: -${sym}${Math.abs(b).toFixed(2)}`;
+      return `⚪ *${p}*: تسویه`;
+    });
+    let text = `${title}\n📅 ${date} · ${currency}\n\n*تراز:*\n${balanceLines.join('\n')}`;
+    if (transfers.length > 0) {
+      const tLines = transfers.map((t) => {
+        let line = `• *${t.from}* → *${t.to}*: ${sym}${t.amount.toFixed(2)}`;
+        const accts = bankAccounts[t.to];
+        if (accts && accts.length > 0) line += `\n  🏛️ ${accts[0].bankName} | 💳 \`${accts[0].cardNumber}\``;
+        return line;
+      });
+      text += `\n\n*برنامه تسویه:*\n${tLines.join('\n\n')}`;
+    } else {
+      text += '\n\n✅ همه تسویه هستند!';
+    }
+    return text;
+  },
 };

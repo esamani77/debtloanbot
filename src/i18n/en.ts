@@ -72,6 +72,8 @@ export const en: Translations = {
     `/balance — Balance with active contact\n` +
     `/add — Add a debt or loan\n` +
     `/logs — Recent transactions\n` +
+    `/split — Start a bill split session\n` +
+    `/splits — View your recent splits\n` +
     `/help — This help message\n\n` +
     `*How it works:*\n` +
     `1. Use /invite to get your link\n` +
@@ -79,6 +81,10 @@ export const en: Translations = {
     `3. Select them via /contacts\n` +
     `4. Use /add to record transactions\n` +
     `5. Use /balance to see who owes what\n\n` +
+    `*Bill Splitting:*\n` +
+    `Use /split to split group expenses fairly.\n` +
+    `Add participants, record bills, and share a\n` +
+    `read-only link with your group.\n\n` +
     `*Balance types:*\n` +
     `💰 *Loan* — You lent money (they owe you)\n` +
     `💸 *Debt* — You borrowed money (you owe them)`,
@@ -194,4 +200,103 @@ export const en: Translations = {
     'All existing and future transactions with this contact will display in the selected currency.',
   currencyUpdated: (label, name, sym) =>
     `✅ Currency updated to *${label}*\n\nAll transactions with *${name}* will now show in ${sym}.`,
+
+  // Bill Splitting
+  splitAskName: '🧾 *Start a Bill Split*\n\nGive this session a name (e.g. "Barcelona Trip", "Friday Dinner") or skip:',
+  splitBtnSkipName: '⏭ Skip',
+  splitAskCurrency: '💱 Select the currency for this split:',
+  splitAskParticipantCount: '👥 How many people are sharing? Enter a number (2–20):',
+  splitInvalidCount: '⚠️ Please enter a number between 2 and 20.',
+  splitAskParticipantName: (i, total) => `👤 Enter name for participant ${i} of ${total}:`,
+  splitParticipantsDone: (names) => `✅ *Participants added:*\n${names.map((n, i) => `${i + 1}. ${n}`).join('\n')}\n\nNow let's add your expenses.`,
+  splitAskBillName: '📝 What was this expense? (e.g. "Hotel", "Dinner", "Taxi")',
+  splitAskBillAmount: (sym) => `💰 How much? Enter the total amount in ${sym}:`,
+  splitInvalidAmount: '⚠️ Please enter a valid positive number.',
+  splitAskPayer: '🙋 Who paid for this?',
+  splitAskSplitType: '⚖️ How should this be split?',
+  splitBtnEqual: '⚖️ Split Equally',
+  splitBtnByPercentage: '📊 By Percentage',
+  splitBtnCustomAmount: '💰 Custom Amounts',
+  splitAskShare: (name, sym, remaining, isPercent) =>
+    isPercent
+      ? `📊 Percentage for *${name}*:\n\n_(Remaining: ${remaining}%)_`
+      : `💰 Amount for *${name}* (${sym}):\n\n_(Remaining: ${sym}${remaining})_`,
+  splitShareValidationError: (got, expected, isPercent) =>
+    isPercent
+      ? `⚠️ Percentages sum to ${got}% — must equal 100%. Please start over.`
+      : `⚠️ Amounts sum to ${got} — must equal ${expected}. Please start over.`,
+  splitBillSummary: (bills, sym) =>
+    `📋 *Bills so far:*\n\n${bills.map((b, i) => `${i + 1}. *${b.name}* — ${sym}${b.totalAmount.toFixed(2)} (paid by ${b.paidBy})`).join('\n')}`,
+  splitBtnAddBill: '➕ Add Another Bill',
+  splitBtnCalculate: '🧮 Calculate',
+  splitBalanceSummary: (participants, balances, sym) => {
+    const lines = participants.map((p, i) => {
+      const b = balances[i];
+      if (b > 0.005) return `🟢 *${p}*: +${sym}${b.toFixed(2)} _(owed)_`;
+      if (b < -0.005) return `🔴 *${p}*: -${sym}${Math.abs(b).toFixed(2)} _(owes)_`;
+      return `⚪ *${p}*: settled`;
+    });
+    return `💰 *Balance Summary*\n\n${lines.join('\n')}`;
+  },
+  splitBtnSettlementPlan: '📋 Show Settlement Plan',
+  splitSettlementPlan: (transfers, sym, bankAccounts) => {
+    if (transfers.length === 0) return '✅ *Everyone is settled — no transfers needed!*';
+    const lines = transfers.map((t) => {
+      let line = `• *${t.from}* → pays *${t.to}*: ${sym}${t.amount.toFixed(2)}`;
+      const accts = bankAccounts[t.to];
+      if (accts && accts.length > 0) {
+        const a = accts[0];
+        line += `\n  🏛️ ${a.bankName} | 💳 \`${a.cardNumber}\``;
+      }
+      return line;
+    });
+    return `📋 *Settlement Plan*\n\n${lines.join('\n\n')}`;
+  },
+  splitBtnShare: '🔗 Share Results',
+  splitShareLink: (link, sessionName) =>
+    `🔗 *Share this split${sessionName ? ` — ${sessionName}` : ''}*\n\n\`${link}\`\n\nAnyone can open this link to see the full results.`,
+  splitSessionExpired: '⏰ This split session has expired (links are valid for 90 days).',
+  splitSessionNotFound: '❌ Split session not found.',
+  splitDraftFound: (name) =>
+    `📋 You have an unfinished split${name ? ` (*${name}*)` : ''} from the last 48 hours.\n\nWould you like to resume it or start a new one?`,
+  splitBtnResume: '▶️ Resume',
+  splitBtnStartNew: '🆕 Start New',
+  splitsList: (sessions) => {
+    if (sessions.length === 0) return '📋 *Your Splits*\n\nNo splits yet. Use /split to create one.';
+    const statusEmoji: Record<string, string> = { DRAFT: '🟡', CALCULATED: '🟢', SHARED: '🔵' };
+    const lines = sessions.map((s, i) => {
+      const emoji = statusEmoji[s.status] ?? '⚪';
+      const name = s.name ?? 'Unnamed split';
+      const date = s.createdAt.toLocaleDateString('en-GB');
+      return `${i + 1}. ${emoji} *${name}* — ${s.billCount} bill${s.billCount !== 1 ? 's' : ''} · ${date}`;
+    });
+    return `📋 *Your Recent Splits*\n\n${lines.join('\n')}\n\n🟡 Draft  🟢 Calculated  🔵 Shared`;
+  },
+  splitCancelled: '❌ Split session cancelled.',
+  splitBtnCancel: '❌ Cancel',
+  splitZeroAmountError: '⚠️ Amount must be greater than zero.',
+  splitMinParticipantsError: '⚠️ You need at least 2 participants.',
+  splitSharedSummary: (sessionName, currency, createdAt, participants, balances, transfers, sym, bankAccounts) => {
+    const title = sessionName ? `*${sessionName}*` : '*Split Summary*';
+    const date = createdAt.toLocaleDateString('en-GB');
+    const balanceLines = participants.map((p, i) => {
+      const b = balances[i];
+      if (b > 0.005) return `🟢 *${p}*: +${sym}${b.toFixed(2)}`;
+      if (b < -0.005) return `🔴 *${p}*: -${sym}${Math.abs(b).toFixed(2)}`;
+      return `⚪ *${p}*: settled`;
+    });
+    let text = `${title}\n📅 ${date} · ${currency}\n\n*Balances:*\n${balanceLines.join('\n')}`;
+    if (transfers.length > 0) {
+      const tLines = transfers.map((t) => {
+        let line = `• *${t.from}* → *${t.to}*: ${sym}${t.amount.toFixed(2)}`;
+        const accts = bankAccounts[t.to];
+        if (accts && accts.length > 0) line += `\n  🏛️ ${accts[0].bankName} | 💳 \`${accts[0].cardNumber}\``;
+        return line;
+      });
+      text += `\n\n*Settlement Plan:*\n${tLines.join('\n\n')}`;
+    } else {
+      text += '\n\n✅ Everyone is settled!';
+    }
+    return text;
+  },
 };

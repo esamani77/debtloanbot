@@ -8,12 +8,17 @@ export async function startHandler(ctx: BotContext): Promise<void> {
     return;
   }
 
-  // Preserve invite payload across the language picker step
+  // Preserve invite / split payload across the language picker step
   const payload = (ctx as BotContext & { startPayload?: string }).startPayload;
-  if (payload && parseInvitePayload(payload)) {
+  if (payload && payload.startsWith('split_')) {
+    ctx.session.pendingSplitToken = payload.slice(6); // strip 'split_'
+    ctx.session.pendingInvite = undefined;
+  } else if (payload && parseInvitePayload(payload)) {
     ctx.session.pendingInvite = payload;
+    ctx.session.pendingSplitToken = undefined;
   } else {
     ctx.session.pendingInvite = undefined;
+    ctx.session.pendingSplitToken = undefined;
   }
 
   await ctx.reply(

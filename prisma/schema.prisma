@@ -17,6 +17,7 @@ model User {
   relationshipsB Relationship[] @relation("UserB")
   transactions Transaction[]  @relation("CreatedBy")
   bankAccounts BankAccount[]
+  splitSessions SplitSession[]
 }
 
 model BankAccount {
@@ -55,6 +56,33 @@ model Transaction {
   createdAt      DateTime     @default(now())
 }
 
+model SplitSession {
+  id           String      @id @default(cuid())
+  createdById  String
+  createdBy    User        @relation(fields: [createdById], references: [id])
+  name         String?
+  currency     Currency    @default(USD)
+  status       SplitStatus @default(DRAFT)
+  participants String[]
+  shareToken   String?     @unique
+  expiresAt    DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  bills        BillItem[]
+}
+
+model BillItem {
+  id          String       @id @default(cuid())
+  sessionId   String
+  session     SplitSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  name        String
+  totalAmount Float
+  paidByIndex Int
+  splitType   SplitType
+  shares      Float[]
+  createdAt   DateTime     @default(now())
+}
+
 enum TransactionType {
   DEBT
   LOAN
@@ -71,4 +99,16 @@ enum Currency {
 enum Language {
   EN
   FA
+}
+
+enum SplitStatus {
+  DRAFT
+  CALCULATED
+  SHARED
+}
+
+enum SplitType {
+  EQUAL
+  PERCENTAGE
+  CUSTOM
 }

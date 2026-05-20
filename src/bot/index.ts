@@ -5,6 +5,7 @@ import { addTransactionScene } from "./scenes/addTransaction";
 import { bankAccountScene } from "./scenes/bankAccount";
 import { nicknameSetupScene } from "./scenes/nicknameSetup";
 import { feedbackScene } from "./scenes/feedbackScene";
+import { splitScene } from "./scenes/splitScene";
 import { startHandler } from "./commands/start";
 import { inviteHandler } from "./commands/invite";
 import { contactsHandler } from "./commands/contacts";
@@ -15,6 +16,8 @@ import { helpHandler } from "./commands/help";
 import { showCurrencyPicker, setCurrencyAction } from "./commands/currency";
 import { setLangAction } from "./commands/language";
 import { profileHandler } from "./commands/profile";
+import { splitHandler } from "./commands/split";
+import { splitsHandler } from "./commands/splits";
 import {
   bankAccountsHandler,
   handleDeleteConfirm,
@@ -23,6 +26,9 @@ import {
 } from "./commands/bankAccounts";
 import { getBankAccountById } from "../services/bankAccountService";
 import { findUserByTelegramId, findOrCreateUser } from "../services/userService";
+import { getDraftSession, deleteSession, getSessionByToken, getBankAccountsForParticipants } from "../services/splitService";
+import { computeNetBalances, simplifyDebts } from "../utils/debtSimplification";
+import { currencySymbol as currSym } from "../utils/currency";
 import { getRelationshipBetween } from "../services/relationshipService";
 import { getBalance } from "../services/transactionService";
 import { currencySymbol } from "../utils/currency";
@@ -132,6 +138,7 @@ const stage = new Scenes.Stage<BotContext>([
   bankAccountScene,
   nicknameSetupScene,
   feedbackScene,
+  splitScene,
 ]);
 bot.use(stage.middleware());
 
@@ -145,6 +152,8 @@ bot.command("logs", logsHandler);
 bot.command("help", helpHandler);
 bot.command("accounts", bankAccountsHandler);
 bot.command("profile", profileHandler);
+bot.command("split", splitHandler);
+bot.command("splits", splitsHandler);
 
 // Language selection via ReplyKeyboard
 bot.hears("🇬🇧 English", async (ctx) => setLangAction(ctx, Language.EN));
@@ -376,6 +385,20 @@ bot.action("check_membership", async (ctx) => {
       { show_alert: true },
     );
   }
+});
+
+// Split — resume / start new draft
+bot.action(/^split_resume:(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  // Re-enter the scene; session draft is loaded from DB when calculating
+  await ctx.scene.enter("SPLIT");
+});
+
+bot.action(/^split_new:(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const draftId = ctx.match[1];
+  try { await deleteSession(draftId); } catch { /* ignore */ }
+  await ctx.scene.enter("SPLIT");
 });
 
 // Catch-all for unhandled callbacks

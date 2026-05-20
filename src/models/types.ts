@@ -1,5 +1,26 @@
 import { Context, Scenes } from 'telegraf';
-import { Language, TransactionType } from '@prisma/client';
+import { Currency, Language, TransactionType } from '@prisma/client';
+
+export interface BillDraft {
+  name: string;
+  totalAmount: number;
+  paidByIndex: number;
+  splitType: 'EQUAL' | 'PERCENTAGE' | 'CUSTOM';
+  shares: number[];
+}
+
+export interface SplitDraft {
+  sessionName?: string;
+  currency?: Currency;
+  participantCount?: number;
+  participants: string[];
+  bills: BillDraft[];
+  currentBill: Partial<BillDraft>;
+  currentShareIndex: number;
+  sessionId?: string;
+  netBalances?: number[];
+  shareToken?: string;
+}
 
 // Must extend WizardSession so the stage middleware can store __scenes on the session
 export interface SessionData extends Scenes.WizardSession {
@@ -7,8 +28,10 @@ export interface SessionData extends Scenes.WizardSession {
   activeContactName?: string;
   userLanguage?: Language;
   pendingInvite?: string;
+  pendingSplitToken?: string;
   feedbackTargetTelegramId?: string;
   feedbackTargetName?: string;
+  splitDraft?: SplitDraft;
 }
 
 export interface BotContext extends Context {
