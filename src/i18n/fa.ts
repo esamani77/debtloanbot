@@ -28,6 +28,7 @@ export const fa: Translations = {
   btnAddAccount: '➕ افزودن حساب',
   btnWithdrawalInfo: '💳 اطلاعات برداشت',
   btnProfile: '👤 پروفایل',
+  btnSplit: '🧾 تقسیم',
 
   // Profile
   profileTitle: '👤 *پروفایل شما*',
@@ -279,6 +280,18 @@ export const fa: Translations = {
   splitBtnCancel: '❌ لغو',
   splitZeroAmountError: '⚠️ مبلغ باید بیشتر از صفر باشد.',
   splitMinParticipantsError: '⚠️ حداقل به ۲ شرکت‌کننده نیاز دارید.',
+  splitMenuTitle: '🧾 *تقسیم هزینه*\n\nیک تقسیم جدید شروع کنید یا ادامه دهید:',
+  splitMenuNewSplit: '➕ تقسیم جدید',
+  splitSessionDetail: (name, currency, participants, billCount, status, sym) => {
+    const statusLabels: Record<string, string> = { DRAFT: '🟡 پیش‌نویس', CALCULATED: '🟢 محاسبه‌شده', SHARED: '🔵 اشتراک‌گذاری‌شده' };
+    return `🧾 *${name ?? 'بدون نام'}*\n💱 ${currency} (${sym})\n👥 ${participants.join('، ')}\n📋 ${billCount} هزینه\n${statusLabels[status] ?? status}`;
+  },
+  splitBtnAddBillToSession: '➕ افزودن هزینه',
+  splitBtnRecalculate: '🧮 محاسبه مجدد',
+  splitBtnShareSession: '🔗 اشتراک‌گذاری',
+  splitNoSessions: '🧾 *تقسیم هزینه*\n\nهنوز تقسیمی ندارید. همین الان شروع کنید!',
+  splitAddingBillToSession: (name) => `➕ *افزودن هزینه به "${name ?? 'تقسیم'}"*\n\nاین هزینه مربوط به چه بود؟`,
+
   splitSharedSummary: (sessionName, currency, createdAt, participants, balances, transfers, sym, bankAccounts) => {
     const title = sessionName ? `*${sessionName}*` : '*خلاصه تقسیم*';
     const date = createdAt.toLocaleDateString('fa-IR');

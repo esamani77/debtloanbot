@@ -60,9 +60,18 @@ function splitTypeKeyboard(t: ReturnType<typeof useT>) {
 export const splitScene = new Scenes.WizardScene<BotContext>(
   'SPLIT',
 
-  // ── Step 0: Ask session name ───────────────────────────────────────────────
+  // ── Step 0: Ask session name (or jump to bill entry for existing sessions) ──
   async (ctx) => {
     const t = T(ctx);
+    const d = draft(ctx);
+
+    // If entering with an existing session (set by splitMenu handler), jump to bill entry
+    if (d.sessionId && d.participants.length > 0) {
+      await ctx.reply(t.splitAskBillName, { parse_mode: 'Markdown' });
+      ctx.wizard.selectStep(4);
+      return;
+    }
+
     ctx.session.splitDraft = { participants: [], bills: [], currentBill: {}, currentShareIndex: 0 };
 
     await ctx.reply(t.splitAskName, {
@@ -346,25 +355,42 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     if (!viewer) { await ctx.reply(t.errUserNotFound); return ctx.scene.leave(); }
 
     try {
-      // Persist session + bills to DB
-      const session = await createDraftSession(
-        viewer.id,
-        d.sessionName,
-        d.currency ?? Currency.USD,
-        d.participants,
-      );
-      for (const bill of d.bills) {
-        await addBillToSession(session.id, {
-          name: bill.name,
-          totalAmount: bill.totalAmount,
-          paidByIndex: bill.paidByIndex,
-          splitType: bill.splitType as any,
-          shares: bill.shares,
-        });
+      let targetSessionId: string;
+
+      if (d.sessionId) {
+        // Existing session — add new bills only, then recalculate
+        targetSessionId = d.sessionId;
+        for (const bill of d.bills) {
+          await addBillToSession(targetSessionId, {
+            name: bill.name,
+            totalAmount: bill.totalAmount,
+            paidByIndex: bill.paidByIndex,
+            splitType: bill.splitType as any,
+            shares: bill.shares,
+          });
+        }
+      } else {
+        // New session — create and add all bills
+        const session = await createDraftSession(
+          viewer.id,
+          d.sessionName,
+          d.currency ?? Currency.USD,
+          d.participants,
+        );
+        targetSessionId = session.id;
+        for (const bill of d.bills) {
+          await addBillToSession(targetSessionId, {
+            name: bill.name,
+            totalAmount: bill.totalAmount,
+            paidByIndex: bill.paidByIndex,
+            splitType: bill.splitType as any,
+            shares: bill.shares,
+          });
+        }
       }
 
-      const { netBalances, transfers, shareToken } = await calculateSession(session.id);
-      d.sessionId = session.id;
+      const { netBalances, transfers, shareToken } = await calculateSession(targetSessionId);
+      d.sessionId = targetSessionId;
       d.netBalances = netBalances;
       d.shareToken = shareToken;
 

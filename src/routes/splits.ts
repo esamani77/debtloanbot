@@ -6,6 +6,8 @@ import {
   addBill,
   calculate,
   removeSplitSession,
+  updateSession,
+  replaceSessionBills,
 } from '../controllers/splitController';
 
 const router = Router();
@@ -13,8 +15,10 @@ const router = Router();
 router.get('/', listSessions);
 router.post('/', createSession);
 router.get('/:id', getSession);
-router.post('/:id/bills', addBill);
-router.post('/:id/calculate', calculate);
+router.patch('/:id', updateSession);
 router.delete('/:id', removeSplitSession);
+router.post('/:id/bills', addBill);
+router.put('/:id/bills', replaceSessionBills);
+router.post('/:id/calculate', calculate);
 
 export default router;

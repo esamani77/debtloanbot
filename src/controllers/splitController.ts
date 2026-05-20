@@ -11,6 +11,9 @@ import {
   listUserSessions,
   deleteSession,
   getBankAccountsForParticipants,
+  updateSessionMeta,
+  resetSessionToDraft,
+  replaceAllBills,
 } from '../services/splitService';
 import { computeNetBalances, simplifyDebts } from '../utils/debtSimplification';
 import { currencySymbol } from '../utils/currency';
@@ -262,6 +265,73 @@ export async function getSharedSession(req: Request, res: Response): Promise<voi
     });
   } catch {
     res.status(500).json({ error: 'Failed to load session.' });
+  }
+}
+
+// PATCH /api/splits/:id  — update session metadata
+export async function updateSession(req: Request, res: Response): Promise<void> {
+  const { name, currency } = req.body as { name?: string | null; currency?: string };
+
+  if (currency !== undefined && !ALL_CURRENCIES.includes(currency)) {
+    res.status(400).json({ error: `currency must be one of: ${ALL_CURRENCIES.join(', ')}.` });
+    return;
+  }
+
+  try {
+    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const session = await getSessionById(String(req.params.id));
+    if (!session) { res.status(404).json({ error: 'Session not found.' }); return; }
+    if (session.createdById !== viewer.id) { res.status(403).json({ error: 'Access denied.' }); return; }
+
+    await updateSessionMeta(String(req.params.id), {
+      name: name !== undefined ? (name || null) : undefined,
+      currency: currency ? (currency as Currency) : undefined,
+    });
+
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: 'Failed to update session.' });
+  }
+}
+
+// PUT /api/splits/:id/bills  — replace all bills (edit the whole bill list)
+export async function replaceSessionBills(req: Request, res: Response): Promise<void> {
+  const { bills } = req.body as { bills?: unknown[] };
+
+  if (!Array.isArray(bills) || bills.length === 0) {
+    res.status(400).json({ error: 'bills must be a non-empty array.' });
+    return;
+  }
+
+  for (const b of bills as Record<string, unknown>[]) {
+    if (!b.name || typeof b.name !== 'string') { res.status(400).json({ error: 'Each bill must have a name.' }); return; }
+    if (typeof b.totalAmount !== 'number' || (b.totalAmount as number) <= 0) { res.status(400).json({ error: 'Each bill must have a positive totalAmount.' }); return; }
+    if (typeof b.paidByIndex !== 'number') { res.status(400).json({ error: 'Each bill must have a paidByIndex.' }); return; }
+    if (!b.splitType || !SPLIT_TYPES.includes(b.splitType as string)) { res.status(400).json({ error: `splitType must be one of: ${SPLIT_TYPES.join(', ')}.` }); return; }
+    if (!Array.isArray(b.shares) || (b.shares as unknown[]).some((s) => typeof s !== 'number')) { res.status(400).json({ error: 'Each bill must have shares as number[].' }); return; }
+  }
+
+  try {
+    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const session = await getSessionById(String(req.params.id));
+    if (!session) { res.status(404).json({ error: 'Session not found.' }); return; }
+    if (session.createdById !== viewer.id) { res.status(403).json({ error: 'Access denied.' }); return; }
+
+    // Reset to DRAFT (invalidates old calculation + share token)
+    await resetSessionToDraft(String(req.params.id));
+
+    const typedBills = (bills as Record<string, unknown>[]).map((b) => ({
+      name: b.name as string,
+      totalAmount: b.totalAmount as number,
+      paidByIndex: b.paidByIndex as number,
+      splitType: b.splitType as import('@prisma/client').SplitType,
+      shares: b.shares as number[],
+    }));
+
+    await replaceAllBills(String(req.params.id), typedBills);
+    res.json({ ok: true, billCount: typedBills.length });
+  } catch {
+    res.status(500).json({ error: 'Failed to replace bills.' });
   }
 }
 

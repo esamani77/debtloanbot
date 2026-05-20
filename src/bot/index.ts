@@ -19,6 +19,13 @@ import { profileHandler } from "./commands/profile";
 import { splitHandler } from "./commands/split";
 import { splitsHandler } from "./commands/splits";
 import {
+  splitMenuHandler,
+  openSplitSession,
+  addBillToExistingSession,
+  recalculateSession,
+  reshareSession,
+} from "./commands/splitMenu";
+import {
   bankAccountsHandler,
   handleDeleteConfirm,
   handleDeleteExecute,
@@ -183,6 +190,7 @@ bot.hears([en.btnAdd, fa.btnAdd], async (ctx) =>
   ctx.scene.enter("ADD_TRANSACTION"),
 );
 bot.hears([en.btnProfile, fa.btnProfile], async (ctx) => profileHandler(ctx));
+bot.hears([en.btnSplit, fa.btnSplit], async (ctx) => splitMenuHandler(ctx));
 
 // Contact selection
 bot.action(/^select_contact:(.+)$/, selectContactAction);
@@ -390,7 +398,6 @@ bot.action("check_membership", async (ctx) => {
 // Split — resume / start new draft
 bot.action(/^split_resume:(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
-  // Re-enter the scene; session draft is loaded from DB when calculating
   await ctx.scene.enter("SPLIT");
 });
 
@@ -399,6 +406,36 @@ bot.action(/^split_new:(.+)$/, async (ctx) => {
   const draftId = ctx.match[1];
   try { await deleteSession(draftId); } catch { /* ignore */ }
   await ctx.scene.enter("SPLIT");
+});
+
+// Split menu — new session
+bot.action("split_menu_new", async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.scene.enter("SPLIT");
+});
+
+// Split menu — open existing session detail
+bot.action(/^split_open:(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  await openSplitSession(ctx, ctx.match[1]);
+});
+
+// Split — add bill to existing session
+bot.action(/^split_add_bill:(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  await addBillToExistingSession(ctx, ctx.match[1]);
+});
+
+// Split — recalculate existing session
+bot.action(/^split_recalculate:(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  await recalculateSession(ctx, ctx.match[1]);
+});
+
+// Split — reshare existing session
+bot.action(/^split_reshare:(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  await reshareSession(ctx, ctx.match[1]);
 });
 
 // Catch-all for unhandled callbacks

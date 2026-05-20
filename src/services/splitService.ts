@@ -112,6 +112,38 @@ export async function deleteSession(id: string): Promise<void> {
   await prisma.splitSession.delete({ where: { id } });
 }
 
+export async function resetSessionToDraft(id: string): Promise<void> {
+  await prisma.splitSession.update({
+    where: { id },
+    data: { status: SplitStatus.DRAFT, shareToken: null, expiresAt: null },
+  });
+}
+
+export async function updateSessionMeta(
+  id: string,
+  data: { name?: string | null; currency?: Currency },
+): Promise<void> {
+  await prisma.splitSession.update({ where: { id }, data });
+}
+
+export async function replaceAllBills(sessionId: string, bills: BillInput[]): Promise<void> {
+  await prisma.$transaction([
+    prisma.billItem.deleteMany({ where: { sessionId } }),
+    ...bills.map((bill) =>
+      prisma.billItem.create({
+        data: {
+          sessionId,
+          name: bill.name,
+          totalAmount: bill.totalAmount,
+          paidByIndex: bill.paidByIndex,
+          splitType: bill.splitType,
+          shares: bill.shares,
+        },
+      }),
+    ),
+  ]);
+}
+
 export async function getBankAccountsForParticipants(participants: string[]) {
   const users = await prisma.user.findMany({
     include: { bankAccounts: true },

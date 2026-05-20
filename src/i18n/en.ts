@@ -28,6 +28,7 @@ export const en: Translations = {
   btnAddAccount: '➕ Add Account',
   btnWithdrawalInfo: '💳 Withdrawal Info',
   btnProfile: '👤 Profile',
+  btnSplit: '🧾 Split',
 
   // Profile
   profileTitle: '👤 *Your Profile*',
@@ -276,6 +277,18 @@ export const en: Translations = {
   splitBtnCancel: '❌ Cancel',
   splitZeroAmountError: '⚠️ Amount must be greater than zero.',
   splitMinParticipantsError: '⚠️ You need at least 2 participants.',
+  splitMenuTitle: '🧾 *Bill Splitting*\n\nStart a new split or continue an existing one:',
+  splitMenuNewSplit: '➕ New Split',
+  splitSessionDetail: (name, currency, participants, billCount, status, sym) => {
+    const statusLabels: Record<string, string> = { DRAFT: '🟡 Draft', CALCULATED: '🟢 Calculated', SHARED: '🔵 Shared' };
+    return `🧾 *${name ?? 'Unnamed Split'}*\n💱 ${currency} (${sym})\n👥 ${participants.join(', ')}\n📋 ${billCount} bill${billCount !== 1 ? 's' : ''}\n${statusLabels[status] ?? status}`;
+  },
+  splitBtnAddBillToSession: '➕ Add Bill',
+  splitBtnRecalculate: '🧮 Recalculate',
+  splitBtnShareSession: '🔗 Share',
+  splitNoSessions: '🧾 *Bill Splitting*\n\nNo splits yet. Start one now!',
+  splitAddingBillToSession: (name) => `➕ *Adding bill to "${name ?? 'split'}"*\n\nWhat was this expense?`,
+
   splitSharedSummary: (sessionName, currency, createdAt, participants, balances, transfers, sym, bankAccounts) => {
     const title = sessionName ? `*${sessionName}*` : '*Split Summary*';
     const date = createdAt.toLocaleDateString('en-GB');

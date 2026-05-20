@@ -25,6 +25,7 @@ export interface Translations {
   btnAddAccount: string;
   btnWithdrawalInfo: string;
   btnProfile: string;
+  btnSplit: string;
 
   // Profile
   profileTitle: string;
@@ -177,4 +178,14 @@ export interface Translations {
   splitZeroAmountError: string;
   splitMinParticipantsError: string;
   splitSharedSummary: (sessionName: string | null, currency: string, createdAt: Date, participants: string[], balances: number[], transfers: Array<{ from: string; to: string; amount: number }>, sym: string, bankAccounts: Record<string, Array<{ bankName: string; cardNumber: string; accountNumber: string; name: string }>>) => string;
+
+  // Split menu (hub)
+  splitMenuTitle: string;
+  splitMenuNewSplit: string;
+  splitSessionDetail: (name: string | null, currency: string, participants: string[], billCount: number, status: string, sym: string) => string;
+  splitBtnAddBillToSession: string;
+  splitBtnRecalculate: string;
+  splitBtnShareSession: string;
+  splitNoSessions: string;
+  splitAddingBillToSession: (name: string | null) => string;
 }
