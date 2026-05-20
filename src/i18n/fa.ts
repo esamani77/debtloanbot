@@ -28,7 +28,7 @@ export const fa: Translations = {
   btnAddAccount: '➕ افزودن حساب',
   btnWithdrawalInfo: '💳 اطلاعات برداشت',
   btnProfile: '👤 پروفایل',
-  btnSplit: '🧾 تقسیم',
+  btnSplit: '🧾 دنگ',
 
   // Profile
   profileTitle: '👤 *پروفایل شما*',
