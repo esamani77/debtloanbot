@@ -112,3 +112,9 @@ enum SplitType {
   PERCENTAGE
   CUSTOM
 }
+
+model PendingInvite {
+  telegramId String   @id
+  payload    String
+  createdAt  DateTime @default(now())
+}

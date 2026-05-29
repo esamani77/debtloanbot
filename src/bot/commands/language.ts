@@ -8,6 +8,7 @@ import { useT } from '../../i18n';
 import { getSessionByToken, getBankAccountsForParticipants } from '../../services/splitService';
 import { computeNetBalances, simplifyDebts } from '../../utils/debtSimplification';
 import { currencySymbol } from '../../utils/currency';
+import prisma from '../../db/prisma';
 
 export function mainMenuKeyboard(T: ReturnType<typeof useT>) {
   return Markup.keyboard([
@@ -56,8 +57,16 @@ export async function setLangAction(ctx: BotContext, language: Language): Promis
       return;
     }
 
-    const pendingInvite = ctx.session.pendingInvite;
+    let pendingInvite = ctx.session.pendingInvite;
     ctx.session.pendingInvite = undefined;
+
+    // Fallback: if session was lost (e.g. bot restarted), recover from DB
+    if (!pendingInvite) {
+      const dbRecord = await prisma.pendingInvite.findUnique({ where: { telegramId } });
+      if (dbRecord) pendingInvite = dbRecord.payload;
+    }
+    // Always clean up the DB record once we've read it
+    await prisma.pendingInvite.deleteMany({ where: { telegramId } });
 
     if (pendingInvite) {
       const inviterId = parseInvitePayload(pendingInvite);
