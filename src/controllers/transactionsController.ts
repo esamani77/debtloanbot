@@ -6,7 +6,7 @@ import {
   getDisplayName,
 } from "../services/userService";
 import { getRelationshipBetween } from "../services/relationshipService";
-import { addTransaction } from "../services/transactionService";
+import { addTransaction, updateTransaction as updateTransactionService, deleteTransaction as deleteTransactionService } from "../services/transactionService";
 import { bot } from "../bot";
 import { useT } from "../i18n";
 import { currencySymbol } from "../utils/currency";
@@ -99,5 +99,41 @@ export async function createTransaction(
     });
   } catch {
     res.status(500).json({ error: "Failed to create transaction." });
+  }
+}
+
+export async function updateTransaction(req: Request, res: Response): Promise<void> {
+  const id = req.params.id as string;
+  const { amount, note } = req.body as { amount?: number; note?: string | null };
+
+  if (amount !== undefined && (typeof amount !== "number" || amount <= 0)) {
+    res.status(400).json({ error: "amount must be a positive number." });
+    return;
+  }
+
+  try {
+    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const transaction = await updateTransactionService(id, viewer.id, { amount, note });
+    res.json({ id: transaction.id, amount: transaction.amount, note: transaction.note });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg === "Not authorized.") { res.status(403).json({ error: msg }); return; }
+    if (msg === "Transaction not found.") { res.status(404).json({ error: msg }); return; }
+    res.status(500).json({ error: "Failed to update transaction." });
+  }
+}
+
+export async function deleteTransaction(req: Request, res: Response): Promise<void> {
+  const id = req.params.id as string;
+
+  try {
+    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    await deleteTransactionService(id, viewer.id);
+    res.status(204).send();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg === "Not authorized.") { res.status(403).json({ error: msg }); return; }
+    if (msg === "Transaction not found.") { res.status(404).json({ error: msg }); return; }
+    res.status(500).json({ error: "Failed to delete transaction." });
   }
 }

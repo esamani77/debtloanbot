@@ -135,3 +135,34 @@ export async function getRecentTransactions(
     throw new Error('Could not retrieve transactions. Please try again.');
   }
 }
+
+export async function updateTransaction(
+  transactionId: string,
+  viewerId: string,
+  data: { amount?: number; note?: string | null }
+): Promise<Transaction> {
+  const transaction = await prisma.transaction.findUnique({ where: { id: transactionId } });
+
+  if (!transaction) throw new Error('Transaction not found.');
+  if (transaction.createdById !== viewerId) throw new Error('Not authorized.');
+  if (data.amount !== undefined && data.amount <= 0) {
+    throw new Error('Transaction amount must be a positive number.');
+  }
+
+  return prisma.transaction.update({
+    where: { id: transactionId },
+    data: {
+      ...(data.amount !== undefined ? { amount: data.amount } : {}),
+      ...(data.note !== undefined ? { note: data.note } : {}),
+    },
+  });
+}
+
+export async function deleteTransaction(transactionId: string, viewerId: string): Promise<void> {
+  const transaction = await prisma.transaction.findUnique({ where: { id: transactionId } });
+
+  if (!transaction) throw new Error('Transaction not found.');
+  if (transaction.createdById !== viewerId) throw new Error('Not authorized.');
+
+  await prisma.transaction.delete({ where: { id: transactionId } });
+}
