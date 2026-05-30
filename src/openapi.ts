@@ -32,14 +32,20 @@ export const openapiSpec: OpenAPIV3_1.Document = {
         enum: ['USD', 'EUR', 'GBP', 'IRR', 'TRY'],
         example: 'USD',
       },
+      Theme: {
+        type: 'string',
+        enum: ['LIGHT', 'DARK', 'SYSTEM'],
+        example: 'SYSTEM',
+      },
       User: {
         type: 'object',
-        required: ['id', 'telegramId', 'name', 'language', 'createdAt'],
+        required: ['id', 'telegramId', 'name', 'language', 'theme', 'createdAt'],
         properties: {
           id: { type: 'string', example: 'clx000000000000000000000' },
           telegramId: { type: 'string', example: '123456789' },
           name: { type: 'string', example: 'Erfan' },
           language: { type: 'string', enum: ['EN', 'FA'], example: 'EN' },
+          theme: { $ref: '#/components/schemas/Theme' },
           createdAt: { type: 'string', format: 'date-time', example: '2026-05-01T00:00:00.000Z' },
         },
       },
@@ -445,6 +451,92 @@ export const openapiSpec: OpenAPIV3_1.Document = {
           },
           '404': {
             description: 'Relationship not found',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/Error' } },
+            },
+          },
+          '500': {
+            description: 'Internal server error',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/Error' } },
+            },
+          },
+        },
+      },
+    },
+    '/api/me/theme': {
+      get: {
+        tags: ['Users'],
+        summary: 'Get theme preference',
+        description: "Returns the authenticated user's current theme setting.",
+        operationId: 'getTheme',
+        security: [{ TelegramMiniApp: [] }],
+        responses: {
+          '200': {
+            description: 'Current theme',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['theme'],
+                  properties: { theme: { $ref: '#/components/schemas/Theme' } },
+                },
+              },
+            },
+          },
+          '401': {
+            description: 'Missing or invalid Telegram initData',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/Error' } },
+            },
+          },
+          '500': {
+            description: 'Internal server error',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/Error' } },
+            },
+          },
+        },
+      },
+      patch: {
+        tags: ['Users'],
+        summary: 'Update theme preference',
+        description: "Sets the authenticated user's theme preference.",
+        operationId: 'patchTheme',
+        security: [{ TelegramMiniApp: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['theme'],
+                properties: { theme: { $ref: '#/components/schemas/Theme' } },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Theme updated',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['theme'],
+                  properties: { theme: { $ref: '#/components/schemas/Theme' } },
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Invalid theme value',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/Error' } },
+            },
+          },
+          '401': {
+            description: 'Missing or invalid Telegram initData',
             content: {
               'application/json': { schema: { $ref: '#/components/schemas/Error' } },
             },

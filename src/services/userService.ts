@@ -1,4 +1,4 @@
-import { Language, User } from '@prisma/client';
+import { Language, Theme, User } from '@prisma/client';
 import prisma from '../db/prisma';
 
 export function getDisplayName(user: { name: string; nickname: string | null }): string {
@@ -70,5 +70,12 @@ export async function setUserLanguage(
   return prisma.user.update({
     where: { telegramId },
     data: { language },
+  });
+}
+
+export async function setUserTheme(telegramId: string, theme: Theme): Promise<User> {
+  return prisma.user.update({
+    where: { telegramId },
+    data: { theme },
   });
 }

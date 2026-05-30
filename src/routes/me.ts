@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getMe, patchNickname } from '../controllers/meController';
+import { getMe, patchNickname, getTheme, patchTheme } from '../controllers/meController';
 import {
   listMyBankAccounts,
   createBankAccount,
@@ -11,6 +11,8 @@ const router = Router();
 
 router.get('/', getMe);
 router.patch('/nickname', patchNickname);
+router.get('/theme', getTheme);
+router.patch('/theme', patchTheme);
 router.get('/bank-accounts', listMyBankAccounts);
 router.post('/bank-accounts', createBankAccount);
 router.put('/bank-accounts/:id', updateBankAccountHandler);

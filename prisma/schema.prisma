@@ -12,6 +12,7 @@ model User {
   name         String
   nickname     String?
   language     Language       @default(EN)
+  theme        Theme          @default(SYSTEM)
   createdAt    DateTime       @default(now())
   relationshipsA Relationship[] @relation("UserA")
   relationshipsB Relationship[] @relation("UserB")
@@ -99,6 +100,12 @@ enum Currency {
 enum Language {
   EN
   FA
+}
+
+enum Theme {
+  LIGHT
+  DARK
+  SYSTEM
 }
 
 enum SplitStatus {

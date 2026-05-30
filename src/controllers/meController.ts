@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
-import { findOrCreateUser, setNickname, getDisplayName } from '../services/userService';
+import { Theme } from '@prisma/client';
+import { findOrCreateUser, setNickname, getDisplayName, setUserTheme } from '../services/userService';
+
+const VALID_THEMES = Object.values(Theme);
 
 export async function getMe(req: Request, res: Response): Promise<void> {
   try {
@@ -11,6 +14,7 @@ export async function getMe(req: Request, res: Response): Promise<void> {
       nickname: user.nickname,
       displayName: getDisplayName(user),
       language: user.language,
+      theme: user.theme,
       createdAt: user.createdAt,
     });
   } catch {
@@ -41,5 +45,30 @@ export async function patchNickname(req: Request, res: Response): Promise<void> 
     });
   } catch {
     res.status(500).json({ error: 'Failed to update nickname.' });
+  }
+}
+
+export async function getTheme(req: Request, res: Response): Promise<void> {
+  try {
+    const user = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    res.json({ theme: user.theme });
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch theme.' });
+  }
+}
+
+export async function patchTheme(req: Request, res: Response): Promise<void> {
+  const { theme } = req.body as { theme?: unknown };
+
+  if (!theme || typeof theme !== 'string' || !VALID_THEMES.includes(theme as Theme)) {
+    res.status(400).json({ error: `theme must be one of: ${VALID_THEMES.join(', ')}.` });
+    return;
+  }
+
+  try {
+    const user = await setUserTheme(res.locals.telegramId, theme as Theme);
+    res.json({ theme: user.theme });
+  } catch {
+    res.status(500).json({ error: 'Failed to update theme.' });
   }
 }
