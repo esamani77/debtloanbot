@@ -162,6 +162,20 @@ export const en: Translations = {
   notifyDeletedDebt: (name, sym, amount) =>
     `🗑️ *${name}* deleted a transaction:\nThey had borrowed *${sym}${amount}* from you.`,
 
+  // Edit / delete transaction (bot flow)
+  txEditAmountPrompt: (sym, amount) =>
+    `✏️ *Edit Amount*\n\nCurrent: *${sym}${amount}*\n\nEnter new amount, or skip to keep it:`,
+  txEditNotePrompt: (note) =>
+    `📝 *Edit Note*\n\nCurrent: ${note ? `_${note}_` : '_none_'}\n\nType a new note, skip to keep it, or clear it:`,
+  txEditSaved: '✅ *Transaction updated!*',
+  txEditCancelled: '❌ Edit cancelled.',
+  btnSkipAmount: '⏭ Keep amount',
+  btnClearNote: '🗑️ Clear note',
+  txDeleteConfirm: (typeLabel, sym, amount) =>
+    `🗑️ *Delete this transaction?*\n\n${typeLabel} — *${sym}${amount}*\n\nThis cannot be undone.`,
+  txDeleteConfirmBtn: '✅ Confirm Delete',
+  txDeleted: '🗑️ Transaction deleted.',
+
   // Feedback
   btnSendFeedback: '💬 Send Feedback',
   btnSkipFeedback: '⏭ Skip',

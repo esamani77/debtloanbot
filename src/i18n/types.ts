@@ -107,6 +107,17 @@ export interface Translations {
   notifyDeletedLoan: (name: string, symbol: string, amount: string) => string;
   notifyDeletedDebt: (name: string, symbol: string, amount: string) => string;
 
+  // Edit / delete transaction (bot flow)
+  txEditAmountPrompt: (symbol: string, amount: string) => string;
+  txEditNotePrompt: (note: string | null) => string;
+  txEditSaved: string;
+  txEditCancelled: string;
+  btnSkipAmount: string;
+  btnClearNote: string;
+  txDeleteConfirm: (typeLabel: string, symbol: string, amount: string) => string;
+  txDeleteConfirmBtn: string;
+  txDeleted: string;
+
   // Feedback
   btnSendFeedback: string;
   btnSkipFeedback: string;

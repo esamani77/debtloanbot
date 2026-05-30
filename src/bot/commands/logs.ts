@@ -21,8 +21,9 @@ function formatTransaction(tx: TransactionSummary, symbol: string, T: Translatio
   const typeLabel = tx.type === TransactionType.LOAN ? T.logLoan : T.logDebt;
   const addedBy = tx.addedByViewer ? T.logAddedByYou : tx.addedByName;
   const noteText = tx.note ? `\n   📝 ${tx.note}` : '';
+  const actions = `\n   ✏️ /edit\\_${tx.id}   🗑️ /del\\_${tx.id}`;
 
-  return `${typeIcon} *${typeLabel}* — ${symbol}${tx.amount.toFixed(2)}\n   📅 ${date} · ${addedBy}${noteText}`;
+  return `${typeIcon} *${typeLabel}* — ${symbol}${tx.amount.toFixed(2)}\n   📅 ${date} · ${addedBy}${noteText}${actions}`;
 }
 
 export async function logsHandler(ctx: BotContext): Promise<void> {

@@ -136,6 +136,13 @@ export async function getRecentTransactions(
   }
 }
 
+export async function getTransactionById(transactionId: string) {
+  return prisma.transaction.findUnique({
+    where: { id: transactionId },
+    include: { relationship: { include: { userA: true, userB: true } } },
+  });
+}
+
 export async function updateTransaction(
   transactionId: string,
   viewerId: string,

@@ -165,6 +165,20 @@ export const fa: Translations = {
   notifyDeletedDebt: (name, sym, amount) =>
     `🗑️ *${name}* یک تراکنش را حذف کرد:\nآن‌ها *${sym}${amount}* از شما قرض گرفته بودند.`,
 
+  // Edit / delete transaction (bot flow)
+  txEditAmountPrompt: (sym, amount) =>
+    `✏️ *ویرایش مبلغ*\n\nمبلغ فعلی: *${sym}${amount}*\n\nمبلغ جدید را وارد کنید یا رد کنید:`,
+  txEditNotePrompt: (note) =>
+    `📝 *ویرایش یادداشت*\n\nیادداشت فعلی: ${note ? `_${note}_` : '_ندارد_'}\n\nیادداشت جدید بنویسید، رد کنید یا حذف کنید:`,
+  txEditSaved: '✅ *تراکنش به‌روزرسانی شد!*',
+  txEditCancelled: '❌ ویرایش لغو شد.',
+  btnSkipAmount: '⏭ نگه داشتن مبلغ',
+  btnClearNote: '🗑️ حذف یادداشت',
+  txDeleteConfirm: (typeLabel, sym, amount) =>
+    `🗑️ *حذف این تراکنش؟*\n\n${typeLabel} — *${sym}${amount}*\n\nاین عملیات قابل بازگشت نیست.`,
+  txDeleteConfirmBtn: '✅ تأیید حذف',
+  txDeleted: '🗑️ تراکنش حذف شد.',
+
   // Feedback
   btnSendFeedback: '💬 ارسال بازخورد',
   btnSkipFeedback: '⏭ رد کردن',
