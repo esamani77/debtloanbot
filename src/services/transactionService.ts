@@ -140,29 +140,48 @@ export async function updateTransaction(
   transactionId: string,
   viewerId: string,
   data: { amount?: number; note?: string | null }
-): Promise<Transaction> {
-  const transaction = await prisma.transaction.findUnique({ where: { id: transactionId } });
+) {
+  const tx = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    include: { relationship: { include: { userA: true, userB: true } } },
+  });
 
-  if (!transaction) throw new Error('Transaction not found.');
-  if (transaction.createdById !== viewerId) throw new Error('Not authorized.');
+  if (!tx) throw new Error('Transaction not found.');
+
+  const rel = tx.relationship;
+  if (rel.userAId !== viewerId && rel.userBId !== viewerId) throw new Error('Not authorized.');
   if (data.amount !== undefined && data.amount <= 0) {
     throw new Error('Transaction amount must be a positive number.');
   }
 
-  return prisma.transaction.update({
+  const oldAmount = tx.amount;
+  const oldNote = tx.note;
+
+  const transaction = await prisma.transaction.update({
     where: { id: transactionId },
     data: {
       ...(data.amount !== undefined ? { amount: data.amount } : {}),
       ...(data.note !== undefined ? { note: data.note } : {}),
     },
   });
+
+  return { transaction, relationship: rel, oldAmount, oldNote };
 }
 
-export async function deleteTransaction(transactionId: string, viewerId: string): Promise<void> {
-  const transaction = await prisma.transaction.findUnique({ where: { id: transactionId } });
+export async function deleteTransaction(transactionId: string, viewerId: string) {
+  const tx = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    include: { relationship: { include: { userA: true, userB: true } } },
+  });
 
-  if (!transaction) throw new Error('Transaction not found.');
-  if (transaction.createdById !== viewerId) throw new Error('Not authorized.');
+  if (!tx) throw new Error('Transaction not found.');
+
+  const rel = tx.relationship;
+  if (rel.userAId !== viewerId && rel.userBId !== viewerId) throw new Error('Not authorized.');
+
+  const snapshot = { id: tx.id, amount: tx.amount, type: tx.type, note: tx.note };
 
   await prisma.transaction.delete({ where: { id: transactionId } });
+
+  return { deletedTransaction: snapshot, relationship: rel };
 }

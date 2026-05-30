@@ -156,6 +156,14 @@ export const fa: Translations = {
   notifyLent: (name, sym, amount) =>
     `💰 *${name}* یک تراکنش با شما ثبت کرد:\nآن‌ها *${sym}${amount}* به شما قرض دادند.`,
   notifyNote: (note) => `یادداشت: ${note}`,
+  notifyEditedLoan: (name, sym, amount) =>
+    `✏️ *${name}* یک تراکنش را ویرایش کرد:\nآن‌ها *${sym}${amount}* به شما قرض داده‌اند.`,
+  notifyEditedDebt: (name, sym, amount) =>
+    `✏️ *${name}* یک تراکنش را ویرایش کرد:\nآن‌ها *${sym}${amount}* از شما قرض گرفته‌اند.`,
+  notifyDeletedLoan: (name, sym, amount) =>
+    `🗑️ *${name}* یک تراکنش را حذف کرد:\nآن‌ها *${sym}${amount}* به شما قرض داده بودند.`,
+  notifyDeletedDebt: (name, sym, amount) =>
+    `🗑️ *${name}* یک تراکنش را حذف کرد:\nآن‌ها *${sym}${amount}* از شما قرض گرفته بودند.`,
 
   // Feedback
   btnSendFeedback: '💬 ارسال بازخورد',

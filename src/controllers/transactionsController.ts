@@ -113,8 +113,21 @@ export async function updateTransaction(req: Request, res: Response): Promise<vo
 
   try {
     const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
-    const transaction = await updateTransactionService(id, viewer.id, { amount, note });
+    const { transaction, relationship } = await updateTransactionService(id, viewer.id, { amount, note });
+
     res.json({ id: transaction.id, amount: transaction.amount, note: transaction.note });
+
+    // Notify the other party in their language
+    const contact = relationship.userAId === viewer.id ? relationship.userB : relationship.userA;
+    const contactT = useT(contact.language);
+    const sym = currencySymbol(relationship.currency, contact.language);
+    const notifyMsg = transaction.type === "LOAN"
+      ? contactT.notifyEditedLoan(getDisplayName(viewer), sym, transaction.amount.toFixed(2))
+      : contactT.notifyEditedDebt(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
+    const fullMsg = transaction.note
+      ? `${notifyMsg}\n${contactT.notifyNote(transaction.note)}`
+      : notifyMsg;
+    bot.telegram.sendMessage(contact.telegramId, fullMsg, { parse_mode: "Markdown" }).catch(() => {});
   } catch (err) {
     const msg = err instanceof Error ? err.message : "";
     if (msg === "Not authorized.") { res.status(403).json({ error: msg }); return; }
@@ -128,8 +141,18 @@ export async function deleteTransaction(req: Request, res: Response): Promise<vo
 
   try {
     const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
-    await deleteTransactionService(id, viewer.id);
+    const { deletedTransaction, relationship } = await deleteTransactionService(id, viewer.id);
+
     res.status(204).send();
+
+    // Notify the other party in their language
+    const contact = relationship.userAId === viewer.id ? relationship.userB : relationship.userA;
+    const contactT = useT(contact.language);
+    const sym = currencySymbol(relationship.currency, contact.language);
+    const notifyMsg = deletedTransaction.type === "LOAN"
+      ? contactT.notifyDeletedLoan(getDisplayName(viewer), sym, deletedTransaction.amount.toFixed(2))
+      : contactT.notifyDeletedDebt(getDisplayName(viewer), sym, deletedTransaction.amount.toFixed(2));
+    bot.telegram.sendMessage(contact.telegramId, notifyMsg, { parse_mode: "Markdown" }).catch(() => {});
   } catch (err) {
     const msg = err instanceof Error ? err.message : "";
     if (msg === "Not authorized.") { res.status(403).json({ error: msg }); return; }

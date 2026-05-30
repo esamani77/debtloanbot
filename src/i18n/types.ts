@@ -102,6 +102,10 @@ export interface Translations {
   notifyBorrowed: (name: string, symbol: string, amount: string) => string;
   notifyLent: (name: string, symbol: string, amount: string) => string;
   notifyNote: (note: string) => string;
+  notifyEditedLoan: (name: string, symbol: string, amount: string) => string;
+  notifyEditedDebt: (name: string, symbol: string, amount: string) => string;
+  notifyDeletedLoan: (name: string, symbol: string, amount: string) => string;
+  notifyDeletedDebt: (name: string, symbol: string, amount: string) => string;
 
   // Feedback
   btnSendFeedback: string;

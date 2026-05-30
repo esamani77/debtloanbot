@@ -153,6 +153,14 @@ export const en: Translations = {
   notifyLent: (name, sym, amount) =>
     `💰 *${name}* recorded a transaction with you:\nThey lent *${sym}${amount}* to you.`,
   notifyNote: (note) => `Note: ${note}`,
+  notifyEditedLoan: (name, sym, amount) =>
+    `✏️ *${name}* edited a transaction:\nThey lent *${sym}${amount}* to you.`,
+  notifyEditedDebt: (name, sym, amount) =>
+    `✏️ *${name}* edited a transaction:\nThey borrowed *${sym}${amount}* from you.`,
+  notifyDeletedLoan: (name, sym, amount) =>
+    `🗑️ *${name}* deleted a transaction:\nThey had lent *${sym}${amount}* to you.`,
+  notifyDeletedDebt: (name, sym, amount) =>
+    `🗑️ *${name}* deleted a transaction:\nThey had borrowed *${sym}${amount}* from you.`,
 
   // Feedback
   btnSendFeedback: '💬 Send Feedback',
