@@ -4,7 +4,7 @@ const SYMBOLS: Record<Currency, string> = {
   USD: '$',
   EUR: '€',
   GBP: '£',
-  IRR: '﷼',
+  IRT: '﷼',
   TRY: '₺',
 };
 
@@ -12,7 +12,7 @@ const LABELS: Record<Currency, string> = {
   USD: 'USD – US Dollar ($)',
   EUR: 'EUR – Euro (€)',
   GBP: 'GBP – British Pound (£)',
-  IRR: 'IRR – Iranian Rial (﷼)',
+  IRT: 'IRT – Iranian Toman (تومان)',
   TRY: 'TRY – Turkish Lira (₺)',
 };
 
@@ -24,4 +24,4 @@ export function currencyLabel(currency: Currency): string {
   return LABELS[currency];
 }
 
-export const ALL_CURRENCIES: Currency[] = ['USD', 'EUR', 'GBP', 'IRR', 'TRY'];
+export const ALL_CURRENCIES: Currency[] = ['USD', 'EUR', 'GBP', 'IRT', 'TRY'];

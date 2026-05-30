@@ -18,7 +18,7 @@ import {
 import { computeNetBalances, simplifyDebts } from '../utils/debtSimplification';
 import { currencySymbol } from '../utils/currency';
 
-const ALL_CURRENCIES: string[] = ['USD', 'EUR', 'GBP', 'IRR', 'TRY'];
+const ALL_CURRENCIES: string[] = ['USD', 'EUR', 'GBP', 'IRT', 'TRY'];
 const SPLIT_TYPES: string[] = ['EQUAL', 'PERCENTAGE', 'CUSTOM'];
 const BOT_USERNAME = process.env.BOT_USERNAME ?? 'debtloanbot';
 

@@ -29,7 +29,7 @@ export const openapiSpec: OpenAPIV3_1.Document = {
       },
       Currency: {
         type: 'string',
-        enum: ['USD', 'EUR', 'GBP', 'IRR', 'TRY'],
+        enum: ['USD', 'EUR', 'GBP', 'IRT', 'TRY'],
         example: 'USD',
       },
       Theme: {

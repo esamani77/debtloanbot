@@ -7,7 +7,7 @@ export interface Transfer {
 }
 
 function roundForCurrency(amount: number, currency: Currency): number {
-  if (currency === Currency.IRR) return Math.round(amount / 1000) * 1000;
+  if (currency === Currency.IRT) return Math.round(amount / 1000) * 1000;
   return Math.round(amount * 100) / 100;
 }
 
@@ -34,7 +34,7 @@ export function simplifyDebts(
   netBalances: number[],
   currency: Currency,
 ): Transfer[] {
-  const EPSILON = currency === Currency.IRR ? 500 : 0.005;
+  const EPSILON = currency === Currency.IRT ? 500 : 0.005;
 
   const creditors: Array<[number, string]> = [];
   const debtors: Array<[number, string]> = [];

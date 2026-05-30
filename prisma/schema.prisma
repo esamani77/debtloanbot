@@ -93,7 +93,7 @@ enum Currency {
   USD
   EUR
   GBP
-  IRR
+  IRT
   TRY
 }
 

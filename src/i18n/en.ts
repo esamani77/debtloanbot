@@ -171,7 +171,7 @@ export const en: Translations = {
   acctEnterName: '👤 Enter the account holder name:',
   acctEnterCardNumber: '💳 Enter the card number (16 digits):',
   acctInvalidCardNumber: '⚠️ Invalid card number. Please enter exactly 16 digits:',
-  acctEnterAccountNumber: '🏦 Enter the account number (SHEBA/IBAN for IRR, e.g. IR…):',
+  acctEnterAccountNumber: '🏦 Enter the account number (SHEBA/IBAN for IRT, e.g. IR…):',
   acctEnterBankName: '🏛️ Enter the bank name:',
   acctSaved: '✅ Bank account saved successfully!',
   acctUpdated: '✅ Bank account updated successfully!',

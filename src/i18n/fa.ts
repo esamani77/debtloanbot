@@ -174,7 +174,7 @@ export const fa: Translations = {
   acctEnterName: '👤 نام صاحب حساب را وارد کنید:',
   acctEnterCardNumber: '💳 شماره کارت را وارد کنید (۱۶ رقم):',
   acctInvalidCardNumber: '⚠️ شماره کارت نامعتبر. لطفاً دقیقاً ۱۶ رقم وارد کنید:',
-  acctEnterAccountNumber: '🏦 شماره حساب یا شبا را وارد کنید (برای ریال با IR شروع می‌شود):',
+  acctEnterAccountNumber: '🏦 شماره حساب یا شبا را وارد کنید (برای تومان با IR شروع می‌شود):',
   acctEnterBankName: '🏛️ نام بانک را وارد کنید:',
   acctSaved: '✅ حساب بانکی با موفقیت ذخیره شد!',
   acctUpdated: '✅ حساب بانکی با موفقیت به‌روزرسانی شد!',
