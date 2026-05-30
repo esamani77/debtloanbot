@@ -152,7 +152,56 @@ const stage = new Scenes.Stage<BotContext>([
 bot.use(stage.middleware());
 
 // Command handlers
-bot.start(startHandler);
+bot.start(async (ctx) => {
+  const payload = (ctx as BotContext & { startPayload?: string }).startPayload ?? '';
+
+  if (payload.startsWith('edit_')) {
+    const txId = payload.slice(5);
+    if (!ctx.from) return;
+    const T = useT(ctx.session.userLanguage ?? Language.EN);
+    const tx = await getTransactionById(txId);
+    if (!tx) { await ctx.reply(T.errSomethingWrong); return; }
+    const viewer = await findUserByTelegramId(String(ctx.from.id));
+    if (!viewer || (tx.relationship.userAId !== viewer.id && tx.relationship.userBId !== viewer.id)) {
+      await ctx.reply(T.errSomethingWrong);
+      return;
+    }
+    await ctx.scene.enter('EDIT_TRANSACTION', {
+      txId,
+      viewerId: viewer.id,
+      currentAmount: tx.amount,
+      currentNote: tx.note,
+      currentType: tx.type,
+      currency: tx.relationship.currency,
+    });
+    return;
+  }
+
+  if (payload.startsWith('del_')) {
+    const txId = payload.slice(4);
+    if (!ctx.from) return;
+    const T = useT(ctx.session.userLanguage ?? Language.EN);
+    const tx = await getTransactionById(txId);
+    if (!tx) { await ctx.reply(T.errSomethingWrong); return; }
+    const viewer = await findUserByTelegramId(String(ctx.from.id));
+    if (!viewer || (tx.relationship.userAId !== viewer.id && tx.relationship.userBId !== viewer.id)) {
+      await ctx.reply(T.errSomethingWrong);
+      return;
+    }
+    const typeLabel = tx.type === 'LOAN' ? T.logLoan : T.logDebt;
+    const sym = currencySymbol(tx.relationship.currency, ctx.session.userLanguage);
+    await ctx.reply(T.txDeleteConfirm(typeLabel, sym, tx.amount.toFixed(2)), {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback(T.txDeleteConfirmBtn, `tx_delete_confirm:${txId}`)],
+        [Markup.button.callback(T.btnCancel, 'tx_delete_cancel')],
+      ]),
+    });
+    return;
+  }
+
+  await startHandler(ctx);
+});
 bot.command("invite", inviteHandler);
 bot.command("contacts", contactsHandler);
 bot.command("balance", balanceHandler);
@@ -438,58 +487,6 @@ bot.action(/^split_recalculate:(.+)$/, async (ctx) => {
 bot.action(/^split_reshare:(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   await reshareSession(ctx, ctx.match[1]);
-});
-
-// Edit transaction: /edit_<txid>
-bot.hears(/^\/edit_(.+)$/, async (ctx) => {
-  if (!ctx.from) return;
-  const txId = ctx.match[1];
-  const T = useT(ctx.session.userLanguage ?? Language.EN);
-
-  const tx = await getTransactionById(txId);
-  if (!tx) { await ctx.reply(T.errSomethingWrong); return; }
-
-  const viewer = await findUserByTelegramId(String(ctx.from.id));
-  if (!viewer || (tx.relationship.userAId !== viewer.id && tx.relationship.userBId !== viewer.id)) {
-    await ctx.reply(T.errSomethingWrong);
-    return;
-  }
-
-  await ctx.scene.enter('EDIT_TRANSACTION', {
-    txId,
-    viewerId: viewer.id,
-    currentAmount: tx.amount,
-    currentNote: tx.note,
-    currentType: tx.type,
-    currency: tx.relationship.currency,
-  });
-});
-
-// Delete transaction: /del_<txid>
-bot.hears(/^\/del_(.+)$/, async (ctx) => {
-  if (!ctx.from) return;
-  const txId = ctx.match[1];
-  const T = useT(ctx.session.userLanguage ?? Language.EN);
-
-  const tx = await getTransactionById(txId);
-  if (!tx) { await ctx.reply(T.errSomethingWrong); return; }
-
-  const viewer = await findUserByTelegramId(String(ctx.from.id));
-  if (!viewer || (tx.relationship.userAId !== viewer.id && tx.relationship.userBId !== viewer.id)) {
-    await ctx.reply(T.errSomethingWrong);
-    return;
-  }
-
-  const typeLabel = tx.type === 'LOAN' ? T.logLoan : T.logDebt;
-  const sym = currencySymbol(tx.relationship.currency, ctx.session.userLanguage);
-
-  await ctx.reply(T.txDeleteConfirm(typeLabel, sym, tx.amount.toFixed(2)), {
-    parse_mode: 'Markdown',
-    ...Markup.inlineKeyboard([
-      [Markup.button.callback(T.txDeleteConfirmBtn, `tx_delete_confirm:${txId}`)],
-      [Markup.button.callback(T.btnCancel, 'tx_delete_cancel')],
-    ]),
-  });
 });
 
 // Delete confirmation callback

@@ -21,7 +21,11 @@ function formatTransaction(tx: TransactionSummary, symbol: string, T: Translatio
   const typeLabel = tx.type === TransactionType.LOAN ? T.logLoan : T.logDebt;
   const addedBy = tx.addedByViewer ? T.logAddedByYou : tx.addedByName;
   const noteText = tx.note ? `\n   📝 ${tx.note}` : '';
-  const actions = `\n   ✏️ /edit\\_${tx.id}   🗑️ /del\\_${tx.id}`;
+
+  const bot = process.env.BOT_USERNAME ?? '';
+  const editLink = `[✏️ Edit](https://t.me/${bot}?start=edit_${tx.id})`;
+  const delLink = `[🗑️ Delete](https://t.me/${bot}?start=del_${tx.id})`;
+  const actions = `\n   ${editLink}   ${delLink}`;
 
   return `${typeIcon} *${typeLabel}* — ${symbol}${tx.amount.toFixed(2)}\n   📅 ${date} · ${addedBy}${noteText}${actions}`;
 }
