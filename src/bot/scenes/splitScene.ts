@@ -186,7 +186,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     if (!name) return;
 
     d.currentBill = { name };
-    const sym = currencySymbol(d.currency ?? Currency.USD);
+    const sym = currencySymbol(d.currency ?? Currency.USD, ctx.session.userLanguage);
     await ctx.reply(t.splitAskBillAmount(sym), { parse_mode: 'Markdown' });
     return ctx.wizard.next();
   },
@@ -262,7 +262,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     // PERCENTAGE or CUSTOM — start collecting per-person shares
     d.currentBill.shares = [];
     d.currentShareIndex = 0;
-    const sym = currencySymbol(d.currency ?? Currency.USD);
+    const sym = currencySymbol(d.currency ?? Currency.USD, ctx.session.userLanguage);
     const isPercent = splitType === 'PERCENTAGE';
     const remaining = isPercent ? '100' : d.currentBill.totalAmount!.toFixed(2);
     try {
@@ -291,7 +291,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     d.currentBill.shares!.push(val);
     d.currentShareIndex++;
 
-    const sym = currencySymbol(d.currency ?? Currency.USD);
+    const sym = currencySymbol(d.currency ?? Currency.USD, ctx.session.userLanguage);
     const isPercent = d.currentBill.splitType === 'PERCENTAGE';
     const collectedSum = d.currentBill.shares!.reduce((a, b) => a + b, 0);
 
@@ -395,7 +395,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
       d.netBalances = netBalances;
       d.shareToken = shareToken;
 
-      const sym = currencySymbol(d.currency ?? Currency.USD);
+      const sym = currencySymbol(d.currency ?? Currency.USD, ctx.session.userLanguage);
       const bankAccounts = await getBankAccountsForParticipants(d.participants);
       const balanceMsg = t.splitBalanceSummary(d.participants, netBalances, sym);
       const balanceKeyboard = Markup.inlineKeyboard([[Markup.button.callback(t.splitBtnSettlementPlan, 'split_show_plan')]]);
@@ -421,7 +421,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     await ctx.answerCbQuery();
     if (ctx.callbackQuery.data !== 'split_show_plan') return;
 
-    const sym = currencySymbol(d.currency ?? Currency.USD);
+    const sym = currencySymbol(d.currency ?? Currency.USD, ctx.session.userLanguage);
     const netBalances = d.netBalances ?? computeNetBalances(d.participants, d.bills);
     const transfers = simplifyDebts(d.participants, netBalances, d.currency ?? Currency.USD);
     const bankAccounts = await getBankAccountsForParticipants(d.participants);

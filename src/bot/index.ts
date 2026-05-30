@@ -356,8 +356,8 @@ bot.action(/^settlement_req:(\d+)$/, async (ctx) => {
       return;
     }
 
-    const sym = currencySymbol(relationship.currency);
     const debtorT = useT(debtor.language);
+    const sym = currencySymbol(relationship.currency, debtor.language);
     const senderName = viewer.nickname ?? viewer.name;
 
     await ctx.telegram

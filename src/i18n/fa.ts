@@ -292,16 +292,21 @@ export const fa: Translations = {
   splitNoSessions: '🧾 *تقسیم هزینه*\n\nهنوز تقسیمی ندارید. همین الان شروع کنید!',
   splitAddingBillToSession: (name) => `➕ *افزودن هزینه به "${name ?? 'تقسیم'}"*\n\nاین هزینه مربوط به چه بود؟`,
 
-  splitSharedSummary: (sessionName, currency, createdAt, participants, balances, transfers, sym, bankAccounts) => {
+  splitSharedSummary: (sessionName, currency, createdAt, participants, balances, transfers, sym, bankAccounts, bills) => {
     const title = sessionName ? `*${sessionName}*` : '*خلاصه تقسیم*';
     const date = createdAt.toLocaleDateString('fa-IR');
+    let text = `${title}\n📅 ${date} · ${currency}`;
+    if (bills.length > 0) {
+      const billLines = bills.map((b, i) => `${i + 1}. *${b.name}* — ${sym}${b.totalAmount.toFixed(2)} (پرداخت: ${b.paidBy})`);
+      text += `\n\n*هزینه‌ها:*\n${billLines.join('\n')}`;
+    }
     const balanceLines = participants.map((p, i) => {
       const b = balances[i];
       if (b > 0.005) return `🟢 *${p}*: +${sym}${b.toFixed(2)}`;
       if (b < -0.005) return `🔴 *${p}*: -${sym}${Math.abs(b).toFixed(2)}`;
       return `⚪ *${p}*: تسویه`;
     });
-    let text = `${title}\n📅 ${date} · ${currency}\n\n*تراز:*\n${balanceLines.join('\n')}`;
+    text += `\n\n*تراز:*\n${balanceLines.join('\n')}`;
     if (transfers.length > 0) {
       const tLines = transfers.map((t) => {
         let line = `• *${t.from}* → *${t.to}*: ${sym}${t.amount.toFixed(2)}`;

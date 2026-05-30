@@ -88,6 +88,7 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
       type === TransactionType.DEBT ? T.txTypeBorrow : T.txTypeLend;
     const sym = currencySymbol(
       (ctx.wizard.state as WizardState).currency ?? Currency.USD,
+      ctx.session.userLanguage,
     );
 
     await ctx.editMessageText(T.txSelectedType(typeLabel, sym), {
@@ -122,6 +123,7 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
 
     const sym = currencySymbol(
       (ctx.wizard.state as WizardState).currency ?? Currency.USD,
+      ctx.session.userLanguage,
     );
     await ctx.reply(T.txAmountConfirm(sym, amount.toFixed(2)), {
       parse_mode: "Markdown",
@@ -203,22 +205,23 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
           ? T.txTypeLabelDebt
           : T.txTypeLabelLoan;
       const contactName = ctx.session.activeContactName ?? "?";
-      const sym = currencySymbol(state.currency ?? Currency.USD);
+      const sym = currencySymbol(state.currency ?? Currency.USD, ctx.session.userLanguage);
 
       // Notify the contact in their own language
       const contact = await findUserById(contactId);
       if (contact) {
         const contactT = useT(contact.language);
+        const contactSym = currencySymbol(state.currency ?? Currency.USD, contact.language);
         const notifyMsg =
           state.transactionType === TransactionType.DEBT
             ? contactT.notifyBorrowed(
                 viewer.name,
-                sym,
+                contactSym,
                 transaction.amount.toFixed(2),
               )
             : contactT.notifyLent(
                 viewer.name,
-                sym,
+                contactSym,
                 transaction.amount.toFixed(2),
               );
         const fullMsg = note

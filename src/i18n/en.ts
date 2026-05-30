@@ -289,16 +289,21 @@ export const en: Translations = {
   splitNoSessions: '🧾 *Bill Splitting*\n\nNo splits yet. Start one now!',
   splitAddingBillToSession: (name) => `➕ *Adding bill to "${name ?? 'split'}"*\n\nWhat was this expense?`,
 
-  splitSharedSummary: (sessionName, currency, createdAt, participants, balances, transfers, sym, bankAccounts) => {
+  splitSharedSummary: (sessionName, currency, createdAt, participants, balances, transfers, sym, bankAccounts, bills) => {
     const title = sessionName ? `*${sessionName}*` : '*Split Summary*';
     const date = createdAt.toLocaleDateString('en-GB');
+    let text = `${title}\n📅 ${date} · ${currency}`;
+    if (bills.length > 0) {
+      const billLines = bills.map((b, i) => `${i + 1}. *${b.name}* — ${sym}${b.totalAmount.toFixed(2)} (paid by ${b.paidBy})`);
+      text += `\n\n*Bills:*\n${billLines.join('\n')}`;
+    }
     const balanceLines = participants.map((p, i) => {
       const b = balances[i];
       if (b > 0.005) return `🟢 *${p}*: +${sym}${b.toFixed(2)}`;
       if (b < -0.005) return `🔴 *${p}*: -${sym}${Math.abs(b).toFixed(2)}`;
       return `⚪ *${p}*: settled`;
     });
-    let text = `${title}\n📅 ${date} · ${currency}\n\n*Balances:*\n${balanceLines.join('\n')}`;
+    text += `\n\n*Balances:*\n${balanceLines.join('\n')}`;
     if (transfers.length > 0) {
       const tLines = transfers.map((t) => {
         let line = `• *${t.from}* → *${t.to}*: ${sym}${t.amount.toFixed(2)}`;

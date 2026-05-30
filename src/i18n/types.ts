@@ -177,7 +177,7 @@ export interface Translations {
   splitBtnCancel: string;
   splitZeroAmountError: string;
   splitMinParticipantsError: string;
-  splitSharedSummary: (sessionName: string | null, currency: string, createdAt: Date, participants: string[], balances: number[], transfers: Array<{ from: string; to: string; amount: number }>, sym: string, bankAccounts: Record<string, Array<{ bankName: string; cardNumber: string; accountNumber: string; name: string }>>) => string;
+  splitSharedSummary: (sessionName: string | null, currency: string, createdAt: Date, participants: string[], balances: number[], transfers: Array<{ from: string; to: string; amount: number }>, sym: string, bankAccounts: Record<string, Array<{ bankName: string; cardNumber: string; accountNumber: string; name: string }>>, bills: Array<{ name: string; totalAmount: number; paidBy: string }>) => string;
 
   // Split menu (hub)
   splitMenuTitle: string;

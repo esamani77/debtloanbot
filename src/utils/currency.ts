@@ -4,7 +4,7 @@ const SYMBOLS: Record<Currency, string> = {
   USD: '$',
   EUR: '€',
   GBP: '£',
-  IRT: '﷼',
+  IRT: 'T',
   TRY: '₺',
 };
 
@@ -16,7 +16,8 @@ const LABELS: Record<Currency, string> = {
   TRY: 'TRY – Turkish Lira (₺)',
 };
 
-export function currencySymbol(currency: Currency): string {
+export function currencySymbol(currency: Currency, language?: string): string {
+  if ((currency as string) === 'IRT') return language === 'FA' ? 'تومان' : 'T';
   return SYMBOLS[currency];
 }
 

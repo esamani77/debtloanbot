@@ -43,7 +43,7 @@ export async function balanceHandler(ctx: BotContext): Promise<void> {
     }
 
     const { amount, direction, contactName } = await getBalance(relationship.id, viewer.id);
-    const sym = currencySymbol(relationship.currency);
+    const sym = currencySymbol(relationship.currency, ctx.session.userLanguage);
 
     let message: string;
     if (direction === 'settled') message = T.balanceSettled(contactName);

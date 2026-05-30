@@ -38,7 +38,7 @@ export async function contactsHandler(ctx: BotContext): Promise<void> {
 
     const contactList = relationships
       .map(({ contact, netBalance, relationship }, i) => {
-        const sym = currencySymbol(relationship.currency);
+        const sym = currencySymbol(relationship.currency, ctx.session.userLanguage);
         let balanceLabel: string;
         if (netBalance === 0) balanceLabel = T.contactsBalanceSettled;
         else if (netBalance > 0)

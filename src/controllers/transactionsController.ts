@@ -60,8 +60,8 @@ export async function createTransaction(
     // Notify the contact in their own language
     const contact = await findUserById(contactId);
     if (contact) {
-      const sym = currencySymbol(relationship.currency);
       const contactT = useT(contact.language);
+      const sym = currencySymbol(relationship.currency, contact.language);
       const notifyMsg =
         type === "DEBT"
           ? contactT.notifyBorrowed(

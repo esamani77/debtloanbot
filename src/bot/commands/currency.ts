@@ -54,7 +54,7 @@ export async function setCurrencyAction(ctx: BotContext, currency: Currency): Pr
 
     const contactName = ctx.session.activeContactName ?? '?';
     const label = currencyLabel(currency);
-    const sym = currencySymbol(currency);
+    const sym = currencySymbol(currency, ctx.session.userLanguage);
 
     await ctx.editMessageText(T.currencyUpdated(label, contactName, sym), {
       parse_mode: 'Markdown',

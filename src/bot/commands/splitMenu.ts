@@ -53,7 +53,7 @@ export async function openSplitSession(ctx: BotContext, sessionId: string): Prom
   const session = await getSessionById(sessionId);
   if (!session) { await ctx.reply(t.splitSessionNotFound); return; }
 
-  const sym = currencySymbol(session.currency);
+  const sym = currencySymbol(session.currency, ctx.session.userLanguage);
   const detail = t.splitSessionDetail(
     session.name,
     session.currency,
@@ -121,7 +121,7 @@ export async function recalculateSession(ctx: BotContext, sessionId: string): Pr
   try {
     const { netBalances, transfers, shareToken } = await calculateSession(sessionId);
     const bankAccounts = await getBankAccountsForParticipants(session.participants);
-    const sym = currencySymbol(session.currency);
+    const sym = currencySymbol(session.currency, ctx.session.userLanguage);
 
     const balanceSummary = t.splitBalanceSummary(session.participants, netBalances, sym);
     const plan = t.splitSettlementPlan(transfers, sym, bankAccounts);
@@ -146,7 +146,7 @@ export async function reshareSession(ctx: BotContext, sessionId: string): Promis
   const netBalances = computeNetBalances(session.participants, session.bills);
   const transfers = simplifyDebts(session.participants, netBalances, session.currency);
   const bankAccounts = await getBankAccountsForParticipants(session.participants);
-  const sym = currencySymbol(session.currency);
+  const sym = currencySymbol(session.currency, ctx.session.userLanguage);
   const link = `https://t.me/${BOT_USERNAME}?start=split_${session.shareToken}`;
 
   await ctx.editMessageText(

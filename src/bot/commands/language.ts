@@ -46,9 +46,9 @@ export async function setLangAction(ctx: BotContext, language: Language): Promis
         const netBalances = computeNetBalances(result.participants, result.bills);
         const transfers = simplifyDebts(result.participants, netBalances, result.currency);
         const bankAccounts = await getBankAccountsForParticipants(result.participants);
-        const sym = currencySymbol(result.currency);
+        const sym = currencySymbol(result.currency, language);
         await ctx.reply(
-          T.splitSharedSummary(result.name ?? null, result.currency, result.createdAt, result.participants, netBalances, transfers, sym, bankAccounts),
+          T.splitSharedSummary(result.name ?? null, result.currency, result.createdAt, result.participants, netBalances, transfers, sym, bankAccounts, result.bills.map((b) => ({ name: b.name, totalAmount: b.totalAmount, paidBy: result.participants[b.paidByIndex] }))),
           { parse_mode: 'Markdown' },
         );
       }

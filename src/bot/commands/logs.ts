@@ -61,7 +61,7 @@ export async function logsHandler(ctx: BotContext): Promise<void> {
     }
 
     const transactions = await getRecentTransactions(relationship.id, viewer.id, 10);
-    const symbol = currencySymbol(relationship.currency);
+    const symbol = currencySymbol(relationship.currency, ctx.session.userLanguage);
 
     if (transactions.length === 0) {
       await replyOrEdit(ctx, T.logsEmpty(contactName), {
