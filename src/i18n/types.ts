@@ -109,6 +109,15 @@ export interface Translations {
   notifySettledTransaction: (name: string, symbol: string, amount: string) => string;
   notifySettledAll: (name: string) => string;
 
+  // Settle (bot flow)
+  btnSettle: string;
+  txSettleConfirm: (typeLabel: string, symbol: string, amount: string) => string;
+  txSettleConfirmBtn: string;
+  txSettled: string;
+  txSettleAllConfirm: (name: string) => string;
+  txSettleAllDone: (count: number, name: string) => string;
+  txSettleAllEmpty: (name: string) => string;
+
   // Edit / delete transaction (bot flow)
   txEditAmountPrompt: (symbol: string, amount: string) => string;
   txEditNotePrompt: (note: string | null) => string;

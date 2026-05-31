@@ -21,13 +21,15 @@ function formatTransaction(tx: TransactionSummary, symbol: string, T: Translatio
   const typeLabel = tx.type === TransactionType.LOAN ? T.logLoan : T.logDebt;
   const addedBy = tx.addedByViewer ? T.logAddedByYou : tx.addedByName;
   const noteText = tx.note ? `\n   📝 ${tx.note}` : '';
+  const settledBadge = tx.isSettled ? ' ~~✅ Settled~~' : '';
 
   const bot = process.env.BOT_USERNAME ?? '';
   const editLink = `[✏️ Edit](https://t.me/${bot}?start=edit_${tx.id})`;
   const delLink = `[🗑️ Delete](https://t.me/${bot}?start=del_${tx.id})`;
-  const actions = `\n   ${editLink}   ${delLink}`;
+  const settleLink = tx.isSettled ? '' : `   [${T.btnSettle}](https://t.me/${bot}?start=settle_${tx.id})`;
+  const actions = `\n   ${editLink}   ${delLink}${settleLink}`;
 
-  return `${typeIcon} *${typeLabel}* — ${symbol}${tx.amount.toFixed(2)}\n   📅 ${date} · ${addedBy}${noteText}${actions}`;
+  return `${typeIcon} *${typeLabel}* — ${symbol}${tx.amount.toFixed(2)}${settledBadge}\n   📅 ${date} · ${addedBy}${noteText}${actions}`;
 }
 
 export async function logsHandler(ctx: BotContext): Promise<void> {

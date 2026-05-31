@@ -166,6 +166,19 @@ export const en: Translations = {
   notifySettledAll: (name) =>
     `✅ *${name}* marked all transactions as settled.`,
 
+  // Settle (bot flow)
+  btnSettle: '✅ Settle',
+  txSettleConfirm: (typeLabel, sym, amount) =>
+    `✅ *Settle this transaction?*\n\n${typeLabel} — *${sym}${amount}*\n\nThis will mark it as settled and remove it from the balance.`,
+  txSettleConfirmBtn: '✅ Confirm Settle',
+  txSettled: '✅ Transaction settled.',
+  txSettleAllConfirm: (name) =>
+    `✅ *Settle all transactions with ${name}?*\n\nAll unsettled transactions will be marked as settled.`,
+  txSettleAllDone: (count, name) =>
+    `✅ *${count} transaction${count !== 1 ? 's' : ''} settled with ${name}!*`,
+  txSettleAllEmpty: (name) =>
+    `✅ *No unsettled transactions with ${name}.*\n\nYou're all settled up!`,
+
   // Edit / delete transaction (bot flow)
   txEditAmountPrompt: (sym, amount) =>
     `✏️ *Edit Amount*\n\nCurrent: *${sym}${amount}*\n\nEnter new amount, or skip to keep it:`,

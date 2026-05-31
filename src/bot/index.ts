@@ -19,6 +19,7 @@ import { setLangAction } from "./commands/language";
 import { profileHandler } from "./commands/profile";
 import { splitHandler } from "./commands/split";
 import { splitsHandler } from "./commands/splits";
+import { settleAllHandler } from "./commands/settle";
 import {
   splitMenuHandler,
   openSplitSession,
@@ -38,7 +39,7 @@ import { getDraftSession, deleteSession, getSessionByToken, getBankAccountsForPa
 import { computeNetBalances, simplifyDebts } from "../utils/debtSimplification";
 import { currencySymbol as currSym } from "../utils/currency";
 import { getRelationshipBetween } from "../services/relationshipService";
-import { getBalance, getTransactionById, deleteTransaction as deleteTransactionService } from "../services/transactionService";
+import { getBalance, getTransactionById, deleteTransaction as deleteTransactionService, settleTransaction as settleTransactionService, settleAllTransactions as settleAllService } from "../services/transactionService";
 import { currencySymbol } from "../utils/currency";
 import { useT } from "../i18n";
 import { en } from "../i18n/en";
@@ -200,6 +201,30 @@ bot.start(async (ctx) => {
     return;
   }
 
+  if (payload.startsWith('settle_')) {
+    const txId = payload.slice(7);
+    if (!ctx.from) return;
+    const T = useT(ctx.session.userLanguage ?? Language.EN);
+    const tx = await getTransactionById(txId);
+    if (!tx) { await ctx.reply(T.errSomethingWrong); return; }
+    if (tx.isSettled) { await ctx.reply(T.txSettled); return; }
+    const viewer = await findUserByTelegramId(String(ctx.from.id));
+    if (!viewer || (tx.relationship.userAId !== viewer.id && tx.relationship.userBId !== viewer.id)) {
+      await ctx.reply(T.errSomethingWrong);
+      return;
+    }
+    const typeLabel = tx.type === 'LOAN' ? T.logLoan : T.logDebt;
+    const sym = currencySymbol(tx.relationship.currency, ctx.session.userLanguage);
+    await ctx.reply(T.txSettleConfirm(typeLabel, sym, tx.amount.toFixed(2)), {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback(T.txSettleConfirmBtn, `tx_settle_confirm:${txId}`)],
+        [Markup.button.callback(T.btnCancel, 'settle_cancel')],
+      ]),
+    });
+    return;
+  }
+
   await startHandler(ctx);
 });
 bot.command("invite", inviteHandler);
@@ -212,6 +237,7 @@ bot.command("accounts", bankAccountsHandler);
 bot.command("profile", profileHandler);
 bot.command("split", splitHandler);
 bot.command("splits", splitsHandler);
+bot.command("settle", settleAllHandler);
 
 // Language selection via ReplyKeyboard
 bot.hears("🇬🇧 English", async (ctx) => setLangAction(ctx, Language.EN));
@@ -517,6 +543,78 @@ bot.action(/^tx_delete_confirm:(.+)$/, async (ctx) => {
 });
 
 bot.action('tx_delete_cancel', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText('❌ Cancelled.');
+});
+
+// Settle single transaction
+bot.action(/^tx_settle_confirm:(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  if (!ctx.from) return;
+  const txId = ctx.match[1];
+  const T = useT(ctx.session.userLanguage ?? Language.EN);
+  const telegramId = String(ctx.from.id);
+  const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
+
+  try {
+    const viewer = await findOrCreateUser(telegramId, name);
+    const { transaction, relationship } = await settleTransactionService(txId, viewer.id);
+
+    await ctx.editMessageText(T.txSettled, { parse_mode: 'Markdown' });
+
+    const contact = relationship.userAId === viewer.id ? relationship.userB : relationship.userA;
+    const contactT = useT(contact.language);
+    const sym = currencySymbol(relationship.currency, contact.language);
+    const notifyMsg = contactT.notifySettledTransaction(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
+    ctx.telegram.sendMessage(contact.telegramId, notifyMsg, {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [[{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId}` }]],
+      },
+    }).catch(() => {});
+  } catch {
+    await ctx.editMessageText(T.errSomethingWrong);
+  }
+});
+
+// Settle all transactions with contact
+bot.action(/^settle_all_confirm:(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  if (!ctx.from) return;
+  const contactId = ctx.match[1];
+  const T = useT(ctx.session.userLanguage ?? Language.EN);
+  const telegramId = String(ctx.from.id);
+  const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
+  const contactName = ctx.session.activeContactName ?? '?';
+
+  try {
+    const viewer = await findOrCreateUser(telegramId, name);
+    const relationship = await getRelationshipBetween(viewer.id, contactId);
+    if (!relationship) { await ctx.editMessageText(T.errSomethingWrong); return; }
+
+    const { count, relationship: rel } = await settleAllService(relationship.id, viewer.id);
+
+    if (count === 0) {
+      await ctx.editMessageText(T.txSettleAllEmpty(contactName), { parse_mode: 'Markdown' });
+      return;
+    }
+
+    await ctx.editMessageText(T.txSettleAllDone(count, contactName), { parse_mode: 'Markdown' });
+
+    const contact = rel.userAId === viewer.id ? rel.userB : rel.userA;
+    const contactT = useT(contact.language);
+    ctx.telegram.sendMessage(contact.telegramId, contactT.notifySettledAll(getDisplayName(viewer)), {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [[{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId}` }]],
+      },
+    }).catch(() => {});
+  } catch {
+    await ctx.editMessageText(T.errSomethingWrong);
+  }
+});
+
+bot.action('settle_cancel', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText('❌ Cancelled.');
 });

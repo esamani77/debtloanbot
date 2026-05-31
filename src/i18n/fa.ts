@@ -169,6 +169,19 @@ export const fa: Translations = {
   notifySettledAll: (name) =>
     `✅ *${name}* همه تراکنش‌ها را تسویه کرد.`,
 
+  // Settle (bot flow)
+  btnSettle: '✅ تسویه',
+  txSettleConfirm: (typeLabel, sym, amount) =>
+    `✅ *این تراکنش تسویه شود؟*\n\n${typeLabel} — *${sym}${amount}*\n\nاین تراکنش به عنوان تسویه شده علامت‌گذاری می‌شود.`,
+  txSettleConfirmBtn: '✅ تأیید تسویه',
+  txSettled: '✅ تراکنش تسویه شد.',
+  txSettleAllConfirm: (name) =>
+    `✅ *همه تراکنش‌ها با ${name} تسویه شود؟*\n\nهمه تراکنش‌های تسویه نشده علامت‌گذاری می‌شوند.`,
+  txSettleAllDone: (count, name) =>
+    `✅ *${count} تراکنش با ${name} تسویه شد!*`,
+  txSettleAllEmpty: (name) =>
+    `✅ *تراکنش تسویه نشده‌ای با ${name} وجود ندارد.*\n\nحساب‌ها تسویه است!`,
+
   // Edit / delete transaction (bot flow)
   txEditAmountPrompt: (sym, amount) =>
     `✏️ *ویرایش مبلغ*\n\nمبلغ فعلی: *${sym}${amount}*\n\nمبلغ جدید را وارد کنید یا رد کنید:`,
