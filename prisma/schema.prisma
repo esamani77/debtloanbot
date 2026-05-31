@@ -54,6 +54,7 @@ model Transaction {
   createdBy      User         @relation("CreatedBy", fields: [createdById], references: [id])
   createdById    String
   note           String?
+  isSettled      Boolean      @default(false)
   createdAt      DateTime     @default(now())
 }
 

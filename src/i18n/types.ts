@@ -106,6 +106,8 @@ export interface Translations {
   notifyEditedDebt: (name: string, symbol: string, amount: string) => string;
   notifyDeletedLoan: (name: string, symbol: string, amount: string) => string;
   notifyDeletedDebt: (name: string, symbol: string, amount: string) => string;
+  notifySettledTransaction: (name: string, symbol: string, amount: string) => string;
+  notifySettledAll: (name: string) => string;
 
   // Edit / delete transaction (bot flow)
   txEditAmountPrompt: (symbol: string, amount: string) => string;

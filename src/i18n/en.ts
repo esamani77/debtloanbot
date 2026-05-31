@@ -161,6 +161,10 @@ export const en: Translations = {
     `🗑️ *${name}* deleted a transaction:\nThey had lent *${sym}${amount}* to you.`,
   notifyDeletedDebt: (name, sym, amount) =>
     `🗑️ *${name}* deleted a transaction:\nThey had borrowed *${sym}${amount}* from you.`,
+  notifySettledTransaction: (name, sym, amount) =>
+    `✅ *${name}* marked a transaction as settled.\n\n*${sym}${amount}*`,
+  notifySettledAll: (name) =>
+    `✅ *${name}* marked all transactions as settled.`,
 
   // Edit / delete transaction (bot flow)
   txEditAmountPrompt: (sym, amount) =>

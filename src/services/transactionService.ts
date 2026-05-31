@@ -54,6 +54,7 @@ export async function getBalance(
         userA: true,
         userB: true,
         transactions: {
+          where: { isSettled: false },
           select: {
             amount: true,
             type: true,
@@ -128,6 +129,7 @@ export async function getRecentTransactions(
       addedByViewer: tx.createdById === viewerId,
       addedByName: getDisplayName(tx.createdBy),
       note: tx.note ?? undefined,
+      isSettled: tx.isSettled,
       createdAt: tx.createdAt,
     }));
   } catch (error) {
@@ -173,6 +175,42 @@ export async function updateTransaction(
   });
 
   return { transaction, relationship: rel, oldAmount, oldNote };
+}
+
+export async function settleTransaction(transactionId: string, viewerId: string) {
+  const tx = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    include: { relationship: { include: { userA: true, userB: true } } },
+  });
+
+  if (!tx) throw new Error('Transaction not found.');
+
+  const rel = tx.relationship;
+  if (rel.userAId !== viewerId && rel.userBId !== viewerId) throw new Error('Not authorized.');
+
+  const updated = await prisma.transaction.update({
+    where: { id: transactionId },
+    data: { isSettled: true },
+  });
+
+  return { transaction: updated, relationship: rel };
+}
+
+export async function settleAllTransactions(relationshipId: string, viewerId: string) {
+  const rel = await prisma.relationship.findUnique({
+    where: { id: relationshipId },
+    include: { userA: true, userB: true },
+  });
+
+  if (!rel) throw new Error('Relationship not found.');
+  if (rel.userAId !== viewerId && rel.userBId !== viewerId) throw new Error('Not authorized.');
+
+  const { count } = await prisma.transaction.updateMany({
+    where: { relationshipId, isSettled: false },
+    data: { isSettled: true },
+  });
+
+  return { count, relationship: rel };
 }
 
 export async function deleteTransaction(transactionId: string, viewerId: string) {

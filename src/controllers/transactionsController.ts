@@ -6,7 +6,7 @@ import {
   getDisplayName,
 } from "../services/userService";
 import { getRelationshipBetween } from "../services/relationshipService";
-import { addTransaction, updateTransaction as updateTransactionService, deleteTransaction as deleteTransactionService } from "../services/transactionService";
+import { addTransaction, updateTransaction as updateTransactionService, deleteTransaction as deleteTransactionService, settleTransaction as settleTransactionService } from "../services/transactionService";
 import { bot } from "../bot";
 import { useT } from "../i18n";
 import { currencySymbol } from "../utils/currency";
@@ -133,6 +133,33 @@ export async function updateTransaction(req: Request, res: Response): Promise<vo
     if (msg === "Not authorized.") { res.status(403).json({ error: msg }); return; }
     if (msg === "Transaction not found.") { res.status(404).json({ error: msg }); return; }
     res.status(500).json({ error: "Failed to update transaction." });
+  }
+}
+
+export async function settleTransaction(req: Request, res: Response): Promise<void> {
+  const id = req.params.id as string;
+
+  try {
+    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const { transaction, relationship } = await settleTransactionService(id, viewer.id);
+
+    res.json({ id: transaction.id, isSettled: transaction.isSettled });
+
+    const contact = relationship.userAId === viewer.id ? relationship.userB : relationship.userA;
+    const contactT = useT(contact.language);
+    const sym = currencySymbol(relationship.currency, contact.language);
+    const notifyMsg = contactT.notifySettledTransaction(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
+    bot.telegram.sendMessage(contact.telegramId, notifyMsg, {
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: [[{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId}` }]],
+      },
+    }).catch(() => {});
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg === "Not authorized.") { res.status(403).json({ error: msg }); return; }
+    if (msg === "Transaction not found.") { res.status(404).json({ error: msg }); return; }
+    res.status(500).json({ error: "Failed to settle transaction." });
   }
 }
 

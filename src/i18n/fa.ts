@@ -164,6 +164,10 @@ export const fa: Translations = {
     `🗑️ *${name}* یک تراکنش را حذف کرد:\nآن‌ها *${sym}${amount}* به شما قرض داده بودند.`,
   notifyDeletedDebt: (name, sym, amount) =>
     `🗑️ *${name}* یک تراکنش را حذف کرد:\nآن‌ها *${sym}${amount}* از شما قرض گرفته بودند.`,
+  notifySettledTransaction: (name, sym, amount) =>
+    `✅ *${name}* یک تراکنش را تسویه کرد.\n\n*${sym}${amount}*`,
+  notifySettledAll: (name) =>
+    `✅ *${name}* همه تراکنش‌ها را تسویه کرد.`,
 
   // Edit / delete transaction (bot flow)
   txEditAmountPrompt: (sym, amount) =>

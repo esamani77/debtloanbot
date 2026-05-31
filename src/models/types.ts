@@ -55,5 +55,6 @@ export interface TransactionSummary {
   addedByViewer: boolean;
   addedByName: string;
   note?: string;
+  isSettled: boolean;
   createdAt: Date;
 }
