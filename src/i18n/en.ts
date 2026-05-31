@@ -328,6 +328,15 @@ export const en: Translations = {
   splitNoSessions: '🧾 *Bill Splitting*\n\nNo splits yet. Start one now!',
   splitAddingBillToSession: (name) => `➕ *Adding bill to "${name ?? 'split'}"*\n\nWhat was this expense?`,
 
+  reminderMessage: (owes, owed) => {
+    let msg = `⏰ *Daily Balance Reminder*\n`;
+    if (owes.length > 0)
+      msg += `\n💸 *You owe:*\n${owes.map((o) => `• ${o.name}: ${o.sym}${o.amount}`).join('\n')}`;
+    if (owed.length > 0)
+      msg += `\n\n💰 *You're owed:*\n${owed.map((o) => `• ${o.name}: ${o.sym}${o.amount}`).join('\n')}`;
+    return msg;
+  },
+
   splitSharedSummary: (sessionName, currency, createdAt, participants, balances, transfers, sym, bankAccounts, bills) => {
     const title = sessionName ? `*${sessionName}*` : '*Split Summary*';
     const date = createdAt.toLocaleDateString('en-GB');

@@ -359,4 +359,13 @@ export const fa: Translations = {
     }
     return text;
   },
+
+  reminderMessage: (owes, owed) => {
+    let msg = `⏰ *یادآوری روزانه*\n`;
+    if (owes.length > 0)
+      msg += `\n💸 *بدهی شما:*\n${owes.map((o) => `• ${o.name}: ${o.sym}${o.amount}`).join('\n')}`;
+    if (owed.length > 0)
+      msg += `\n\n💰 *طلب شما:*\n${owed.map((o) => `• ${o.name}: ${o.sym}${o.amount}`).join('\n')}`;
+    return msg;
+  },
 };

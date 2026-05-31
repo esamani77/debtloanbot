@@ -214,4 +214,10 @@ export interface Translations {
   splitBtnShareSession: string;
   splitNoSessions: string;
   splitAddingBillToSession: (name: string | null) => string;
+
+  // Daily reminder
+  reminderMessage: (
+    owes: Array<{ name: string; sym: string; amount: string }>,
+    owed: Array<{ name: string; sym: string; amount: string }>
+  ) => string;
 }

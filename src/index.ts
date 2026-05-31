@@ -9,6 +9,7 @@ import { getSharedSession } from "./controllers/splitController";
 import cors from "cors";
 import morgan from "morgan";
 import { openapiSpec } from "./openapi";
+import { startReminderJob } from "./jobs/reminderJob";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const NODE_ENV = process.env.NODE_ENV ?? "development";
@@ -84,6 +85,9 @@ async function main(): Promise<void> {
       console.log(`Express server running on port ${PORT}`);
     });
   }
+
+  startReminderJob();
+  console.log("Daily reminder job scheduled (noon UTC)");
 }
 
 main().catch((err) => {
