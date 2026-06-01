@@ -90,11 +90,30 @@ export async function getSessionByToken(token: string) {
 
 export async function listUserSessions(userId: string, limit = 10) {
   return prisma.splitSession.findMany({
-    where: { createdById: userId },
+    where: {
+      OR: [
+        { createdById: userId },
+        { joinedUserIds: { has: userId } },
+      ],
+    },
     orderBy: { createdAt: 'desc' },
     take: limit,
     include: { bills: { select: { id: true } } },
   });
+}
+
+export async function joinSession(sessionId: string, userId: string): Promise<void> {
+  await prisma.splitSession.update({
+    where: { id: sessionId },
+    data: { joinedUserIds: { push: userId } },
+  });
+}
+
+export function isSessionMember(
+  session: { createdById: string; joinedUserIds: string[] },
+  userId: string,
+): boolean {
+  return session.createdById === userId || session.joinedUserIds.includes(userId);
 }
 
 export async function getDraftSession(userId: string) {

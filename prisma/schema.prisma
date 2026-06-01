@@ -68,6 +68,7 @@ model SplitSession {
   status       SplitStatus @default(DRAFT)
   participants          String[]
   participantTelegramIds String[]
+  joinedUserIds         String[]  @default([])
   shareToken   String?     @unique
   expiresAt    DateTime?
   createdAt    DateTime    @default(now())

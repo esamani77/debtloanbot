@@ -225,6 +225,10 @@ export interface Translations {
   splitUserNotFound: string;
   splitNoContacts: string;
   splitNotifyAddedToSplit: (creatorName: string, sessionName: string | undefined) => string;
+  splitJoinBtn: string;
+  splitJoinSuccess: (sessionName: string | null) => string;
+  splitAlreadyJoined: string;
+  splitJoinOpenBtn: string;
   splitNotifyResultsReady: (creatorName: string, sessionName: string | null, sym: string, balance: number, myTransfers: Array<{ from: string; to: string; amount: number }>, shareLink: string) => string;
 
   // Daily reminder

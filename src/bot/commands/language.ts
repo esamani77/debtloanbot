@@ -5,7 +5,8 @@ import { findOrCreateUser, findUserById, setUserLanguage, getDisplayName } from 
 import { getOrCreateRelationship } from '../../services/relationshipService';
 import { parseInvitePayload } from '../../utils/inviteLink';
 import { useT } from '../../i18n';
-import { getSessionByToken, getBankAccountsForParticipants } from '../../services/splitService';
+import { getSessionByToken, getBankAccountsForParticipants, isSessionMember } from '../../services/splitService';
+import { findUserByTelegramId } from '../../services/userService';
 import { computeNetBalances, simplifyDebts } from '../../utils/debtSimplification';
 import { currencySymbol } from '../../utils/currency';
 import prisma from '../../db/prisma';
@@ -47,9 +48,16 @@ export async function setLangAction(ctx: BotContext, language: Language): Promis
         const transfers = simplifyDebts(result.participants, netBalances, result.currency);
         const bankAccounts = await getBankAccountsForParticipants(result.participants);
         const sym = currencySymbol(result.currency, language);
+        const viewer = await findUserByTelegramId(telegramId);
+        const alreadyMember = viewer ? isSessionMember(result, viewer.id) : false;
+        const BOT_USERNAME = process.env.BOT_USERNAME ?? 'debtloanbot';
+        const miniAppUrl = `https://t.me/${BOT_USERNAME}/app`;
+        const joinButton = alreadyMember
+          ? Markup.button.url(T.splitJoinOpenBtn, miniAppUrl)
+          : Markup.button.callback(T.splitJoinBtn, `split_join:${result.id}`);
         await ctx.reply(
           T.splitSharedSummary(result.name ?? null, result.currency, result.createdAt, result.participants, netBalances, transfers, sym, bankAccounts, result.bills.map((b) => ({ name: b.name, totalAmount: b.totalAmount, paidBy: result.participants[b.paidByIndex] }))),
-          { parse_mode: 'Markdown' },
+          { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[joinButton]]) },
         );
       }
       if (!isNew) await ctx.reply('​', { parse_mode: 'Markdown', ...mainMenuKeyboard(T) });

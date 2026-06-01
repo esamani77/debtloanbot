@@ -371,6 +371,12 @@ export const fa: Translations = {
   splitNotifyAddedToSplit: (creatorName, sessionName) =>
     `👋 *${creatorName}* شما را به عنوان شرکت‌کننده در یک تقسیم${sessionName ? ` (*${sessionName}*)` : ''} اضافه کرد!\n\nDebtMate را باز کنید تا نتایج را ببینید.`,
 
+  splitJoinBtn: '📥 پیوستن به تقسیم',
+  splitJoinSuccess: (sessionName) =>
+    `✅ به *${sessionName ?? 'تقسیم'}* پیوستید! اکنون در لیست تقسیم‌های شما نمایش داده می‌شود.`,
+  splitAlreadyJoined: '✅ شما از قبل عضو این تقسیم هستید.',
+  splitJoinOpenBtn: '📱 باز کردن در DebtMate',
+
   splitNotifyResultsReady: (creatorName, sessionName, sym, balance, myTransfers, shareLink) => {
     let msg = `🧾 *${creatorName}* یک تقسیم${sessionName ? ` — *${sessionName}*` : ''} را محاسبه کرد!\n\n`;
     if (balance > 0.005) msg += `💚 تراز شما: +${sym}${balance.toFixed(2)} _(طلبکار هستید)_\n`;

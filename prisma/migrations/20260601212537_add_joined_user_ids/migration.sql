@@ -1,0 +1,1 @@
+ALTER TABLE "SplitSession" ADD COLUMN "joinedUserIds" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

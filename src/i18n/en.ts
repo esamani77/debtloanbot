@@ -339,6 +339,12 @@ export const en: Translations = {
   splitNotifyAddedToSplit: (creatorName, sessionName) =>
     `👋 *${creatorName}* added you as a participant in a split${sessionName ? ` (*${sessionName}*)` : ''}!\n\nOpen DebtMate to view the results when they're ready.`,
 
+  splitJoinBtn: '📥 Join Split',
+  splitJoinSuccess: (sessionName) =>
+    `✅ You've joined *${sessionName ?? 'the split'}*! It now appears in your splits list.`,
+  splitAlreadyJoined: '✅ You\'re already a member of this split.',
+  splitJoinOpenBtn: '📱 Open in DebtMate',
+
   splitNotifyResultsReady: (creatorName, sessionName, sym, balance, myTransfers, shareLink) => {
     let msg = `🧾 *${creatorName}* has calculated a split${sessionName ? ` — *${sessionName}*` : ''}!\n\n`;
     if (balance > 0.005) msg += `💚 Your balance: +${sym}${balance.toFixed(2)} _(you are owed)_\n`;

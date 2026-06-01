@@ -16,6 +16,8 @@ import {
   updateSessionMeta,
   resetSessionToDraft,
   replaceAllBills,
+  joinSession,
+  isSessionMember,
 } from '../services/splitService';
 import { computeNetBalances, simplifyDebts } from '../utils/debtSimplification';
 import { currencySymbol } from '../utils/currency';
@@ -100,7 +102,7 @@ export async function getSession(req: Request, res: Response): Promise<void> {
     const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
     const session = await getSessionById(String(req.params.id));
     if (!session) { res.status(404).json({ error: 'Session not found.' }); return; }
-    if (session.createdById !== viewer.id) { res.status(403).json({ error: 'Access denied.' }); return; }
+    if (!isSessionMember(session, viewer.id)) { res.status(403).json({ error: 'Access denied.' }); return; }
 
     let netBalances: number[] | null = null;
     let transfers: Array<{ from: string; to: string; amount: number }> | null = null;
@@ -172,7 +174,7 @@ export async function addBill(req: Request, res: Response): Promise<void> {
     const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
     const session = await getSessionById(String(req.params.id));
     if (!session) { res.status(404).json({ error: 'Session not found.' }); return; }
-    if (session.createdById !== viewer.id) { res.status(403).json({ error: 'Access denied.' }); return; }
+    if (!isSessionMember(session, viewer.id)) { res.status(403).json({ error: 'Access denied.' }); return; }
     if (session.status !== 'DRAFT') { res.status(409).json({ error: 'Session is already calculated. Cannot add bills.' }); return; }
     if (paidByIndex >= session.participants.length) {
       res.status(400).json({ error: 'paidByIndex out of range.' });
@@ -211,7 +213,7 @@ export async function calculate(req: Request, res: Response): Promise<void> {
     const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
     const session = await getSessionById(String(req.params.id));
     if (!session) { res.status(404).json({ error: 'Session not found.' }); return; }
-    if (session.createdById !== viewer.id) { res.status(403).json({ error: 'Access denied.' }); return; }
+    if (!isSessionMember(session, viewer.id)) { res.status(403).json({ error: 'Access denied.' }); return; }
     if (session.bills.length === 0) { res.status(400).json({ error: 'Session has no bills.' }); return; }
 
     const { netBalances, transfers, shareToken } = await calculateSession(String(req.params.id));
@@ -311,7 +313,7 @@ export async function updateSession(req: Request, res: Response): Promise<void> 
     const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
     const session = await getSessionById(String(req.params.id));
     if (!session) { res.status(404).json({ error: 'Session not found.' }); return; }
-    if (session.createdById !== viewer.id) { res.status(403).json({ error: 'Access denied.' }); return; }
+    if (!isSessionMember(session, viewer.id)) { res.status(403).json({ error: 'Access denied.' }); return; }
 
     await updateSessionMeta(String(req.params.id), {
       name: name !== undefined ? (name || null) : undefined,
@@ -324,7 +326,22 @@ export async function updateSession(req: Request, res: Response): Promise<void> 
   }
 }
 
-// PUT /api/splits/:id/bills  — replace all bills (edit the whole bill list)
+// POST /api/splits/join/:token  — join a session by share token
+export async function joinSplitSession(req: Request, res: Response): Promise<void> {
+  try {
+    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const result = await getSessionByToken(String(req.params.token));
+    if (!result) { res.status(404).json({ error: 'Session not found.' }); return; }
+    if (result === 'expired') { res.status(410).json({ error: 'Session expired.' }); return; }
+    if (isSessionMember(result, viewer.id)) { res.status(200).json({ id: result.id, alreadyMember: true }); return; }
+    await joinSession(result.id, viewer.id);
+    res.status(200).json({ id: result.id, alreadyMember: false });
+  } catch {
+    res.status(500).json({ error: 'Failed to join session.' });
+  }
+}
+
+// PUT /api/splits/:id/bills  — replace all bills; any member can edit, resets to DRAFT
 export async function replaceSessionBills(req: Request, res: Response): Promise<void> {
   const { bills } = req.body as { bills?: unknown[] };
 
@@ -345,7 +362,7 @@ export async function replaceSessionBills(req: Request, res: Response): Promise<
     const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
     const session = await getSessionById(String(req.params.id));
     if (!session) { res.status(404).json({ error: 'Session not found.' }); return; }
-    if (session.createdById !== viewer.id) { res.status(403).json({ error: 'Access denied.' }); return; }
+    if (!isSessionMember(session, viewer.id)) { res.status(403).json({ error: 'Access denied.' }); return; }
 
     // Reset to DRAFT (invalidates old calculation + share token)
     await resetSessionToDraft(String(req.params.id));

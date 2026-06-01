@@ -8,12 +8,14 @@ import {
   removeSplitSession,
   updateSession,
   replaceSessionBills,
+  joinSplitSession,
 } from '../controllers/splitController';
 
 const router = Router();
 
 router.get('/', listSessions);
 router.post('/', createSession);
+router.post('/join/:token', joinSplitSession);
 router.get('/:id', getSession);
 router.patch('/:id', updateSession);
 router.delete('/:id', removeSplitSession);

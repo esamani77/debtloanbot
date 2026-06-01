@@ -35,7 +35,7 @@ import {
 } from "./commands/bankAccounts";
 import { getBankAccountById } from "../services/bankAccountService";
 import { findUserByTelegramId, findOrCreateUser, getDisplayName } from "../services/userService";
-import { getDraftSession, deleteSession, getSessionByToken, getBankAccountsForParticipants } from "../services/splitService";
+import { getDraftSession, deleteSession, getSessionById, getSessionByToken, getBankAccountsForParticipants, joinSession, isSessionMember } from "../services/splitService";
 import { computeNetBalances, simplifyDebts } from "../utils/debtSimplification";
 import { currencySymbol as currSym } from "../utils/currency";
 import { getRelationshipBetween } from "../services/relationshipService";
@@ -516,6 +516,37 @@ bot.action(/^split_recalculate:(.+)$/, async (ctx) => {
 bot.action(/^split_reshare:(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   await reshareSession(ctx, ctx.match[1]);
+});
+
+// Split — join via share link
+bot.action(/^split_join:(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  if (!ctx.from) return;
+
+  const sessionId = ctx.match[1];
+  const T = useT(ctx.session.userLanguage ?? Language.EN);
+  const telegramId = String(ctx.from.id);
+  const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
+  const BOT_USERNAME = process.env.BOT_USERNAME ?? 'debtloanbot';
+  const openButton = Markup.inlineKeyboard([[Markup.button.url(T.splitJoinOpenBtn, `https://t.me/${BOT_USERNAME}/app`)]]);
+
+  try {
+    const viewer = await findOrCreateUser(telegramId, name, ctx.from.username);
+    const sess = await getSessionById(sessionId);
+    if (!sess) { await ctx.reply(T.splitSessionNotFound, { parse_mode: 'Markdown' }); return; }
+
+    if (isSessionMember(sess, viewer.id)) {
+      await ctx.editMessageReplyMarkup(openButton.reply_markup).catch(() => {});
+      await ctx.reply(T.splitAlreadyJoined, { parse_mode: 'Markdown', ...openButton });
+      return;
+    }
+
+    await joinSession(sessionId, viewer.id);
+    await ctx.editMessageReplyMarkup(openButton.reply_markup).catch(() => {});
+    await ctx.reply(T.splitJoinSuccess(sess.name ?? null), { parse_mode: 'Markdown', ...openButton });
+  } catch {
+    await ctx.reply(T.errSomethingWrong);
+  }
 });
 
 // Delete confirmation callback
