@@ -33,7 +33,9 @@ async function sendDailyReminders(): Promise<void> {
     `[reminderJob] Found ${relationships.length} relationships with unsettled transactions`,
   );
 
-  Sentry.logger.info("Reminder job started", { action: "before" });
+  Sentry.logger.info(
+    `[reminderJob] Found ${relationships.length} relationships with unsettled transactions`,
+  );
 
   const userBalances = new Map<string, { user: User; items: BalanceEntry[] }>();
 
@@ -64,6 +66,9 @@ async function sendDailyReminders(): Promise<void> {
 
   console.log(`[reminderJob] Sending reminders to ${userBalances.size} users`);
 
+  Sentry.logger.info(
+    `[reminderJob] Sending reminders to ${userBalances.size} users`,
+  );
   for (const { user, items } of userBalances.values()) {
     const t = useT(user.language);
     const owes = items
@@ -109,11 +114,11 @@ async function sendDailyReminders(): Promise<void> {
 
 export function startReminderJob(): void {
   const schedule = "*/5 * * * *";
-  Sentry.logger.info("Reminder job started", { action: "before" });
+  Sentry.logger.info("Reminder job started before cron", { action: "before" });
 
   cron.schedule(schedule, async () => {
     try {
-      Sentry.logger.info("Reminder job started", { action: "cron" });
+      Sentry.logger.info("Reminder job started in cron", { action: "after" });
       await sendDailyReminders();
     } catch (err) {
       Sentry.logger.warn("Reminder job failed", { action: "cron" });
