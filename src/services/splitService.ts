@@ -161,7 +161,9 @@ export async function getBankAccountsForParticipants(
     const telegramId = participantTelegramIds?.[i];
 
     const matched = telegramId
-      ? users.find((u) => u.telegramId === telegramId)
+      ? telegramId.startsWith('@')
+        ? users.find((u) => u.username === telegramId.slice(1).toLowerCase())
+        : users.find((u) => u.telegramId === telegramId)
       : users.find(
           (u) =>
             u.name.toLowerCase() === participant.toLowerCase() ||

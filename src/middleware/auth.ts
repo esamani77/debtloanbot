@@ -65,6 +65,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   res.locals.telegramId = String(user.id);
   res.locals.telegramName =
     user.first_name + (user.last_name ? ` ${user.last_name}` : '');
+  res.locals.telegramUsername = user.username ?? undefined;
 
   next();
 }

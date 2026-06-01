@@ -68,11 +68,14 @@ bot.use(
   }),
 );
 
-// Language loader middleware — populates session.userLanguage for returning users
+// Language loader middleware — populates session.userLanguage and keeps username in sync
 bot.use(async (ctx, next) => {
-  if (ctx.from && !ctx.session.userLanguage) {
-    const user = await findUserByTelegramId(String(ctx.from.id));
-    if (user) ctx.session.userLanguage = user.language;
+  if (ctx.from) {
+    const telegramId = String(ctx.from.id);
+    const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
+    const username = ctx.from.username ?? undefined;
+    const user = await findOrCreateUser(telegramId, name, username);
+    if (!ctx.session.userLanguage) ctx.session.userLanguage = user.language;
   }
   return next();
 });

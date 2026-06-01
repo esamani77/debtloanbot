@@ -7,12 +7,12 @@ import { useT } from '../i18n';
 
 export async function listContacts(req: Request, res: Response): Promise<void> {
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName, res.locals.telegramUsername);
     const relationships = await getUserRelationships(viewer.id);
 
     res.json(
       relationships.map(({ contact, relationship, netBalance }) => ({
-        contact: { id: contact.id, name: getDisplayName(contact) },
+        contact: { id: contact.id, name: getDisplayName(contact), telegramId: contact.telegramId },
         relationship: { id: relationship.id, currency: relationship.currency },
         netBalance,
       }))

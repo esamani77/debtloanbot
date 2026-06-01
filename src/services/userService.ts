@@ -8,17 +8,21 @@ export function getDisplayName(user: { name: string; nickname: string | null }):
 /**
  * Finds an existing user by telegramId or creates a new one.
  */
-export async function findOrCreateUser(telegramId: string, name: string): Promise<User> {
+export async function findOrCreateUser(telegramId: string, name: string, username?: string): Promise<User> {
   const existing = await prisma.user.findUnique({
     where: { telegramId },
   });
 
   if (existing) {
-    // Update name if it has changed
-    if (existing.name !== name) {
+    const nameChanged = existing.name !== name;
+    const usernameChanged = username !== undefined && existing.username !== username;
+    if (nameChanged || usernameChanged) {
       return prisma.user.update({
         where: { telegramId },
-        data: { name },
+        data: {
+          ...(nameChanged ? { name } : {}),
+          ...(usernameChanged ? { username } : {}),
+        },
       });
     }
     return existing;
@@ -28,6 +32,7 @@ export async function findOrCreateUser(telegramId: string, name: string): Promis
     data: {
       telegramId,
       name,
+      ...(username ? { username } : {}),
     },
   });
 }
