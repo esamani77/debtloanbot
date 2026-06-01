@@ -5,6 +5,7 @@ import { useT } from '../i18n';
 import { calculateNetBalance } from '../utils/balanceCalc';
 import { currencySymbol } from '../utils/currency';
 import { getDisplayName } from '../services/userService';
+import { Sentry } from '../sentry';
 import { User, Currency } from '@prisma/client';
 
 interface BalanceEntry {
@@ -72,7 +73,10 @@ async function sendDailyReminders(): Promise<void> {
     await bot.telegram
       .sendMessage(user.telegramId, msg, { parse_mode: 'Markdown' })
       .then(() => console.log(`[reminderJob] Sent to ${user.telegramId}`))
-      .catch((err) => console.error(`[reminderJob] Failed to send to ${user.telegramId}:`, err.message));
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[reminderJob] Failed to send to ${user.telegramId}:`, message);
+      });
   }
 
   console.log('[reminderJob] Done.');
@@ -80,7 +84,12 @@ async function sendDailyReminders(): Promise<void> {
 
 export function startReminderJob(): void {
   const schedule = process.env.REMINDER_CRON ?? '0 * * * *';
-  cron.schedule(schedule, () => {
-    sendDailyReminders().catch((err) => console.error('Reminder job failed:', err));
+  cron.schedule(schedule, async () => {
+    try {
+      await sendDailyReminders();
+    } catch (err) {
+      Sentry.captureException(err);
+      console.error('Reminder job failed:', err);
+    }
   });
 }
