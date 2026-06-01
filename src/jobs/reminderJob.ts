@@ -1,12 +1,12 @@
-import cron from 'node-cron';
-import { bot } from '../bot';
-import prisma from '../db/prisma';
-import { useT } from '../i18n';
-import { calculateNetBalance } from '../utils/balanceCalc';
-import { currencySymbol } from '../utils/currency';
-import { getDisplayName } from '../services/userService';
-import { Sentry } from '../sentry';
-import { User, Currency } from '@prisma/client';
+import cron from "node-cron";
+import { bot } from "../bot";
+import prisma from "../db/prisma";
+import { useT } from "../i18n";
+import { calculateNetBalance } from "../utils/balanceCalc";
+import { currencySymbol } from "../utils/currency";
+import { getDisplayName } from "../services/userService";
+import { Sentry } from "../sentry";
+import { User, Currency } from "@prisma/client";
 
 interface BalanceEntry {
   contact: User;
@@ -15,7 +15,7 @@ interface BalanceEntry {
 }
 
 async function sendDailyReminders(): Promise<void> {
-  console.log('[reminderJob] Starting daily reminder run...');
+  console.log("[reminderJob] Starting daily reminder run...");
 
   const relationships = await prisma.relationship.findMany({
     where: { transactions: { some: { isSettled: false } } },
@@ -29,17 +29,27 @@ async function sendDailyReminders(): Promise<void> {
     },
   });
 
-  console.log(`[reminderJob] Found ${relationships.length} relationships with unsettled transactions`);
+  console.log(
+    `[reminderJob] Found ${relationships.length} relationships with unsettled transactions`,
+  );
 
   const userBalances = new Map<string, { user: User; items: BalanceEntry[] }>();
 
-  const addEntry = (user: User, contact: User, netBalance: number, currency: Currency) => {
+  const addEntry = (
+    user: User,
+    contact: User,
+    netBalance: number,
+    currency: Currency,
+  ) => {
     if (Math.abs(netBalance) < 0.01) return;
     const existing = userBalances.get(user.id);
     if (existing) {
       existing.items.push({ contact, netBalance, currency });
     } else {
-      userBalances.set(user.id, { user, items: [{ contact, netBalance, currency }] });
+      userBalances.set(user.id, {
+        user,
+        items: [{ contact, netBalance, currency }],
+      });
     }
   };
 
@@ -69,27 +79,32 @@ async function sendDailyReminders(): Promise<void> {
         amount: i.netBalance.toFixed(2),
       }));
     const msg = t.reminderMessage(owes, owed);
-    console.log(`[reminderJob] Sending to user ${user.telegramId} (owes: ${owes.length}, owed: ${owed.length})`);
+    console.log(
+      `[reminderJob] Sending to user ${user.telegramId} (owes: ${owes.length}, owed: ${owed.length})`,
+    );
     await bot.telegram
-      .sendMessage(user.telegramId, msg, { parse_mode: 'Markdown' })
+      .sendMessage(user.telegramId, msg, { parse_mode: "Markdown" })
       .then(() => console.log(`[reminderJob] Sent to ${user.telegramId}`))
       .catch((err: unknown) => {
         const message = err instanceof Error ? err.message : String(err);
-        console.error(`[reminderJob] Failed to send to ${user.telegramId}:`, message);
+        console.error(
+          `[reminderJob] Failed to send to ${user.telegramId}:`,
+          message,
+        );
       });
   }
 
-  console.log('[reminderJob] Done.');
+  console.log("[reminderJob] Done.");
 }
 
 export function startReminderJob(): void {
-  const schedule = process.env.REMINDER_CRON ?? '*/5 * * * *';
+  const schedule = "*/5 * * * *";
   cron.schedule(schedule, async () => {
     try {
       await sendDailyReminders();
     } catch (err) {
       Sentry.captureException(err);
-      console.error('Reminder job failed:', err);
+      console.error("Reminder job failed:", err);
     }
   });
 }
