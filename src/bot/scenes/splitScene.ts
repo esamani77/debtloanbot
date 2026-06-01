@@ -62,15 +62,19 @@ function splitTypeKeyboard(t: ReturnType<typeof useT>) {
   ]);
 }
 
-function participantModeKeyboard(t: ReturnType<typeof useT>) {
-  return Markup.inlineKeyboard([
+function participantModeKeyboard(t: ReturnType<typeof useT>, includeSelf: boolean) {
+  const rows = [
     [
       Markup.button.callback(t.splitBtnFromContacts, 'split_mode:contact'),
       Markup.button.callback(t.splitBtnByTelegramId, 'split_mode:telegram'),
     ],
     [Markup.button.callback(t.splitBtnByName, 'split_mode:name')],
-    [Markup.button.callback(t.splitBtnCancel, 'split_cancel')],
-  ]);
+  ];
+  if (includeSelf) {
+    rows.splice(1, 0, [Markup.button.callback(t.splitBtnMyself, 'split_mode:myself')]);
+  }
+  rows.push([Markup.button.callback(t.splitBtnCancel, 'split_cancel')]);
+  return Markup.inlineKeyboard(rows);
 }
 
 async function showParticipantModePicker(ctx: BotContext): Promise<void> {
@@ -78,9 +82,11 @@ async function showParticipantModePicker(ctx: BotContext): Promise<void> {
   const d = draft(ctx);
   const idx = d.participants.length; // next slot to fill
   const total = d.participantCount!;
+  const initiatorId = ctx.from ? String(ctx.from.id) : '';
+  const selfAlreadyAdded = d.participantTelegramIds.includes(initiatorId);
   await ctx.reply(t.splitPickParticipantMode(idx + 1, total), {
     parse_mode: 'Markdown',
-    ...participantModeKeyboard(t),
+    ...participantModeKeyboard(t, !selfAlreadyAdded),
   });
 }
 
@@ -198,9 +204,13 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
         }));
         d.collectingMode = 'contact';
 
+        const selfAlreadyAdded = d.participantTelegramIds.includes(String(ctx.from.id));
         const buttons = d.contactsCache.map((c, i) =>
           [Markup.button.callback(c.displayName, `split_pick_contact:${i}`)],
         );
+        if (!selfAlreadyAdded) {
+          buttons.push([Markup.button.callback(t.splitBtnMyself, 'split_mode:myself')]);
+        }
         buttons.push([Markup.button.callback(t.splitBtnCancel, 'split_cancel')]);
 
         try {
@@ -244,6 +254,28 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
         return;
       }
 
+      if (data === 'split_mode:myself') {
+        if (!ctx.from) return;
+        const selfUser = await findUserByTelegramId(String(ctx.from.id));
+        const selfName = selfUser
+          ? getDisplayName(selfUser)
+          : ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
+        const selfId = String(ctx.from.id);
+
+        d.participants.push(selfName);
+        d.participantTelegramIds.push(selfId);
+        d.collectingMode = undefined;
+        d.collectingParticipantIndex = d.participants.length;
+
+        try { await ctx.editMessageText(`✅ *${selfName}* (you) added.`, { parse_mode: 'Markdown' }); } catch { /* ignore */ }
+
+        if (d.participants.length >= d.participantCount!) {
+          return finishParticipantCollection(ctx);
+        }
+        await showParticipantModePicker(ctx);
+        return;
+      }
+
       // ── Contact selected from list ──
       if (data.startsWith('split_pick_contact:')) {
         const contactIdx = parseInt(data.replace('split_pick_contact:', ''), 10);
@@ -283,20 +315,6 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
       d.participants = [];
       d.participantTelegramIds = [];
       d.collectingParticipantIndex = 0;
-
-      // Pre-fill initiator as participant[0]
-      const initiatorName = ctx.from
-        ? ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '')
-        : 'Me';
-      const initiatorTelegramId = ctx.from ? String(ctx.from.id) : '';
-      d.participants.push(initiatorName);
-      d.participantTelegramIds.push(initiatorTelegramId);
-      d.collectingParticipantIndex = 1;
-
-      await ctx.reply(
-        `_(Participant 1: ${initiatorName} — you)_`,
-        { parse_mode: 'Markdown' },
-      );
 
       await showParticipantModePicker(ctx);
       return;

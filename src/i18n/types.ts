@@ -217,6 +217,7 @@ export interface Translations {
 
   // Split participant picker (3-mode)
   splitPickParticipantMode: (index: number, total: number) => string;
+  splitBtnMyself: string;
   splitBtnFromContacts: string;
   splitBtnByTelegramId: string;
   splitBtnByName: string;

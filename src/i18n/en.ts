@@ -330,6 +330,7 @@ export const en: Translations = {
   splitAddingBillToSession: (name) => `➕ *Adding bill to "${name ?? 'split'}"*\n\nWhat was this expense?`,
 
   splitPickParticipantMode: (i, total) => `👤 *Participant ${i} of ${total}*\n\nHow do you want to add this person?`,
+  splitBtnMyself: '🙋 Myself',
   splitBtnFromContacts: '👥 From Contacts',
   splitBtnByTelegramId: '🆔 By Telegram ID',
   splitBtnByName: '✏️ Type Name',

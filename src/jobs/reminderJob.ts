@@ -33,6 +33,8 @@ async function sendDailyReminders(): Promise<void> {
     `[reminderJob] Found ${relationships.length} relationships with unsettled transactions`,
   );
 
+  Sentry.logger.info("Reminder job started", { action: "before" });
+
   const userBalances = new Map<string, { user: User; items: BalanceEntry[] }>();
 
   const addEntry = (
@@ -82,16 +84,13 @@ async function sendDailyReminders(): Promise<void> {
     console.log(
       `[reminderJob] Sending to user ${user.telegramId} (owes: ${owes.length}, owed: ${owed.length})`,
     );
-    Sentry.captureEvent({
-      message: "Reminder job sending",
-      level: "info",
-      extra: {
-        user: user.telegramId,
-        userName: user.name,
-        userLanguage: user.language,
-        owes: owes.length,
-        owed: owed.length,
-      },
+    Sentry.logger.info("Reminder job sending", {
+      action: "sending",
+      user: user.telegramId,
+      userName: user.name,
+      userLanguage: user.language,
+      owes: owes.length,
+      owed: owed.length,
     });
     await bot.telegram
       .sendMessage(user.telegramId, msg, { parse_mode: "Markdown" })
@@ -110,17 +109,15 @@ async function sendDailyReminders(): Promise<void> {
 
 export function startReminderJob(): void {
   const schedule = "*/5 * * * *";
+  Sentry.logger.info("Reminder job started", { action: "before" });
+
   cron.schedule(schedule, async () => {
     try {
-      Sentry.captureEvent({
-        message: "Reminder job started",
-        level: "info",
-        extra: {
-          schedule,
-        },
-      });
+      Sentry.logger.info("Reminder job started", { action: "cron" });
       await sendDailyReminders();
     } catch (err) {
+      Sentry.logger.warn("Reminder job failed", { action: "cron" });
+
       Sentry.captureException(err);
       console.error("Reminder job failed:", err);
     }

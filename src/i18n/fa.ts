@@ -362,6 +362,7 @@ export const fa: Translations = {
   },
 
   splitPickParticipantMode: (i, total) => `👤 *شرکت‌کننده ${i} از ${total}*\n\nچطور می‌خواهید این نفر را اضافه کنید؟`,
+  splitBtnMyself: '🙋 خودم',
   splitBtnFromContacts: '👥 از مخاطبین',
   splitBtnByTelegramId: '🆔 با شناسه تلگرام',
   splitBtnByName: '✏️ وارد کردن نام',
