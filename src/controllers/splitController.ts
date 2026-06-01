@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { Currency, SplitType } from '@prisma/client';
-import { findOrCreateUser } from '../services/userService';
+import { findOrCreateUser, getDisplayName } from '../services/userService';
+import { bot } from '../bot/index';
+import { notifySplitParticipants } from '../utils/splitNotifications';
 import {
   createDraftSession,
   addBillToSession,
@@ -214,6 +216,20 @@ export async function calculate(req: Request, res: Response): Promise<void> {
 
     const { netBalances, transfers, shareToken } = await calculateSession(String(req.params.id));
     await markSessionShared(String(req.params.id));
+
+    notifySplitParticipants({
+      telegram: bot.telegram,
+      sessionName: session.name,
+      currency: session.currency,
+      participants: session.participants,
+      participantTelegramIds: session.participantTelegramIds,
+      netBalances,
+      transfers,
+      shareToken,
+      creatorName: getDisplayName(viewer),
+      creatorTelegramId: viewer.telegramId,
+    }).catch(() => {});
+
     const bankAccounts = await getBankAccountsForParticipants(session.participants, session.participantTelegramIds);
     const sym = currencySymbol(session.currency);
 

@@ -339,6 +339,20 @@ export const en: Translations = {
   splitNotifyAddedToSplit: (creatorName, sessionName) =>
     `👋 *${creatorName}* added you as a participant in a split${sessionName ? ` (*${sessionName}*)` : ''}!\n\nOpen DebtMate to view the results when they're ready.`,
 
+  splitNotifyResultsReady: (creatorName, sessionName, sym, balance, myTransfers, shareLink) => {
+    let msg = `🧾 *${creatorName}* has calculated a split${sessionName ? ` — *${sessionName}*` : ''}!\n\n`;
+    if (balance > 0.005) msg += `💚 Your balance: +${sym}${balance.toFixed(2)} _(you are owed)_\n`;
+    else if (balance < -0.005) msg += `❤️ Your balance: −${sym}${Math.abs(balance).toFixed(2)} _(you owe)_\n`;
+    else msg += `✅ You're all settled up!\n`;
+    if (myTransfers.length > 0) {
+      msg += `\n📋 *Your transfers:*\n`;
+      msg += myTransfers.map((t) => `• *${t.from}* → *${t.to}*: ${sym}${t.amount.toFixed(2)}`).join('\n');
+      msg += '\n';
+    }
+    msg += `\n🔗 [View full results](${shareLink})`;
+    return msg;
+  },
+
   reminderMessage: (owes, owed) => {
     let msg = `⏰ *Daily Balance Reminder*\n`;
     if (owes.length > 0)

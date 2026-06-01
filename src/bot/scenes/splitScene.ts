@@ -14,7 +14,8 @@ import {
   deleteSession,
   getSessionById,
 } from '../../services/splitService';
-import { findUserByTelegramId, getDisplayName } from '../../services/userService';
+import { findUserByTelegramId, getDisplayName, findOrCreateUser } from '../../services/userService';
+import { notifySplitParticipants } from '../../utils/splitNotifications';
 import { getUserRelationships } from '../../services/relationshipService';
 import { generateInviteLink } from '../../utils/inviteLink';
 
@@ -593,6 +594,27 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
       d.sessionId = targetSessionId;
       d.netBalances = netBalances;
       d.shareToken = shareToken;
+
+      if (ctx.from) {
+        const creatorTelegramId = String(ctx.from.id);
+        const creatorUser = await findOrCreateUser(
+          creatorTelegramId,
+          ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : ''),
+          ctx.from.username,
+        );
+        notifySplitParticipants({
+          telegram: ctx.telegram,
+          sessionName: d.sessionName ?? null,
+          currency: d.currency ?? Currency.USD,
+          participants: d.participants,
+          participantTelegramIds: d.participantTelegramIds,
+          netBalances,
+          transfers,
+          shareToken,
+          creatorName: getDisplayName(creatorUser),
+          creatorTelegramId,
+        }).catch(() => {});
+      }
 
       const sym = currencySymbol(d.currency ?? Currency.USD, ctx.session.userLanguage);
       const bankAccounts = await getBankAccountsForParticipants(d.participants, d.participantTelegramIds);

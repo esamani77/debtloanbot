@@ -371,6 +371,20 @@ export const fa: Translations = {
   splitNotifyAddedToSplit: (creatorName, sessionName) =>
     `👋 *${creatorName}* شما را به عنوان شرکت‌کننده در یک تقسیم${sessionName ? ` (*${sessionName}*)` : ''} اضافه کرد!\n\nDebtMate را باز کنید تا نتایج را ببینید.`,
 
+  splitNotifyResultsReady: (creatorName, sessionName, sym, balance, myTransfers, shareLink) => {
+    let msg = `🧾 *${creatorName}* یک تقسیم${sessionName ? ` — *${sessionName}*` : ''} را محاسبه کرد!\n\n`;
+    if (balance > 0.005) msg += `💚 تراز شما: +${sym}${balance.toFixed(2)} _(طلبکار هستید)_\n`;
+    else if (balance < -0.005) msg += `❤️ تراز شما: −${sym}${Math.abs(balance).toFixed(2)} _(بدهکار هستید)_\n`;
+    else msg += `✅ حساب شما تسویه است!\n`;
+    if (myTransfers.length > 0) {
+      msg += `\n📋 *تراکنش‌های شما:*\n`;
+      msg += myTransfers.map((t) => `• *${t.from}* → *${t.to}*: ${sym}${t.amount.toFixed(2)}`).join('\n');
+      msg += '\n';
+    }
+    msg += `\n🔗 [مشاهده نتایج کامل](${shareLink})`;
+    return msg;
+  },
+
   reminderMessage: (owes, owed) => {
     let msg = `⏰ *یادآوری روزانه*\n`;
     if (owes.length > 0)

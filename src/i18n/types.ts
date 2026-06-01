@@ -225,6 +225,7 @@ export interface Translations {
   splitUserNotFound: string;
   splitNoContacts: string;
   splitNotifyAddedToSplit: (creatorName: string, sessionName: string | undefined) => string;
+  splitNotifyResultsReady: (creatorName: string, sessionName: string | null, sym: string, balance: number, myTransfers: Array<{ from: string; to: string; amount: number }>, shareLink: string) => string;
 
   // Daily reminder
   reminderMessage: (
