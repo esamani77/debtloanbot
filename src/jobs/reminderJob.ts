@@ -82,6 +82,17 @@ async function sendDailyReminders(): Promise<void> {
     console.log(
       `[reminderJob] Sending to user ${user.telegramId} (owes: ${owes.length}, owed: ${owed.length})`,
     );
+    Sentry.captureEvent({
+      message: "Reminder job sending",
+      level: "info",
+      extra: {
+        user: user.telegramId,
+        userName: user.name,
+        userLanguage: user.language,
+        owes: owes.length,
+        owed: owed.length,
+      },
+    });
     await bot.telegram
       .sendMessage(user.telegramId, msg, { parse_mode: "Markdown" })
       .then(() => console.log(`[reminderJob] Sent to ${user.telegramId}`))
@@ -101,6 +112,13 @@ export function startReminderJob(): void {
   const schedule = "*/5 * * * *";
   cron.schedule(schedule, async () => {
     try {
+      Sentry.captureEvent({
+        message: "Reminder job started",
+        level: "info",
+        extra: {
+          schedule,
+        },
+      });
       await sendDailyReminders();
     } catch (err) {
       Sentry.captureException(err);
