@@ -100,6 +100,8 @@ export async function addBillToExistingSession(ctx: BotContext, sessionId: strin
     currency: session.currency,
     participantCount: session.participants.length,
     participants: session.participants,
+    participantTelegramIds: session.participantTelegramIds,
+    collectingParticipantIndex: session.participants.length,
     bills: [],
     currentBill: {},
     currentShareIndex: 0,
@@ -120,7 +122,7 @@ export async function recalculateSession(ctx: BotContext, sessionId: string): Pr
 
   try {
     const { netBalances, transfers, shareToken } = await calculateSession(sessionId);
-    const bankAccounts = await getBankAccountsForParticipants(session.participants);
+    const bankAccounts = await getBankAccountsForParticipants(session.participants, session.participantTelegramIds);
     const sym = currencySymbol(session.currency, ctx.session.userLanguage);
 
     const balanceSummary = t.splitBalanceSummary(session.participants, netBalances, sym);
@@ -145,7 +147,7 @@ export async function reshareSession(ctx: BotContext, sessionId: string): Promis
 
   const netBalances = computeNetBalances(session.participants, session.bills);
   const transfers = simplifyDebts(session.participants, netBalances, session.currency);
-  const bankAccounts = await getBankAccountsForParticipants(session.participants);
+  const bankAccounts = await getBankAccountsForParticipants(session.participants, session.participantTelegramIds);
   const sym = currencySymbol(session.currency, ctx.session.userLanguage);
   const link = `https://t.me/${BOT_USERNAME}?start=split_${session.shareToken}`;
 

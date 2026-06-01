@@ -22,9 +22,11 @@ export async function createDraftSession(
   name: string | undefined,
   currency: Currency,
   participants: string[],
+  participantTelegramIds?: string[],
 ): Promise<{ id: string }> {
+  const telegramIds = participantTelegramIds ?? participants.map(() => '');
   return prisma.splitSession.create({
-    data: { createdById: userId, name: name ?? null, currency, participants },
+    data: { createdById: userId, name: name ?? null, currency, participants, participantTelegramIds: telegramIds },
     select: { id: true },
   });
 }
@@ -144,19 +146,28 @@ export async function replaceAllBills(sessionId: string, bills: BillInput[]): Pr
   ]);
 }
 
-export async function getBankAccountsForParticipants(participants: string[]) {
+export async function getBankAccountsForParticipants(
+  participants: string[],
+  participantTelegramIds?: string[],
+) {
   const users = await prisma.user.findMany({
     include: { bankAccounts: true },
   });
 
   const result: Record<string, Array<{ bankName: string; cardNumber: string; accountNumber: string; name: string }>> = {};
 
-  for (const participant of participants) {
-    const matched = users.find(
-      (u) =>
-        u.name.toLowerCase() === participant.toLowerCase() ||
-        (u.nickname && u.nickname.toLowerCase() === participant.toLowerCase()),
-    );
+  for (let i = 0; i < participants.length; i++) {
+    const participant = participants[i];
+    const telegramId = participantTelegramIds?.[i];
+
+    const matched = telegramId
+      ? users.find((u) => u.telegramId === telegramId)
+      : users.find(
+          (u) =>
+            u.name.toLowerCase() === participant.toLowerCase() ||
+            (u.nickname && u.nickname.toLowerCase() === participant.toLowerCase()),
+        );
+
     if (matched && matched.bankAccounts.length > 0) {
       result[participant] = matched.bankAccounts.map((a) => ({
         bankName: a.bankName,

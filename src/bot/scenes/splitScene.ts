@@ -14,7 +14,9 @@ import {
   deleteSession,
   getSessionById,
 } from '../../services/splitService';
-import { findUserByTelegramId } from '../../services/userService';
+import { findUserByTelegramId, getDisplayName } from '../../services/userService';
+import { getUserRelationships } from '../../services/relationshipService';
+import { generateInviteLink } from '../../utils/inviteLink';
 
 const BOT_USERNAME = process.env.BOT_USERNAME ?? 'debtloanbot';
 
@@ -22,6 +24,8 @@ function draft(ctx: BotContext): SplitDraft {
   if (!ctx.session.splitDraft) {
     ctx.session.splitDraft = {
       participants: [],
+      participantTelegramIds: [],
+      collectingParticipantIndex: 0,
       bills: [],
       currentBill: {},
       currentShareIndex: 0,
@@ -57,6 +61,36 @@ function splitTypeKeyboard(t: ReturnType<typeof useT>) {
   ]);
 }
 
+function participantModeKeyboard(t: ReturnType<typeof useT>) {
+  return Markup.inlineKeyboard([
+    [
+      Markup.button.callback(t.splitBtnFromContacts, 'split_mode:contact'),
+      Markup.button.callback(t.splitBtnByTelegramId, 'split_mode:telegram'),
+    ],
+    [Markup.button.callback(t.splitBtnByName, 'split_mode:name')],
+    [Markup.button.callback(t.splitBtnCancel, 'split_cancel')],
+  ]);
+}
+
+async function showParticipantModePicker(ctx: BotContext): Promise<void> {
+  const t = T(ctx);
+  const d = draft(ctx);
+  const idx = d.participants.length; // next slot to fill
+  const total = d.participantCount!;
+  await ctx.reply(t.splitPickParticipantMode(idx + 1, total), {
+    parse_mode: 'Markdown',
+    ...participantModeKeyboard(t),
+  });
+}
+
+async function finishParticipantCollection(ctx: BotContext): Promise<void> {
+  const t = T(ctx);
+  const d = draft(ctx);
+  await ctx.reply(t.splitParticipantsDone(d.participants), { parse_mode: 'Markdown' });
+  await ctx.reply(t.splitAskBillName, { parse_mode: 'Markdown' });
+  ctx.wizard.selectStep(4);
+}
+
 export const splitScene = new Scenes.WizardScene<BotContext>(
   'SPLIT',
 
@@ -72,7 +106,14 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
       return;
     }
 
-    ctx.session.splitDraft = { participants: [], bills: [], currentBill: {}, currentShareIndex: 0 };
+    ctx.session.splitDraft = {
+      participants: [],
+      participantTelegramIds: [],
+      collectingParticipantIndex: 0,
+      bills: [],
+      currentBill: {},
+      currentShareIndex: 0,
+    };
 
     await ctx.reply(t.splitAskName, {
       parse_mode: 'Markdown',
@@ -125,21 +166,112 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     return ctx.wizard.next();
   },
 
-  // ── Step 3: Participant name loop ──────────────────────────────────────────
+  // ── Step 3: 3-mode participant picker ─────────────────────────────────────
   async (ctx) => {
     const t = T(ctx);
     const d = draft(ctx);
 
+    // ── Callback handling ──
     if (ctx.callbackQuery && 'data' in ctx.callbackQuery) {
       await ctx.answerCbQuery();
-      if (ctx.callbackQuery.data === 'split_cancel') { await ctx.reply(t.splitCancelled); return ctx.scene.leave(); }
+      const data = ctx.callbackQuery.data;
+
+      if (data === 'split_cancel') { await ctx.reply(t.splitCancelled); return ctx.scene.leave(); }
+
+      // ── Mode selection ──
+      if (data === 'split_mode:contact') {
+        if (!ctx.from) return;
+        const viewer = await findUserByTelegramId(String(ctx.from.id));
+        if (!viewer) { await ctx.reply(t.errUserNotFound); return ctx.scene.leave(); }
+
+        const relationships = await getUserRelationships(viewer.id);
+        if (relationships.length === 0) {
+          await ctx.reply(t.splitNoContacts, { parse_mode: 'Markdown' });
+          await showParticipantModePicker(ctx);
+          return;
+        }
+
+        d.contactsCache = relationships.map(({ contact }) => ({
+          telegramId: contact.telegramId,
+          displayName: getDisplayName(contact),
+        }));
+        d.collectingMode = 'contact';
+
+        const buttons = d.contactsCache.map((c, i) =>
+          [Markup.button.callback(c.displayName, `split_pick_contact:${i}`)],
+        );
+        buttons.push([Markup.button.callback(t.splitBtnCancel, 'split_cancel')]);
+
+        try {
+          await ctx.editMessageText(t.splitPickParticipantMode(d.participants.length + 1, d.participantCount!), {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard(buttons),
+          });
+        } catch {
+          await ctx.reply(t.splitPickParticipantMode(d.participants.length + 1, d.participantCount!), {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard(buttons),
+          });
+        }
+        return;
+      }
+
+      if (data === 'split_mode:telegram') {
+        d.collectingMode = 'telegram';
+        try {
+          await ctx.editMessageText(t.splitEnterTelegramId, {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([[Markup.button.callback(t.splitBtnCancel, 'split_cancel')]]),
+          });
+        } catch {
+          await ctx.reply(t.splitEnterTelegramId, {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([[Markup.button.callback(t.splitBtnCancel, 'split_cancel')]]),
+          });
+        }
+        return;
+      }
+
+      if (data === 'split_mode:name') {
+        d.collectingMode = 'name';
+        const idx = d.participants.length;
+        try {
+          await ctx.editMessageText(t.splitAskParticipantName(idx + 1, d.participantCount!), { parse_mode: 'Markdown' });
+        } catch {
+          await ctx.reply(t.splitAskParticipantName(idx + 1, d.participantCount!), { parse_mode: 'Markdown' });
+        }
+        return;
+      }
+
+      // ── Contact selected from list ──
+      if (data.startsWith('split_pick_contact:')) {
+        const contactIdx = parseInt(data.replace('split_pick_contact:', ''), 10);
+        const contact = d.contactsCache?.[contactIdx];
+        if (!contact) return;
+
+        d.participants.push(contact.displayName);
+        d.participantTelegramIds.push(contact.telegramId);
+        d.collectingMode = undefined;
+        d.contactsCache = undefined;
+        d.collectingParticipantIndex = d.participants.length;
+
+        try { await ctx.editMessageText(`✅ *${contact.displayName}* added.`, { parse_mode: 'Markdown' }); } catch { /* ignore */ }
+
+        if (d.participants.length >= d.participantCount!) {
+          return finishParticipantCollection(ctx);
+        }
+        await showParticipantModePicker(ctx);
+        return;
+      }
+
       return;
     }
 
+    // ── Text input ──
     if (!ctx.message || !('text' in ctx.message)) return;
     const text = ctx.message.text.trim();
 
-    // First message in this step is the participant count
+    // ── First message: participant count ──
     if (d.participantCount === undefined) {
       const count = parseInt(text, 10);
       if (isNaN(count) || count < 2 || count > 20) {
@@ -148,26 +280,92 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
       }
       d.participantCount = count;
       d.participants = [];
+      d.participantTelegramIds = [];
+      d.collectingParticipantIndex = 0;
 
-      // Pre-fill initiator's name as first participant
-      const initiatorName = ctx.from ? ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '') : 'Me';
-      await ctx.reply(t.splitAskParticipantName(1, count) + `\n\n_(Your name: ${initiatorName})_`, { parse_mode: 'Markdown' });
+      // Pre-fill initiator as participant[0]
+      const initiatorName = ctx.from
+        ? ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '')
+        : 'Me';
+      const initiatorTelegramId = ctx.from ? String(ctx.from.id) : '';
+      d.participants.push(initiatorName);
+      d.participantTelegramIds.push(initiatorTelegramId);
+      d.collectingParticipantIndex = 1;
+
+      await ctx.reply(
+        `_(Participant 1: ${initiatorName} — you)_`,
+        { parse_mode: 'Markdown' },
+      );
+
+      await showParticipantModePicker(ctx);
       return;
     }
 
-    // Collecting participant names
-    d.participants.push(text);
-    const idx = d.participants.length;
+    // ── Telegram ID mode ──
+    if (d.collectingMode === 'telegram') {
+      if (!/^\d+$/.test(text)) {
+        await ctx.reply(t.splitEnterTelegramId, { parse_mode: 'Markdown' });
+        return;
+      }
 
-    if (idx < d.participantCount) {
-      await ctx.reply(t.splitAskParticipantName(idx + 1, d.participantCount), { parse_mode: 'Markdown' });
-      return; // stay on step 3
+      const foundUser = await findUserByTelegramId(text);
+      if (foundUser) {
+        const displayName = getDisplayName(foundUser);
+        d.participants.push(displayName);
+        d.participantTelegramIds.push(text);
+        d.collectingMode = undefined;
+        d.collectingParticipantIndex = d.participants.length;
+
+        await ctx.reply(t.splitUserFound(displayName), { parse_mode: 'Markdown' });
+
+        // Notify the found user
+        ctx.telegram.sendMessage(
+          text,
+          t.splitNotifyAddedToSplit(
+            ctx.from ? ctx.from.first_name : 'Someone',
+            d.sessionName,
+          ),
+          { parse_mode: 'Markdown' },
+        ).catch(() => {});
+      } else {
+        d.participants.push(`User ${text}`);
+        d.participantTelegramIds.push(text);
+        d.collectingMode = undefined;
+        d.collectingParticipantIndex = d.participants.length;
+
+        await ctx.reply(t.splitUserNotFound, { parse_mode: 'Markdown' });
+
+        // Show an invite link the creator can share
+        if (ctx.from) {
+          const creatorUser = await findUserByTelegramId(String(ctx.from.id));
+          if (creatorUser) {
+            const inviteLink = generateInviteLink(creatorUser.id);
+            await ctx.reply(`\`${inviteLink}\``, { parse_mode: 'Markdown' });
+          }
+        }
+      }
+
+      if (d.participants.length >= d.participantCount!) {
+        return finishParticipantCollection(ctx);
+      }
+      await showParticipantModePicker(ctx);
+      return;
     }
 
-    // All participants collected
-    await ctx.reply(t.splitParticipantsDone(d.participants), { parse_mode: 'Markdown' });
-    await ctx.reply(t.splitAskBillName, { parse_mode: 'Markdown' });
-    return ctx.wizard.next();
+    // ── Name mode ──
+    if (d.collectingMode === 'name') {
+      if (!text) return;
+      d.participants.push(text);
+      d.participantTelegramIds.push('');
+      d.collectingMode = undefined;
+      d.collectingParticipantIndex = d.participants.length;
+
+      if (d.participants.length >= d.participantCount!) {
+        return finishParticipantCollection(ctx);
+      }
+      await showParticipantModePicker(ctx);
+      return;
+    }
   },
 
   // ── Step 4: Ask bill name ──────────────────────────────────────────────────
@@ -377,6 +575,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
           d.sessionName,
           d.currency ?? Currency.USD,
           d.participants,
+          d.participantTelegramIds,
         );
         targetSessionId = session.id;
         for (const bill of d.bills) {
@@ -396,7 +595,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
       d.shareToken = shareToken;
 
       const sym = currencySymbol(d.currency ?? Currency.USD, ctx.session.userLanguage);
-      const bankAccounts = await getBankAccountsForParticipants(d.participants);
+      const bankAccounts = await getBankAccountsForParticipants(d.participants, d.participantTelegramIds);
       const balanceMsg = t.splitBalanceSummary(d.participants, netBalances, sym);
       const balanceKeyboard = Markup.inlineKeyboard([[Markup.button.callback(t.splitBtnSettlementPlan, 'split_show_plan')]]);
       try {
@@ -424,7 +623,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     const sym = currencySymbol(d.currency ?? Currency.USD, ctx.session.userLanguage);
     const netBalances = d.netBalances ?? computeNetBalances(d.participants, d.bills);
     const transfers = simplifyDebts(d.participants, netBalances, d.currency ?? Currency.USD);
-    const bankAccounts = await getBankAccountsForParticipants(d.participants);
+    const bankAccounts = await getBankAccountsForParticipants(d.participants, d.participantTelegramIds);
 
     const planMsg = t.splitSettlementPlan(transfers, sym, bankAccounts);
     const shareKeyboard = Markup.inlineKeyboard([[Markup.button.callback(t.splitBtnShare, 'split_share')]]);

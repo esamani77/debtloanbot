@@ -360,6 +360,17 @@ export const fa: Translations = {
     return text;
   },
 
+  splitPickParticipantMode: (i, total) => `👤 *شرکت‌کننده ${i} از ${total}*\n\nچطور می‌خواهید این نفر را اضافه کنید؟`,
+  splitBtnFromContacts: '👥 از مخاطبین',
+  splitBtnByTelegramId: '🆔 با شناسه تلگرام',
+  splitBtnByName: '✏️ وارد کردن نام',
+  splitEnterTelegramId: '🆔 شناسه کاربری تلگرام را وارد کنید (فقط عدد):',
+  splitUserFound: (name) => `✅ *${name}* پیدا شد! در حال افزودن به تقسیم.`,
+  splitUserNotFound: '❌ این شناسه تلگرام در DebtMate ثبت‌نام نکرده. می‌توانید این لینک دعوت را با آن‌ها به اشتراک بگذارید:',
+  splitNoContacts: '⚠️ هنوز مخاطبی ندارید. از /invite برای اتصال استفاده کنید، یا با شناسه تلگرام یا نام اضافه کنید.',
+  splitNotifyAddedToSplit: (creatorName, sessionName) =>
+    `👋 *${creatorName}* شما را به عنوان شرکت‌کننده در یک تقسیم${sessionName ? ` (*${sessionName}*)` : ''} اضافه کرد!\n\nDebtMate را باز کنید تا نتایج را ببینید.`,
+
   reminderMessage: (owes, owed) => {
     let msg = `⏰ *یادآوری روزانه*\n`;
     if (owes.length > 0)

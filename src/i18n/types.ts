@@ -215,6 +215,17 @@ export interface Translations {
   splitNoSessions: string;
   splitAddingBillToSession: (name: string | null) => string;
 
+  // Split participant picker (3-mode)
+  splitPickParticipantMode: (index: number, total: number) => string;
+  splitBtnFromContacts: string;
+  splitBtnByTelegramId: string;
+  splitBtnByName: string;
+  splitEnterTelegramId: string;
+  splitUserFound: (name: string) => string;
+  splitUserNotFound: string;
+  splitNoContacts: string;
+  splitNotifyAddedToSplit: (creatorName: string, sessionName: string | undefined) => string;
+
   // Daily reminder
   reminderMessage: (
     owes: Array<{ name: string; sym: string; amount: string }>,

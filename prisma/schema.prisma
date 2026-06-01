@@ -65,7 +65,8 @@ model SplitSession {
   name         String?
   currency     Currency    @default(USD)
   status       SplitStatus @default(DRAFT)
-  participants String[]
+  participants          String[]
+  participantTelegramIds String[]
   shareToken   String?     @unique
   expiresAt    DateTime?
   createdAt    DateTime    @default(now())

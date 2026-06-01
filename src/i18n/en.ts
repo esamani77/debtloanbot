@@ -328,6 +328,17 @@ export const en: Translations = {
   splitNoSessions: '🧾 *Bill Splitting*\n\nNo splits yet. Start one now!',
   splitAddingBillToSession: (name) => `➕ *Adding bill to "${name ?? 'split'}"*\n\nWhat was this expense?`,
 
+  splitPickParticipantMode: (i, total) => `👤 *Participant ${i} of ${total}*\n\nHow do you want to add this person?`,
+  splitBtnFromContacts: '👥 From Contacts',
+  splitBtnByTelegramId: '🆔 By Telegram ID',
+  splitBtnByName: '✏️ Type Name',
+  splitEnterTelegramId: '🆔 Enter the Telegram user ID (numbers only):',
+  splitUserFound: (name) => `✅ Found *${name}*! Adding them to the split.`,
+  splitUserNotFound: '❌ That Telegram ID isn\'t registered in DebtMate yet. You can share this invite link with them:',
+  splitNoContacts: '⚠️ You have no contacts yet. Use /invite to connect with someone, or add participants by Telegram ID or name.',
+  splitNotifyAddedToSplit: (creatorName, sessionName) =>
+    `👋 *${creatorName}* added you as a participant in a split${sessionName ? ` (*${sessionName}*)` : ''}!\n\nOpen DebtMate to view the results when they're ready.`,
+
   reminderMessage: (owes, owed) => {
     let msg = `⏰ *Daily Balance Reminder*\n`;
     if (owes.length > 0)

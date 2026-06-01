@@ -47,10 +47,11 @@ export async function listSessions(req: Request, res: Response): Promise<void> {
 
 // POST /api/splits
 export async function createSession(req: Request, res: Response): Promise<void> {
-  const { name, currency, participants } = req.body as {
+  const { name, currency, participants, participantTelegramIds } = req.body as {
     name?: string;
     currency?: string;
     participants?: unknown;
+    participantTelegramIds?: unknown;
   };
 
   if (!currency || !ALL_CURRENCIES.includes(currency)) {
@@ -65,6 +66,16 @@ export async function createSession(req: Request, res: Response): Promise<void> 
     res.status(400).json({ error: 'All participant names must be non-empty strings.' });
     return;
   }
+  if (participantTelegramIds !== undefined) {
+    if (!Array.isArray(participantTelegramIds) || participantTelegramIds.length !== participants.length) {
+      res.status(400).json({ error: 'participantTelegramIds must be an array with the same length as participants.' });
+      return;
+    }
+    if ((participantTelegramIds as unknown[]).some((id) => typeof id !== 'string')) {
+      res.status(400).json({ error: 'All participantTelegramIds must be strings.' });
+      return;
+    }
+  }
 
   try {
     const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
@@ -73,6 +84,7 @@ export async function createSession(req: Request, res: Response): Promise<void> 
       name || undefined,
       currency as Currency,
       participants as string[],
+      participantTelegramIds as string[] | undefined,
     );
     res.status(201).json({ id: session.id });
   } catch {
@@ -101,6 +113,7 @@ export async function getSession(req: Request, res: Response): Promise<void> {
       currency: session.currency,
       status: session.status,
       participants: session.participants,
+      participantTelegramIds: session.participantTelegramIds,
       bills: session.bills.map((b) => ({
         id: b.id,
         name: b.name,
@@ -201,7 +214,7 @@ export async function calculate(req: Request, res: Response): Promise<void> {
 
     const { netBalances, transfers, shareToken } = await calculateSession(String(req.params.id));
     await markSessionShared(String(req.params.id));
-    const bankAccounts = await getBankAccountsForParticipants(session.participants);
+    const bankAccounts = await getBankAccountsForParticipants(session.participants, session.participantTelegramIds);
     const sym = currencySymbol(session.currency);
 
     res.json({
@@ -233,7 +246,7 @@ export async function getSharedSession(req: Request, res: Response): Promise<voi
 
     const netBalances = computeNetBalances(result.participants, result.bills);
     const transfers = simplifyDebts(result.participants, netBalances, result.currency);
-    const bankAccounts = await getBankAccountsForParticipants(result.participants);
+    const bankAccounts = await getBankAccountsForParticipants(result.participants, result.participantTelegramIds);
     const sym = currencySymbol(result.currency);
 
     res.json({
@@ -242,6 +255,7 @@ export async function getSharedSession(req: Request, res: Response): Promise<voi
       currency: result.currency,
       symbol: sym,
       participants: result.participants,
+      participantTelegramIds: result.participantTelegramIds,
       bills: result.bills.map((b) => ({
         id: b.id,
         name: b.name,

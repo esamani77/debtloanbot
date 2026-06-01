@@ -14,6 +14,12 @@ export interface SplitDraft {
   currency?: Currency;
   participantCount?: number;
   participants: string[];
+  participantTelegramIds: string[];
+  collectingParticipantIndex: number;
+  /** 'contact' | 'telegram' | 'name' — set while collecting a specific slot */
+  collectingMode?: 'contact' | 'telegram' | 'name';
+  /** temporary contact list shown during contact-picker mode */
+  contactsCache?: Array<{ telegramId: string; displayName: string }>;
   bills: BillDraft[];
   currentBill: Partial<BillDraft>;
   currentShareIndex: number;
