@@ -75,6 +75,10 @@ async function main(): Promise<void> {
         `DebtMate server running on port ${PORT} (production / webhook mode)`,
       );
     });
+    startReminderJob();
+    console.log(
+      `Reminder job scheduled (cron: ${process.env.REMINDER_CRON ?? "*/5 * * * *"})`,
+    );
   } else {
     // Development: use long polling
     bot.launch().then(() => {
@@ -87,7 +91,9 @@ async function main(): Promise<void> {
   }
 
   startReminderJob();
-  console.log(`Reminder job scheduled (cron: ${process.env.REMINDER_CRON ?? '*/5 * * * *'})`);
+  console.log(
+    `Reminder job scheduled (cron: ${process.env.REMINDER_CRON ?? "*/5 * * * *"})`,
+  );
 }
 
 main().catch((err) => {
