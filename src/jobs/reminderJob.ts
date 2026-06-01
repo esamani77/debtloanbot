@@ -14,6 +14,8 @@ interface BalanceEntry {
 }
 
 async function sendDailyReminders(): Promise<void> {
+  console.log('[reminderJob] Starting daily reminder run...');
+
   const relationships = await prisma.relationship.findMany({
     where: { transactions: { some: { isSettled: false } } },
     include: {
@@ -25,6 +27,8 @@ async function sendDailyReminders(): Promise<void> {
       },
     },
   });
+
+  console.log(`[reminderJob] Found ${relationships.length} relationships with unsettled transactions`);
 
   const userBalances = new Map<string, { user: User; items: BalanceEntry[] }>();
 
@@ -45,6 +49,8 @@ async function sendDailyReminders(): Promise<void> {
     addEntry(rel.userB, rel.userA, netB, rel.currency);
   }
 
+  console.log(`[reminderJob] Sending reminders to ${userBalances.size} users`);
+
   for (const { user, items } of userBalances.values()) {
     const t = useT(user.language);
     const owes = items
@@ -62,8 +68,14 @@ async function sendDailyReminders(): Promise<void> {
         amount: i.netBalance.toFixed(2),
       }));
     const msg = t.reminderMessage(owes, owed);
-    bot.telegram.sendMessage(user.telegramId, msg, { parse_mode: 'Markdown' }).catch(() => {});
+    console.log(`[reminderJob] Sending to user ${user.telegramId} (owes: ${owes.length}, owed: ${owed.length})`);
+    await bot.telegram
+      .sendMessage(user.telegramId, msg, { parse_mode: 'Markdown' })
+      .then(() => console.log(`[reminderJob] Sent to ${user.telegramId}`))
+      .catch((err) => console.error(`[reminderJob] Failed to send to ${user.telegramId}:`, err.message));
   }
+
+  console.log('[reminderJob] Done.');
 }
 
 export function startReminderJob(): void {
