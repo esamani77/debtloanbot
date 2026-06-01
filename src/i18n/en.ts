@@ -73,6 +73,7 @@ export const en: Translations = {
     `/balance — Balance with active contact\n` +
     `/add — Add a debt or loan\n` +
     `/logs — Recent transactions\n` +
+    `/remind — Nudge someone who owes you\n` +
     `/split — Start a bill split session\n` +
     `/splits — View your recent splits\n` +
     `/help — This help message\n\n` +
@@ -360,13 +361,20 @@ export const en: Translations = {
   },
 
   reminderMessage: (owes, owed) => {
-    let msg = `⏰ *Daily Balance Reminder*\n`;
+    let msg = `⏰ *Balance Reminder*\n`;
     if (owes.length > 0)
       msg += `\n💸 *You owe:*\n${owes.map((o) => `• ${o.name}: ${o.sym}${o.amount}`).join('\n')}`;
     if (owed.length > 0)
       msg += `\n\n💰 *You're owed:*\n${owed.map((o) => `• ${o.name}: ${o.sym}${o.amount}`).join('\n')}`;
     return msg;
   },
+
+  remindPickContact: '🔔 *Send a Reminder*\n\nChoose who to remind:',
+  remindNoDebtors: '✅ No one owes you money right now.',
+  remindSent: (name) => `✅ Reminder sent to *${name}*!`,
+  remindCooldown: (h) => `⏳ You already sent a reminder to this person recently. Try again in *${h}h*.`,
+  remindReceived: (name, sym, amount) =>
+    `🔔 *${name}* is reminding you that you owe them *${sym}${amount}*.\n\nOpen DebtMate to view your balance.`,
 
   splitSharedSummary: (sessionName, currency, createdAt, participants, balances, transfers, sym, bankAccounts, bills) => {
     const title = sessionName ? `*${sessionName}*` : '*Split Summary*';

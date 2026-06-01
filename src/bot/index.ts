@@ -20,6 +20,7 @@ import { profileHandler } from "./commands/profile";
 import { splitHandler } from "./commands/split";
 import { splitsHandler } from "./commands/splits";
 import { settleAllHandler } from "./commands/settle";
+import { remindHandler, handleRemindSend } from "./commands/remind";
 import {
   splitMenuHandler,
   openSplitSession,
@@ -241,6 +242,7 @@ bot.command("profile", profileHandler);
 bot.command("split", splitHandler);
 bot.command("splits", splitsHandler);
 bot.command("settle", settleAllHandler);
+bot.command("remind", remindHandler);
 
 // Language selection via ReplyKeyboard
 bot.hears("🇬🇧 English", async (ctx) => setLangAction(ctx, Language.EN));
@@ -404,6 +406,11 @@ bot.action(/^tx_feedback:(\d+)$/, async (ctx) => {
   ctx.session.feedbackTargetTelegramId = viewerTelegramId;
   ctx.session.feedbackTargetName = viewer?.name ?? "?";
   await ctx.scene.enter("FEEDBACK");
+});
+
+// Manual debt reminder (nudge)
+bot.action(/^remind_send:(\d+)$/, async (ctx) => {
+  await handleRemindSend(ctx, ctx.match[1]);
 });
 
 // Settlement request

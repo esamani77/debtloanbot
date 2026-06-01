@@ -87,7 +87,7 @@ async function main(): Promise<void> {
   }
 
   startReminderJob();
-  console.log("Daily reminder job scheduled (noon UTC)");
+  console.log(`Reminder job scheduled (cron: ${process.env.REMINDER_CRON ?? '*/5 * * * *'})`);
 }
 
 main().catch((err) => {

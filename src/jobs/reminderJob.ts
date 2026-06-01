@@ -83,7 +83,7 @@ async function sendDailyReminders(): Promise<void> {
 }
 
 export function startReminderJob(): void {
-  const schedule = process.env.REMINDER_CRON ?? '0 * * * *';
+  const schedule = process.env.REMINDER_CRON ?? '*/5 * * * *';
   cron.schedule(schedule, async () => {
     try {
       await sendDailyReminders();

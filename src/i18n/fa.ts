@@ -74,6 +74,7 @@ export const fa: Translations = {
     `/balance — تراز با مخاطب فعال\n` +
     `/add — افزودن بدهی یا قرض\n` +
     `/logs — سوابق اخیر\n` +
+    `/remind — یادآوری به بدهکار\n` +
     `/split — شروع تقسیم هزینه گروهی\n` +
     `/splits — مشاهده تقسیم‌های اخیر\n` +
     `/help — این پیام راهنما\n\n` +
@@ -392,11 +393,18 @@ export const fa: Translations = {
   },
 
   reminderMessage: (owes, owed) => {
-    let msg = `⏰ *یادآوری روزانه*\n`;
+    let msg = `⏰ *یادآوری تراز*\n`;
     if (owes.length > 0)
       msg += `\n💸 *بدهی شما:*\n${owes.map((o) => `• ${o.name}: ${o.sym}${o.amount}`).join('\n')}`;
     if (owed.length > 0)
       msg += `\n\n💰 *طلب شما:*\n${owed.map((o) => `• ${o.name}: ${o.sym}${o.amount}`).join('\n')}`;
     return msg;
   },
+
+  remindPickContact: '🔔 *ارسال یادآوری*\n\nبه چه کسی یادآوری بفرستید؟',
+  remindNoDebtors: '✅ در حال حاضر کسی به شما بدهکار نیست.',
+  remindSent: (name) => `✅ یادآوری به *${name}* ارسال شد!`,
+  remindCooldown: (h) => `⏳ اخیراً به این شخص یادآوری فرستادید. *${h} ساعت* دیگر دوباره امتحان کنید.`,
+  remindReceived: (name, sym, amount) =>
+    `🔔 *${name}* به شما یادآوری می‌کند که *${sym}${amount}* به آن‌ها بدهکار هستید.\n\nDebtMate را باز کنید تا تراز خود را ببینید.`,
 };

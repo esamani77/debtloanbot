@@ -236,4 +236,11 @@ export interface Translations {
     owes: Array<{ name: string; sym: string; amount: string }>,
     owed: Array<{ name: string; sym: string; amount: string }>
   ) => string;
+
+  // Manual nudge (/remind command)
+  remindPickContact: string;
+  remindNoDebtors: string;
+  remindSent: (name: string) => string;
+  remindCooldown: (hoursLeft: number) => string;
+  remindReceived: (name: string, sym: string, amount: string) => string;
 }
