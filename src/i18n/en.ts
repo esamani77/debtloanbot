@@ -413,4 +413,25 @@ export const en: Translations = {
     }
     return text;
   },
+
+  // Recurring transactions
+  recurringAskInterval: '🔁 Make this recurring?\n\nChoose an interval or skip:',
+  recurringBtnWeekly: '📅 Weekly',
+  recurringBtnBiweekly: '📅 Every 2 Weeks',
+  recurringBtnMonthly: '📅 Monthly',
+  recurringBtnNoRecurring: '⏭ One-time only',
+  recurringLabel: (intervalLabel) => `🔁 _Recurring · ${intervalLabel}_`,
+  recurringMaterialized: (intervalLabel, sym, amount, contactName) =>
+    `🔁 *Recurring transaction recorded!*\n\nAmount: *${sym}${amount}* (${intervalLabel})\nWith: ${contactName}`,
+  recurringCreated: (intervalLabel, sym, amount, contactName) =>
+    `✅ *Recurring transaction created!*\n\nInterval: ${intervalLabel}\nAmount: *${sym}${amount}*\nWith: ${contactName}\n\nThe first transaction was recorded now. Future ones will be created automatically.`,
+  recurringListTitle: '🔁 *Your Recurring Transactions*',
+  recurringListEmpty: 'No active recurring transactions.',
+  recurringListItem: (index, typeLabel, sym, amount, contactName, intervalLabel, nextDueAt) =>
+    `${index}. ${typeLabel} *${sym}${amount}* with ${contactName}\n   🔁 ${intervalLabel} · Next: ${nextDueAt}`,
+  recurringCancelPrompt: (typeLabel, sym, amount, contactName) =>
+    `❌ *Cancel Recurring Transaction?*\n\n${typeLabel} — *${sym}${amount}* with ${contactName}\n\nNo future transactions will be created.`,
+  recurringCancelConfirmBtn: '✅ Confirm Cancel',
+  recurringCancelled: '✅ Recurring transaction cancelled.',
+  recurringNotFound: '❌ Recurring transaction not found.',
 };

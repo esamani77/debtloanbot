@@ -1,9 +1,10 @@
 import { Scenes, Markup } from "telegraf";
-import { Currency, Language, TransactionType } from "@prisma/client";
+import { Currency, Language, RecurringInterval, TransactionType } from "@prisma/client";
 import { BotContext } from "../../models/types";
 import { findUserByTelegramId, findUserById } from "../../services/userService";
 import { getRelationshipBetween } from "../../services/relationshipService";
 import { addTransaction } from "../../services/transactionService";
+import { createRecurringTransaction } from "../../services/recurringTransactionService";
 import { currencySymbol } from "../../utils/currency";
 import { useT } from "../../i18n";
 
@@ -11,6 +12,7 @@ interface WizardState {
   transactionType?: TransactionType;
   amount?: number;
   currency?: Currency;
+  note?: string;
 }
 
 export const addTransactionScene = new Scenes.WizardScene<BotContext>(
@@ -136,7 +138,7 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
     return ctx.wizard.next();
   },
 
-  // Step 3: Handle note, save transaction
+  // Step 3: Handle note, ask about recurring
   async (ctx) => {
     const T = useT(ctx.session.userLanguage ?? Language.EN);
     const state = ctx.wizard.state as WizardState;
@@ -167,13 +169,51 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
       return;
     }
 
-    if (!state.transactionType || state.amount === undefined) {
-      await ctx.reply(T.txSomethingWrong);
+    state.note = note;
+
+    await ctx.reply(T.recurringAskInterval, {
+      parse_mode: "Markdown",
+      ...Markup.inlineKeyboard([
+        [
+          Markup.button.callback(T.recurringBtnWeekly, "tx_recur:WEEKLY"),
+          Markup.button.callback(T.recurringBtnBiweekly, "tx_recur:BIWEEKLY"),
+        ],
+        [Markup.button.callback(T.recurringBtnMonthly, "tx_recur:MONTHLY")],
+        [Markup.button.callback(T.recurringBtnNoRecurring, "tx_recur:NONE")],
+      ]),
+    });
+
+    return ctx.wizard.next();
+  },
+
+  // Step 4: Handle recurring choice, save transaction
+  async (ctx) => {
+    const T = useT(ctx.session.userLanguage ?? Language.EN);
+    const state = ctx.wizard.state as WizardState;
+
+    if (!ctx.callbackQuery || !("data" in ctx.callbackQuery)) {
+      await ctx.reply(T.txUseButtons);
+      return;
+    }
+
+    const data = ctx.callbackQuery.data;
+    await ctx.answerCbQuery();
+
+    if (data === "tx_cancel") {
+      await ctx.editMessageText(T.txCancelled);
       return ctx.scene.leave();
     }
 
-    if (!ctx.from) {
-      await ctx.reply(T.errCannotIdentify);
+    if (!data.startsWith("tx_recur:")) {
+      await ctx.reply(T.txUseButtons);
+      return;
+    }
+
+    const intervalRaw = data.slice("tx_recur:".length); // WEEKLY | BIWEEKLY | MONTHLY | NONE
+    const isRecurring = intervalRaw !== "NONE";
+
+    if (!state.transactionType || state.amount === undefined || !ctx.from) {
+      await ctx.reply(T.txSomethingWrong);
       return ctx.scene.leave();
     }
 
@@ -186,19 +226,10 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
 
       const contactId = ctx.session.activeContactId!;
       const relationship = await getRelationshipBetween(viewer.id, contactId);
-
       if (!relationship) {
         await ctx.reply(T.errNoRelationship);
         return ctx.scene.leave();
       }
-
-      const transaction = await addTransaction({
-        relationshipId: relationship.id,
-        createdById: viewer.id,
-        amount: state.amount,
-        type: state.transactionType,
-        note,
-      });
 
       const typeLabel =
         state.transactionType === TransactionType.DEBT
@@ -206,58 +237,100 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
           : T.txTypeLabelLoan;
       const contactName = ctx.session.activeContactName ?? "?";
       const sym = currencySymbol(state.currency ?? Currency.USD, ctx.session.userLanguage);
-
-      // Notify the contact in their own language
       const contact = await findUserById(contactId);
-      if (contact) {
-        const contactT = useT(contact.language);
-        const contactSym = currencySymbol(state.currency ?? Currency.USD, contact.language);
-        const notifyMsg =
-          state.transactionType === TransactionType.DEBT
-            ? contactT.notifyBorrowed(
-                viewer.name,
-                contactSym,
-                transaction.amount.toFixed(2),
-              )
-            : contactT.notifyLent(
-                viewer.name,
-                contactSym,
-                transaction.amount.toFixed(2),
-              );
-        const fullMsg = note
-          ? `${notifyMsg}\n${contactT.notifyNote(note)}`
-          : notifyMsg;
-        ctx.telegram
-          .sendMessage(contact.telegramId, fullMsg, {
-            parse_mode: "Markdown",
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId}` }],
-              ],
-            },
-          })
-          .catch(() => {});
-      }
 
-      await ctx.reply(
-        T.txSaved(
-          typeLabel,
-          sym,
-          transaction.amount.toFixed(2),
-          contactName,
-          note,
-        ),
-        {
-          parse_mode: "Markdown",
-          ...Markup.inlineKeyboard([
-            [
-              Markup.button.callback(T.btnBalance, "view_balance"),
-              Markup.button.callback(T.btnLogs, "view_logs"),
-            ],
-            [Markup.button.callback(T.btnAddAnother, "add_transaction")],
-          ]),
-        },
-      );
+      let transactionAmount: number;
+
+      if (isRecurring) {
+        const interval = intervalRaw as RecurringInterval;
+        const INTERVAL_LABELS: Record<string, string> = {
+          WEEKLY: "Weekly",
+          BIWEEKLY: "Every 2 Weeks",
+          MONTHLY: "Monthly",
+        };
+        const intervalLabel = INTERVAL_LABELS[intervalRaw] ?? intervalRaw;
+
+        const { firstTransaction } = await createRecurringTransaction({
+          relationshipId: relationship.id,
+          createdById: viewer.id,
+          amount: state.amount,
+          type: state.transactionType,
+          note: state.note,
+          interval,
+        });
+        transactionAmount = firstTransaction.amount;
+
+        await ctx.editMessageText(
+          T.recurringCreated(intervalLabel, sym, transactionAmount.toFixed(2), contactName),
+          { parse_mode: "Markdown" },
+        );
+
+        if (contact) {
+          const contactT = useT(contact.language);
+          const contactSym = currencySymbol(state.currency ?? Currency.USD, contact.language);
+          const notifyMsg =
+            state.transactionType === TransactionType.DEBT
+              ? contactT.notifyBorrowed(viewer.name, contactSym, transactionAmount.toFixed(2))
+              : contactT.notifyLent(viewer.name, contactSym, transactionAmount.toFixed(2));
+          const notePart = state.note ? `\n${contactT.notifyNote(state.note)}` : "";
+          const recurringPart = `\n${contactT.recurringLabel(intervalLabel)}`;
+          ctx.telegram
+            .sendMessage(contact.telegramId, `${notifyMsg}${notePart}${recurringPart}`, {
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId}` }],
+                ],
+              },
+            })
+            .catch(() => {});
+        }
+      } else {
+        const transaction = await addTransaction({
+          relationshipId: relationship.id,
+          createdById: viewer.id,
+          amount: state.amount,
+          type: state.transactionType,
+          note: state.note,
+        });
+        transactionAmount = transaction.amount;
+
+        if (contact) {
+          const contactT = useT(contact.language);
+          const contactSym = currencySymbol(state.currency ?? Currency.USD, contact.language);
+          const notifyMsg =
+            state.transactionType === TransactionType.DEBT
+              ? contactT.notifyBorrowed(viewer.name, contactSym, transactionAmount.toFixed(2))
+              : contactT.notifyLent(viewer.name, contactSym, transactionAmount.toFixed(2));
+          const fullMsg = state.note
+            ? `${notifyMsg}\n${contactT.notifyNote(state.note)}`
+            : notifyMsg;
+          ctx.telegram
+            .sendMessage(contact.telegramId, fullMsg, {
+              parse_mode: "Markdown",
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId}` }],
+                ],
+              },
+            })
+            .catch(() => {});
+        }
+
+        await ctx.reply(
+          T.txSaved(typeLabel, sym, transactionAmount.toFixed(2), contactName, state.note),
+          {
+            parse_mode: "Markdown",
+            ...Markup.inlineKeyboard([
+              [
+                Markup.button.callback(T.btnBalance, "view_balance"),
+                Markup.button.callback(T.btnLogs, "view_logs"),
+              ],
+              [Markup.button.callback(T.btnAddAnother, "add_transaction")],
+            ]),
+          },
+        );
+      }
     } catch (error) {
       await ctx.reply(T.errSomethingWrong);
       console.error("addTransaction scene error:", error);

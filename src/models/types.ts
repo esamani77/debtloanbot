@@ -63,4 +63,5 @@ export interface TransactionSummary {
   note?: string;
   isSettled: boolean;
   createdAt: Date;
+  recurringTransactionId: string | null;
 }

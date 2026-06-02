@@ -246,4 +246,21 @@ export interface Translations {
   remindSent: (name: string) => string;
   remindCooldown: (hoursLeft: number) => string;
   remindReceived: (name: string, sym: string, amount: string) => string;
+
+  // Recurring transactions
+  recurringAskInterval: string;
+  recurringBtnWeekly: string;
+  recurringBtnBiweekly: string;
+  recurringBtnMonthly: string;
+  recurringBtnNoRecurring: string;
+  recurringLabel: (intervalLabel: string) => string;
+  recurringMaterialized: (intervalLabel: string, sym: string, amount: string, contactName: string) => string;
+  recurringCreated: (intervalLabel: string, sym: string, amount: string, contactName: string) => string;
+  recurringListTitle: string;
+  recurringListEmpty: string;
+  recurringListItem: (index: number, typeLabel: string, sym: string, amount: string, contactName: string, intervalLabel: string, nextDueAt: string) => string;
+  recurringCancelPrompt: (typeLabel: string, sym: string, amount: string, contactName: string) => string;
+  recurringCancelConfirmBtn: string;
+  recurringCancelled: string;
+  recurringNotFound: string;
 }

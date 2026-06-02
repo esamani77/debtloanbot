@@ -21,6 +21,11 @@ import { splitHandler } from "./commands/split";
 import { splitsHandler } from "./commands/splits";
 import { settleAllHandler } from "./commands/settle";
 import { remindHandler, handleRemindSend } from "./commands/remind";
+import { recurringHandler } from "./commands/recurring";
+import {
+  cancelRecurringTransaction,
+  getRecurringTransactionById,
+} from "../services/recurringTransactionService";
 import {
   splitMenuHandler,
   openSplitSession,
@@ -243,6 +248,7 @@ bot.command("split", splitHandler);
 bot.command("splits", splitsHandler);
 bot.command("settle", settleAllHandler);
 bot.command("remind", remindHandler);
+bot.command("recurring", recurringHandler);
 
 // Language selection via ReplyKeyboard
 bot.hears("🇬🇧 English", async (ctx) => setLangAction(ctx, Language.EN));
@@ -656,6 +662,71 @@ bot.action(/^settle_all_confirm:(.+)$/, async (ctx) => {
 });
 
 bot.action('settle_cancel', async (ctx) => {
+  await ctx.answerCbQuery();
+  await ctx.editMessageText('❌ Cancelled.');
+});
+
+bot.action(/^recurring_cancel:(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  if (!ctx.from) return;
+  const T = useT(ctx.session.userLanguage ?? Language.EN);
+  const recurringId = ctx.match![1];
+
+  try {
+    const recurring = await getRecurringTransactionById(recurringId);
+    if (!recurring) {
+      await ctx.editMessageText(T.recurringNotFound, { parse_mode: 'Markdown' });
+      return;
+    }
+
+    const viewer = await findUserByTelegramId(String(ctx.from.id));
+    if (!viewer) {
+      await ctx.reply(T.errUserNotFound);
+      return;
+    }
+
+    const rel = recurring.relationship;
+    const contact = rel.userAId === viewer.id ? rel.userB : rel.userA;
+    const sym = currencySymbol(rel.currency, ctx.session.userLanguage);
+    const typeLabel = recurring.type === 'LOAN' ? T.txTypeLabelLoan : T.txTypeLabelDebt;
+
+    await ctx.editMessageText(
+      T.recurringCancelPrompt(typeLabel, sym, recurring.amount.toFixed(2), getDisplayName(contact)),
+      {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback(T.recurringCancelConfirmBtn, `recurring_cancel_confirm:${recurringId}`)],
+          [Markup.button.callback(T.btnCancel, 'recurring_cancel_abort')],
+        ]),
+      },
+    );
+  } catch (err) {
+    console.error('recurring_cancel error:', err);
+    await ctx.reply(T.errSomethingWrong);
+  }
+});
+
+bot.action(/^recurring_cancel_confirm:(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  if (!ctx.from) return;
+  const T = useT(ctx.session.userLanguage ?? Language.EN);
+  const recurringId = ctx.match![1];
+
+  try {
+    const viewer = await findUserByTelegramId(String(ctx.from.id));
+    if (!viewer) {
+      await ctx.reply(T.errUserNotFound);
+      return;
+    }
+    await cancelRecurringTransaction(recurringId, viewer.id);
+    await ctx.editMessageText(T.recurringCancelled, { parse_mode: 'Markdown' });
+  } catch (err) {
+    console.error('recurring_cancel_confirm error:', err);
+    await ctx.editMessageText(T.errSomethingWrong);
+  }
+});
+
+bot.action('recurring_cancel_abort', async (ctx) => {
   await ctx.answerCbQuery();
   await ctx.editMessageText('❌ Cancelled.');
 });

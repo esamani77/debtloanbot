@@ -416,4 +416,25 @@ export const fa: Translations = {
   remindCooldown: (h) => `⏳ اخیراً به این شخص یادآوری فرستادید. *${h} ساعت* دیگر دوباره امتحان کنید.`,
   remindReceived: (name, sym, amount) =>
     `🔔 *${name}* به شما یادآوری می‌کند که *${sym}${amount}* به آن‌ها بدهکار هستید.\n\nDebtMate را باز کنید تا تراز خود را ببینید.`,
+
+  // Recurring transactions
+  recurringAskInterval: '🔁 این تراکنش را تکرارشونده کنید؟\n\nیک بازه انتخاب کنید یا رد شوید:',
+  recurringBtnWeekly: '📅 هفتگی',
+  recurringBtnBiweekly: '📅 هر ۲ هفته',
+  recurringBtnMonthly: '📅 ماهانه',
+  recurringBtnNoRecurring: '⏭ یک‌بار فقط',
+  recurringLabel: (intervalLabel) => `🔁 _تکرارشونده · ${intervalLabel}_`,
+  recurringMaterialized: (intervalLabel, sym, amount, contactName) =>
+    `🔁 *تراکنش تکرارشونده ثبت شد!*\n\nمبلغ: *${sym}${amount}* (${intervalLabel})\nبا: ${contactName}`,
+  recurringCreated: (intervalLabel, sym, amount, contactName) =>
+    `✅ *تراکنش تکرارشونده ایجاد شد!*\n\nبازه: ${intervalLabel}\nمبلغ: *${sym}${amount}*\nبا: ${contactName}\n\nاولین تراکنش الان ثبت شد. موارد بعدی خودکار ایجاد می‌شوند.`,
+  recurringListTitle: '🔁 *تراکنش‌های تکرارشونده شما*',
+  recurringListEmpty: 'تراکنش تکرارشونده فعالی ندارید.',
+  recurringListItem: (index, typeLabel, sym, amount, contactName, intervalLabel, nextDueAt) =>
+    `${index}. ${typeLabel} *${sym}${amount}* با ${contactName}\n   🔁 ${intervalLabel} · بعدی: ${nextDueAt}`,
+  recurringCancelPrompt: (typeLabel, sym, amount, contactName) =>
+    `❌ *لغو تراکنش تکرارشونده؟*\n\n${typeLabel} — *${sym}${amount}* با ${contactName}\n\nتراکنش‌های بعدی ایجاد نخواهند شد.`,
+  recurringCancelConfirmBtn: '✅ تأیید لغو',
+  recurringCancelled: '✅ تراکنش تکرارشونده لغو شد.',
+  recurringNotFound: '❌ تراکنش تکرارشونده یافت نشد.',
 };

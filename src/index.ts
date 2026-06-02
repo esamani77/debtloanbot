@@ -10,6 +10,7 @@ import cors from "cors";
 import morgan from "morgan";
 import { openapiSpec } from "./openapi";
 import { startReminderJob } from "./jobs/reminderJob";
+import { startRecurringJob } from "./jobs/recurringJob";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const NODE_ENV = process.env.NODE_ENV ?? "development";
@@ -79,6 +80,7 @@ async function main(): Promise<void> {
     console.log(
       `Reminder job scheduled (cron: ${process.env.REMINDER_CRON ?? "*/5 * * * *"})`,
     );
+    startRecurringJob();
   } else {
     // Development: use long polling
     bot.launch().then(() => {
@@ -94,6 +96,7 @@ async function main(): Promise<void> {
   console.log(
     `Reminder job scheduled (cron: ${process.env.REMINDER_CRON ?? "*/5 * * * *"})`,
   );
+  startRecurringJob();
 }
 
 main().catch((err) => {

@@ -20,6 +20,7 @@ model User {
   transactions Transaction[]  @relation("CreatedBy")
   bankAccounts BankAccount[]
   splitSessions SplitSession[]
+  recurringTransactions RecurringTransaction[] @relation("RecurringCreatedBy")
 }
 
 model BankAccount {
@@ -43,6 +44,7 @@ model Relationship {
   currency     Currency       @default(USD)
   createdAt    DateTime       @default(now())
   transactions Transaction[]
+  recurringTransactions RecurringTransaction[]
   @@unique([userAId, userBId])
 }
 
@@ -57,6 +59,24 @@ model Transaction {
   note           String?
   isSettled      Boolean      @default(false)
   createdAt      DateTime     @default(now())
+  recurringTransactionId String?
+  recurringTransaction   RecurringTransaction? @relation(fields: [recurringTransactionId], references: [id])
+}
+
+model RecurringTransaction {
+  id             String              @id @default(cuid())
+  relationship   Relationship        @relation(fields: [relationshipId], references: [id])
+  relationshipId String
+  createdBy      User                @relation("RecurringCreatedBy", fields: [createdById], references: [id])
+  createdById    String
+  amount         Float
+  type           TransactionType
+  note           String?
+  interval       RecurringInterval
+  nextDueAt      DateTime
+  isActive       Boolean             @default(true)
+  createdAt      DateTime            @default(now())
+  transactions   Transaction[]
 }
 
 model SplitSession {
@@ -133,6 +153,12 @@ enum SplitType {
   EQUAL
   PERCENTAGE
   CUSTOM
+}
+
+enum RecurringInterval {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
 }
 
 model PendingInvite {

@@ -131,6 +131,7 @@ export async function getRecentTransactions(
       note: tx.note ?? undefined,
       isSettled: tx.isSettled,
       createdAt: tx.createdAt,
+      recurringTransactionId: tx.recurringTransactionId ?? null,
     }));
   } catch (error) {
     console.error('Failed to fetch transactions:', error);
