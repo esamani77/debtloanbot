@@ -14,6 +14,7 @@ import {
   deleteSession,
   getSessionById,
 } from '../../services/splitService';
+import prisma from '../../db/prisma';
 import { findUserByTelegramId, getDisplayName, findOrCreateUser } from '../../services/userService';
 import { notifySplitParticipants } from '../../utils/splitNotifications';
 import { getUserRelationships } from '../../services/relationshipService';
@@ -691,6 +692,19 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
 
     const link = `https://t.me/${BOT_USERNAME}?start=split_${token}`;
     try { await ctx.editMessageText(t.splitShareLink(link, d.sessionName ?? null), { parse_mode: 'Markdown' }); } catch { await ctx.reply(t.splitShareLink(link, d.sessionName ?? null), { parse_mode: 'Markdown' }); }
+
+    // Send per-participant invite links for unknown participants
+    if (d.sessionId) {
+      const invites = await prisma.splitParticipantInvite.findMany({ where: { splitSessionId: d.sessionId } });
+      if (invites.length > 0) {
+        const links = invites.map((inv) => ({
+          name: d.participants[inv.participantIndex] ?? `Participant ${inv.participantIndex + 1}`,
+          url: `https://t.me/${BOT_USERNAME}?start=splitjoin_${inv.token}`,
+        }));
+        await ctx.reply(t.splitUnknownParticipantLinks(links), { parse_mode: 'Markdown' });
+      }
+    }
+
     ctx.session.splitDraft = undefined;
     return ctx.scene.leave();
   },

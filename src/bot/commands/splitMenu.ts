@@ -13,6 +13,7 @@ import {
 } from '../../services/splitService';
 import { currencySymbol } from '../../utils/currency';
 import { computeNetBalances, simplifyDebts } from '../../utils/debtSimplification';
+import prisma from '../../db/prisma';
 
 const BOT_USERNAME = process.env.BOT_USERNAME ?? 'debtloanbot';
 const STATUS_EMOJI: Record<string, string> = { DRAFT: '🟡', CALCULATED: '🟢', SHARED: '🔵' };
@@ -135,6 +136,16 @@ export async function recalculateSession(ctx: BotContext, sessionId: string): Pr
       { parse_mode: 'Markdown' },
     );
     await markSessionShared(sessionId);
+
+    // Show per-participant invite links for unknown participants
+    const invites = await prisma.splitParticipantInvite.findMany({ where: { splitSessionId: sessionId } });
+    if (invites.length > 0) {
+      const links = invites.map((inv) => ({
+        name: session.participants[inv.participantIndex] ?? `Participant ${inv.participantIndex + 1}`,
+        url: `https://t.me/${BOT_USERNAME}?start=splitjoin_${inv.token}`,
+      }));
+      await ctx.reply(t.splitUnknownParticipantLinks(links), { parse_mode: 'Markdown' });
+    }
   } catch {
     await ctx.reply(t.errSomethingWrong);
   }

@@ -18,6 +18,15 @@ export async function startHandler(ctx: BotContext): Promise<void> {
     ctx.session.pendingInvite = undefined;
     // Clear any stale DB invite so a split link doesn't accidentally trigger it later
     await prisma.pendingInvite.deleteMany({ where: { telegramId } });
+  } else if (payload && payload.startsWith('splitjoin_')) {
+    ctx.session.pendingInvite = payload;
+    ctx.session.pendingSplitToken = undefined;
+    // Persist so the token survives a bot restart between now and language selection
+    await prisma.pendingInvite.upsert({
+      where: { telegramId },
+      update: { payload },
+      create: { telegramId, payload },
+    });
   } else if (payload && parseInvitePayload(payload)) {
     ctx.session.pendingInvite = payload;
     ctx.session.pendingSplitToken = undefined;

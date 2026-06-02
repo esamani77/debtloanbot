@@ -377,6 +377,14 @@ export const en: Translations = {
   remindReceived: (name, sym, amount) =>
     `🔔 *${name}* is reminding you that you owe them *${sym}${amount}*.\n\nOpen DebtMate to view your balance.`,
 
+  splitUnknownParticipantLinks: (links) => {
+    const lines = links.map((l) => `• *${l.name}*: ${l.url}`).join('\n');
+    return `🔗 *Share with unknown participants:*\n${lines}`;
+  },
+
+  splitParticipantJoined: (name, sessionName) =>
+    `🎉 *${name}* joined your split${sessionName ? ` — *${sessionName}*` : ''}!\nThey can now see their share of the bill.`,
+
   splitSharedSummary: (sessionName, currency, createdAt, participants, balances, transfers, sym, bankAccounts, bills) => {
     const title = sessionName ? `*${sessionName}*` : '*Split Summary*';
     const date = createdAt.toLocaleDateString('en-GB');

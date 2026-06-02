@@ -74,6 +74,17 @@ model SplitSession {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   bills        BillItem[]
+  participantInvites SplitParticipantInvite[]
+}
+
+model SplitParticipantInvite {
+  token            String       @id
+  splitSessionId   String
+  splitSession     SplitSession @relation(fields: [splitSessionId], references: [id], onDelete: Cascade)
+  participantIndex Int
+  claimedByUserId  String?
+  claimedAt        DateTime?
+  createdAt        DateTime     @default(now())
 }
 
 model BillItem {

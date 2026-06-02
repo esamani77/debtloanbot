@@ -76,6 +76,73 @@ export async function setLangAction(ctx: BotContext, language: Language): Promis
     // Always clean up the DB record once we've read it
     await prisma.pendingInvite.deleteMany({ where: { telegramId } });
 
+    if (pendingInvite && pendingInvite.startsWith('splitjoin_')) {
+      const token = pendingInvite.slice('splitjoin_'.length);
+      const invite = await prisma.splitParticipantInvite.findUnique({
+        where: { token },
+        include: { splitSession: { include: { bills: { orderBy: { createdAt: 'asc' } } } } },
+      });
+
+      if (!invite || invite.claimedByUserId) {
+        await ctx.reply(T.startInviteInvalid(name), { parse_mode: 'Markdown' });
+      } else {
+        // Claim the participant slot
+        const idx = invite.participantIndex;
+        const updatedIds = [...invite.splitSession.participantTelegramIds];
+        updatedIds[idx] = telegramId;
+        await prisma.splitSession.update({
+          where: { id: invite.splitSessionId },
+          data: { participantTelegramIds: updatedIds },
+        });
+        await prisma.splitParticipantInvite.update({
+          where: { token },
+          data: { claimedByUserId: user.id, claimedAt: new Date() },
+        });
+
+        // Show personalized split summary
+        const session = invite.splitSession;
+        const BOT_USERNAME = process.env.BOT_USERNAME ?? 'debtloanbot';
+        const netBalances = computeNetBalances(session.participants, session.bills);
+        const transfers = simplifyDebts(session.participants, netBalances, session.currency);
+        const myName = session.participants[idx];
+        const myBalance = netBalances[idx];
+        const myTransfers = transfers.filter((t) => t.from === myName || t.to === myName);
+        const sym = currencySymbol(session.currency as any, language);
+        const shareLink = session.shareToken
+          ? `https://t.me/${BOT_USERNAME}?start=split_${session.shareToken}`
+          : '';
+        const creator = await findUserById(session.createdById);
+        await ctx.reply(
+          T.splitNotifyResultsReady(
+            creator?.nickname ?? creator?.name ?? 'Creator',
+            session.name ?? null,
+            sym,
+            myBalance,
+            myTransfers,
+            shareLink,
+          ),
+          { parse_mode: 'Markdown' },
+        );
+
+        // Notify creator
+        if (creator) {
+          const creatorT = useT(creator.language);
+          ctx.telegram
+            .sendMessage(creator.telegramId, creatorT.splitParticipantJoined(name, session.name ?? ''), {
+              parse_mode: 'Markdown',
+            })
+            .catch(() => {});
+        }
+      }
+
+      if (isNew) {
+        await ctx.scene.enter('NICKNAME_SETUP', { telegramName: name, mode: 'onboarding' });
+      } else {
+        await ctx.reply('​', { parse_mode: 'Markdown', ...mainMenuKeyboard(T) });
+      }
+      return;
+    }
+
     if (pendingInvite) {
       const inviterId = parseInvitePayload(pendingInvite);
 

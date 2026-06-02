@@ -11,10 +11,17 @@ export interface BillInput {
   shares: number[];
 }
 
+export interface ParticipantInvite {
+  index: number;
+  name: string;
+  token: string;
+}
+
 export interface SessionCalculation {
   netBalances: number[];
   transfers: Transfer[];
   shareToken: string;
+  participantInvites: ParticipantInvite[];
 }
 
 export async function createDraftSession(
@@ -61,7 +68,21 @@ export async function calculateSession(sessionId: string): Promise<SessionCalcul
     data: { status: SplitStatus.CALCULATED, shareToken, expiresAt },
   });
 
-  return { netBalances, transfers, shareToken };
+  // Regenerate per-unknown-participant invite tokens (delete old ones first for recalculation)
+  await prisma.splitParticipantInvite.deleteMany({ where: { splitSessionId: sessionId } });
+
+  const participantInvites: ParticipantInvite[] = [];
+  for (let i = 0; i < session.participantTelegramIds.length; i++) {
+    if (!session.participantTelegramIds[i]) {
+      const inviteToken = crypto.randomBytes(8).toString('hex');
+      await prisma.splitParticipantInvite.create({
+        data: { token: inviteToken, splitSessionId: sessionId, participantIndex: i },
+      });
+      participantInvites.push({ index: i, name: session.participants[i], token: inviteToken });
+    }
+  }
+
+  return { netBalances, transfers, shareToken, participantInvites };
 }
 
 export async function markSessionShared(sessionId: string): Promise<void> {

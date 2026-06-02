@@ -379,6 +379,14 @@ export const fa: Translations = {
   splitAlreadyJoined: '✅ شما از قبل عضو این تقسیم هستید.',
   splitJoinOpenBtn: '📱 باز کردن در DebtMate',
 
+  splitUnknownParticipantLinks: (links) => {
+    const lines = links.map((l) => `• *${l.name}*: ${l.url}`).join('\n');
+    return `🔗 *لینک‌های اشتراک‌گذاری با شرکت‌کنندگان ناشناس:*\n${lines}`;
+  },
+
+  splitParticipantJoined: (name, sessionName) =>
+    `🎉 *${name}* به تقسیم شما${sessionName ? ` — *${sessionName}*` : ''} پیوست!\nاکنون می‌توانند سهم خود از صورت‌حساب را ببینند.`,
+
   splitNotifyResultsReady: (creatorName, sessionName, sym, balance, myTransfers, shareLink) => {
     let msg = `🧾 *${creatorName}* یک تقسیم${sessionName ? ` — *${sessionName}*` : ''} را محاسبه کرد!\n\n`;
     if (balance > 0.005) msg += `💚 تراز شما: +${sym}${balance.toFixed(2)} _(طلبکار هستید)_\n`;

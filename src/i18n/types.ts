@@ -231,6 +231,8 @@ export interface Translations {
   splitAlreadyJoined: string;
   splitJoinOpenBtn: string;
   splitNotifyResultsReady: (creatorName: string, sessionName: string | null, sym: string, balance: number, myTransfers: Array<{ from: string; to: string; amount: number }>, shareLink: string) => string;
+  splitUnknownParticipantLinks: (links: Array<{ name: string; url: string }>) => string;
+  splitParticipantJoined: (name: string, sessionName: string) => string;
 
   // Daily reminder
   reminderMessage: (
