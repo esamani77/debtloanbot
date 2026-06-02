@@ -105,7 +105,7 @@ export async function createRecurring(req: Request, res: Response): Promise<void
 }
 
 export async function deleteRecurring(req: Request, res: Response): Promise<void> {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   try {
     const viewer = await findOrCreateUser(
