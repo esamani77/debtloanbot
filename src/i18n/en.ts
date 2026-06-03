@@ -232,6 +232,7 @@ export const en: Translations = {
   // Settlement request
   btnSettlementRequest: '💸 Request Settlement',
   settlementRequestSent: (name) => `✅ Settlement request sent to *${name}*!`,
+  settlementRequestCooldown: (h) => `⏳ You already sent a settlement request to this person recently. Try again in *${h}h*. `,
   settlementRequestReceived: (name, sym, amount) =>
     `📢 *${name}* is requesting you to settle your debt.\n\nYou owe them *${sym}${amount}*.\n\nPlease transfer the amount at your earliest convenience.`,
 

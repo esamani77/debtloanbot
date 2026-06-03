@@ -71,6 +71,11 @@ import { en } from "../i18n/en";
 import { fa } from "../i18n/fa";
 import { Sentry } from "../sentry";
 
+// In-memory rate limit: one settlement request per sender+recipient pair per hour.
+// Resets on server restart — acceptable for single-process deployment.
+const settlementReqCooldowns = new Map<string, number>();
+const SETTLEMENT_REQ_COOLDOWN_MS = 60 * 60 * 1000;
+
 const BOT_TOKEN = process.env.BOT_TOKEN;
 if (!BOT_TOKEN) {
   throw new Error("BOT_TOKEN environment variable is required.");
@@ -496,6 +501,14 @@ bot.action(/^settlement_req:(\d+)$/, async (ctx) => {
   const viewerName =
     ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : "");
 
+  const cooldownKey = `${viewerTelegramId}:${debtorTelegramId}`;
+  const lastSent = settlementReqCooldowns.get(cooldownKey);
+  if (lastSent && Date.now() - lastSent < SETTLEMENT_REQ_COOLDOWN_MS) {
+    const hoursLeft = Math.ceil((SETTLEMENT_REQ_COOLDOWN_MS - (Date.now() - lastSent)) / (60 * 60 * 1000));
+    await ctx.reply(T.settlementRequestCooldown(hoursLeft), { parse_mode: "Markdown" });
+    return;
+  }
+
   try {
     const viewer = await findOrCreateUser(viewerTelegramId, viewerName);
     const debtor = await findUserByTelegramId(debtorTelegramId);
@@ -527,6 +540,8 @@ bot.action(/^settlement_req:(\d+)$/, async (ctx) => {
         { parse_mode: "Markdown" },
       )
       .catch(() => {});
+
+    settlementReqCooldowns.set(cooldownKey, Date.now());
 
     await ctx.reply(T.settlementRequestSent(debtor.nickname ?? debtor.name), {
       parse_mode: "Markdown",

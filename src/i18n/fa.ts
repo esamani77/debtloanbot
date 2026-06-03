@@ -235,6 +235,7 @@ export const fa: Translations = {
   // Settlement request
   btnSettlementRequest: '💸 درخواست تسویه',
   settlementRequestSent: (name) => `✅ درخواست تسویه به *${name}* ارسال شد!`,
+  settlementRequestCooldown: (h) => `⏳ اخیراً به این شخص درخواست تسویه فرستادید. *${h} ساعت* دیگر دوباره امتحان کنید.`,
   settlementRequestReceived: (name, sym, amount) =>
     `📢 *${name}* از شما درخواست تسویه بدهی کرده است.\n\nشما به آن‌ها *${sym}${amount}* بدهکار هستید.\n\nلطفاً در اسرع وقت مبلغ را پرداخت کنید.`,
 

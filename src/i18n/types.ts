@@ -165,6 +165,7 @@ export interface Translations {
   // Settlement request
   btnSettlementRequest: string;
   settlementRequestSent: (name: string) => string;
+  settlementRequestCooldown: (hoursLeft: number) => string;
   settlementRequestReceived: (name: string, sym: string, amount: string) => string;
 
   // Bill Splitting
