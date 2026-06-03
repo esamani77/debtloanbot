@@ -22,6 +22,7 @@ import { splitsHandler } from "./commands/splits";
 import { settleAllHandler } from "./commands/settle";
 import { remindHandler, handleRemindSend } from "./commands/remind";
 import { recurringHandler } from "./commands/recurring";
+import { expensesHandler } from "./commands/expenses";
 import {
   cancelRecurringTransaction,
   getRecurringTransactionById,
@@ -249,6 +250,7 @@ bot.command("splits", splitsHandler);
 bot.command("settle", settleAllHandler);
 bot.command("remind", remindHandler);
 bot.command("recurring", recurringHandler);
+bot.command("expenses", expensesHandler);
 
 // Language selection via ReplyKeyboard
 bot.hears("🇬🇧 English", async (ctx) => setLangAction(ctx, Language.EN));
@@ -279,6 +281,7 @@ bot.hears([en.btnAdd, fa.btnAdd], async (ctx) =>
 );
 bot.hears([en.btnProfile, fa.btnProfile], async (ctx) => profileHandler(ctx));
 bot.hears([en.btnSplit, fa.btnSplit], async (ctx) => splitMenuHandler(ctx));
+bot.hears([en.btnExpenses, fa.btnExpenses], async (ctx) => expensesHandler(ctx));
 
 // Contact selection
 bot.action(/^select_contact:(.+)$/, selectContactAction);

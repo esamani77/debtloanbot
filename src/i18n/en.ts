@@ -73,6 +73,7 @@ export const en: Translations = {
     `/balance — Balance with active contact\n` +
     `/add — Add a debt or loan\n` +
     `/logs — Recent transactions\n` +
+    `/expenses — Monthly expense summary\n` +
     `/remind — Nudge someone who owes you\n` +
     `/split — Start a bill split session\n` +
     `/splits — View your recent splits\n` +
