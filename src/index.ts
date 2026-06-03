@@ -11,6 +11,7 @@ import morgan from "morgan";
 import { openapiSpec } from "./openapi";
 import { startReminderJob } from "./jobs/reminderJob";
 import { startRecurringJob } from "./jobs/recurringJob";
+import { ensureSystemCategories } from "./services/expenseCategoryService";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const NODE_ENV = process.env.NODE_ENV ?? "development";
@@ -44,6 +45,7 @@ app.get("/api/splits/share/:token", getSharedSession);
 Sentry.setupExpressErrorHandler(app);
 
 async function main(): Promise<void> {
+  await ensureSystemCategories();
   // @scalar/express-api-reference is ESM-only; skip in production where the
   // bundler (esbuild) converts import() to require() and breaks on ESM packages.
   if (NODE_ENV !== "production") {

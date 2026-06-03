@@ -21,6 +21,8 @@ model User {
   bankAccounts BankAccount[]
   splitSessions SplitSession[]
   recurringTransactions RecurringTransaction[] @relation("RecurringCreatedBy")
+  expenses              Expense[]
+  expenseCategories     ExpenseCategory[]
 }
 
 model BankAccount {
@@ -61,6 +63,36 @@ model Transaction {
   createdAt      DateTime     @default(now())
   recurringTransactionId String?
   recurringTransaction   RecurringTransaction? @relation(fields: [recurringTransactionId], references: [id])
+  expense        Expense?
+}
+
+model ExpenseCategory {
+  id        String    @id @default(cuid())
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id])
+  name      String
+  icon      String
+  color     String
+  isSystem  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  expenses  Expense[]
+}
+
+model Expense {
+  id            String          @id @default(cuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id])
+  title         String
+  amount        Float
+  currency      Currency
+  categoryId    String
+  category      ExpenseCategory @relation(fields: [categoryId], references: [id])
+  note          String?
+  date          DateTime        @default(now())
+  transactionId String?         @unique
+  transaction   Transaction?    @relation(fields: [transactionId], references: [id])
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 }
 
 model RecurringTransaction {

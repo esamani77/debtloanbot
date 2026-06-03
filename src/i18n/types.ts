@@ -247,6 +247,14 @@ export interface Translations {
   remindCooldown: (hoursLeft: number) => string;
   remindReceived: (name: string, sym: string, amount: string) => string;
 
+  // Expenses
+  expensesTitle: string;
+  expensesEmpty: string;
+  expenseSaved: string;
+  expenseDeleted: string;
+  expensesMonthlyTotal: (sym: string, amount: string) => string;
+  btnExpenses: string;
+
   // Recurring transactions
   recurringAskInterval: string;
   recurringBtnWeekly: string;

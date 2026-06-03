@@ -6,6 +6,8 @@ import transactionsRouter from './transactions';
 import relationshipsRouter from './relationships';
 import splitsRouter from './splits';
 import recurringRouter from './recurring';
+import expensesRouter from './expenses';
+import expenseCategoriesRouter from './expenseCategories';
 
 const router = Router();
 
@@ -17,5 +19,7 @@ router.use('/transactions', transactionsRouter);
 router.use('/relationships', relationshipsRouter);
 router.use('/splits', splitsRouter);
 router.use('/recurring', recurringRouter);
+router.use('/expenses', expensesRouter);
+router.use('/expense-categories', expenseCategoriesRouter);
 
 export default router;

@@ -414,6 +414,14 @@ export const en: Translations = {
     return text;
   },
 
+  // Expenses
+  expensesTitle: '💸 *Your Expenses*',
+  expensesEmpty: 'No expenses this month. Tap the mini app to add one.',
+  expenseSaved: '✅ Expense saved!',
+  expenseDeleted: '🗑️ Expense deleted.',
+  expensesMonthlyTotal: (sym, amount) => `💸 *Monthly Total:* ${sym}${amount}`,
+  btnExpenses: '💸 Expenses',
+
   // Recurring transactions
   recurringAskInterval: '🔁 Make this recurring?\n\nChoose an interval or skip:',
   recurringBtnWeekly: '📅 Weekly',

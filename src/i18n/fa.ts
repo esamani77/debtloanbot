@@ -417,6 +417,14 @@ export const fa: Translations = {
   remindReceived: (name, sym, amount) =>
     `🔔 *${name}* به شما یادآوری می‌کند که *${sym}${amount}* به آن‌ها بدهکار هستید.\n\nDebtMate را باز کنید تا تراز خود را ببینید.`,
 
+  // Expenses
+  expensesTitle: '💸 *هزینه‌های شما*',
+  expensesEmpty: 'این ماه هزینه‌ای ثبت نشده. از اپ اضافه کنید.',
+  expenseSaved: '✅ هزینه ذخیره شد!',
+  expenseDeleted: '🗑️ هزینه حذف شد.',
+  expensesMonthlyTotal: (sym, amount) => `💸 *جمع ماهانه:* ${sym}${amount}`,
+  btnExpenses: '💸 هزینه‌ها',
+
   // Recurring transactions
   recurringAskInterval: '🔁 این تراکنش را تکرارشونده کنید؟\n\nیک بازه انتخاب کنید یا رد شوید:',
   recurringBtnWeekly: '📅 هفتگی',
