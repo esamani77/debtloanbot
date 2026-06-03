@@ -41,12 +41,30 @@ import {
   withdrawalInfoHandler,
 } from "./commands/bankAccounts";
 import { getBankAccountById } from "../services/bankAccountService";
-import { findUserByTelegramId, findOrCreateUser, getDisplayName } from "../services/userService";
-import { getDraftSession, deleteSession, getSessionById, getSessionByToken, getBankAccountsForParticipants, joinSession, isSessionMember } from "../services/splitService";
+import {
+  findUserByTelegramId,
+  findOrCreateUser,
+  getDisplayName,
+} from "../services/userService";
+import {
+  getDraftSession,
+  deleteSession,
+  getSessionById,
+  getSessionByToken,
+  getBankAccountsForParticipants,
+  joinSession,
+  isSessionMember,
+} from "../services/splitService";
 import { computeNetBalances, simplifyDebts } from "../utils/debtSimplification";
 import { currencySymbol as currSym } from "../utils/currency";
 import { getRelationshipBetween } from "../services/relationshipService";
-import { getBalance, getTransactionById, deleteTransaction as deleteTransactionService, settleTransaction as settleTransactionService, settleAllTransactions as settleAllService } from "../services/transactionService";
+import {
+  getBalance,
+  getTransactionById,
+  deleteTransaction as deleteTransactionService,
+  settleTransaction as settleTransactionService,
+  settleAllTransactions as settleAllService,
+} from "../services/transactionService";
 import { currencySymbol } from "../utils/currency";
 import { useT } from "../i18n";
 import { en } from "../i18n/en";
@@ -79,7 +97,9 @@ bot.use(
 bot.use(async (ctx, next) => {
   if (ctx.from) {
     const telegramId = String(ctx.from.id);
-    const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
+    const name =
+      ctx.from.first_name +
+      (ctx.from.last_name ? ` ${ctx.from.last_name}` : "");
     const username = ctx.from.username ?? undefined;
     const user = await findOrCreateUser(telegramId, name, username);
     if (!ctx.session.userLanguage) ctx.session.userLanguage = user.language;
@@ -164,20 +184,28 @@ bot.use(stage.middleware());
 
 // Command handlers
 bot.start(async (ctx) => {
-  const payload = (ctx as BotContext & { startPayload?: string }).startPayload ?? '';
+  const payload =
+    (ctx as BotContext & { startPayload?: string }).startPayload ?? "";
 
-  if (payload.startsWith('edit_')) {
+  if (payload.startsWith("edit_")) {
     const txId = payload.slice(5);
     if (!ctx.from) return;
     const T = useT(ctx.session.userLanguage ?? Language.EN);
     const tx = await getTransactionById(txId);
-    if (!tx) { await ctx.reply(T.errSomethingWrong); return; }
-    const viewer = await findUserByTelegramId(String(ctx.from.id));
-    if (!viewer || (tx.relationship.userAId !== viewer.id && tx.relationship.userBId !== viewer.id)) {
+    if (!tx) {
       await ctx.reply(T.errSomethingWrong);
       return;
     }
-    await ctx.scene.enter('EDIT_TRANSACTION', {
+    const viewer = await findUserByTelegramId(String(ctx.from.id));
+    if (
+      !viewer ||
+      (tx.relationship.userAId !== viewer.id &&
+        tx.relationship.userBId !== viewer.id)
+    ) {
+      await ctx.reply(T.errSomethingWrong);
+      return;
+    }
+    await ctx.scene.enter("EDIT_TRANSACTION", {
       txId,
       viewerId: viewer.id,
       currentAmount: tx.amount,
@@ -188,48 +216,81 @@ bot.start(async (ctx) => {
     return;
   }
 
-  if (payload.startsWith('del_')) {
+  if (payload.startsWith("del_")) {
     const txId = payload.slice(4);
     if (!ctx.from) return;
     const T = useT(ctx.session.userLanguage ?? Language.EN);
     const tx = await getTransactionById(txId);
-    if (!tx) { await ctx.reply(T.errSomethingWrong); return; }
-    const viewer = await findUserByTelegramId(String(ctx.from.id));
-    if (!viewer || (tx.relationship.userAId !== viewer.id && tx.relationship.userBId !== viewer.id)) {
+    if (!tx) {
       await ctx.reply(T.errSomethingWrong);
       return;
     }
-    const typeLabel = tx.type === 'LOAN' ? T.logLoan : T.logDebt;
-    const sym = currencySymbol(tx.relationship.currency, ctx.session.userLanguage);
+    const viewer = await findUserByTelegramId(String(ctx.from.id));
+    if (
+      !viewer ||
+      (tx.relationship.userAId !== viewer.id &&
+        tx.relationship.userBId !== viewer.id)
+    ) {
+      await ctx.reply(T.errSomethingWrong);
+      return;
+    }
+    const typeLabel = tx.type === "LOAN" ? T.logLoan : T.logDebt;
+    const sym = currencySymbol(
+      tx.relationship.currency,
+      ctx.session.userLanguage,
+    );
     await ctx.reply(T.txDeleteConfirm(typeLabel, sym, tx.amount.toFixed(2)), {
-      parse_mode: 'Markdown',
+      parse_mode: "Markdown",
       ...Markup.inlineKeyboard([
-        [Markup.button.callback(T.txDeleteConfirmBtn, `tx_delete_confirm:${txId}`)],
-        [Markup.button.callback(T.btnCancel, 'tx_delete_cancel')],
+        [
+          Markup.button.callback(
+            T.txDeleteConfirmBtn,
+            `tx_delete_confirm:${txId}`,
+          ),
+        ],
+        [Markup.button.callback(T.btnCancel, "tx_delete_cancel")],
       ]),
     });
     return;
   }
 
-  if (payload.startsWith('settle_')) {
+  if (payload.startsWith("settle_")) {
     const txId = payload.slice(7);
     if (!ctx.from) return;
     const T = useT(ctx.session.userLanguage ?? Language.EN);
     const tx = await getTransactionById(txId);
-    if (!tx) { await ctx.reply(T.errSomethingWrong); return; }
-    if (tx.isSettled) { await ctx.reply(T.txSettled); return; }
-    const viewer = await findUserByTelegramId(String(ctx.from.id));
-    if (!viewer || (tx.relationship.userAId !== viewer.id && tx.relationship.userBId !== viewer.id)) {
+    if (!tx) {
       await ctx.reply(T.errSomethingWrong);
       return;
     }
-    const typeLabel = tx.type === 'LOAN' ? T.logLoan : T.logDebt;
-    const sym = currencySymbol(tx.relationship.currency, ctx.session.userLanguage);
+    if (tx.isSettled) {
+      await ctx.reply(T.txSettled);
+      return;
+    }
+    const viewer = await findUserByTelegramId(String(ctx.from.id));
+    if (
+      !viewer ||
+      (tx.relationship.userAId !== viewer.id &&
+        tx.relationship.userBId !== viewer.id)
+    ) {
+      await ctx.reply(T.errSomethingWrong);
+      return;
+    }
+    const typeLabel = tx.type === "LOAN" ? T.logLoan : T.logDebt;
+    const sym = currencySymbol(
+      tx.relationship.currency,
+      ctx.session.userLanguage,
+    );
     await ctx.reply(T.txSettleConfirm(typeLabel, sym, tx.amount.toFixed(2)), {
-      parse_mode: 'Markdown',
+      parse_mode: "Markdown",
       ...Markup.inlineKeyboard([
-        [Markup.button.callback(T.txSettleConfirmBtn, `tx_settle_confirm:${txId}`)],
-        [Markup.button.callback(T.btnCancel, 'settle_cancel')],
+        [
+          Markup.button.callback(
+            T.txSettleConfirmBtn,
+            `tx_settle_confirm:${txId}`,
+          ),
+        ],
+        [Markup.button.callback(T.btnCancel, "settle_cancel")],
       ]),
     });
     return;
@@ -281,7 +342,9 @@ bot.hears([en.btnAdd, fa.btnAdd], async (ctx) =>
 );
 bot.hears([en.btnProfile, fa.btnProfile], async (ctx) => profileHandler(ctx));
 bot.hears([en.btnSplit, fa.btnSplit], async (ctx) => splitMenuHandler(ctx));
-bot.hears([en.btnExpenses, fa.btnExpenses], async (ctx) => expensesHandler(ctx));
+bot.hears([en.btnExpenses, fa.btnExpenses], async (ctx) =>
+  expensesHandler(ctx),
+);
 
 // Contact selection
 bot.action(/^select_contact:(.+)$/, selectContactAction);
@@ -359,7 +422,7 @@ bot.action("view_profile", async (ctx) => {
 
 bot.action("edit_nickname", async (ctx) => {
   await ctx.answerCbQuery();
-  const name = ctx.from?.first_name ?? '';
+  const name = ctx.from?.first_name ?? "";
   await ctx.scene.enter("NICKNAME_SETUP", { telegramName: name, mode: "edit" });
 });
 
@@ -430,7 +493,8 @@ bot.action(/^settlement_req:(\d+)$/, async (ctx) => {
   const T = useT(ctx.session.userLanguage ?? Language.EN);
   const debtorTelegramId = ctx.match[1];
   const viewerTelegramId = String(ctx.from.id);
-  const viewerName = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : "");
+  const viewerName =
+    ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : "");
 
   try {
     const viewer = await findOrCreateUser(viewerTelegramId, viewerName);
@@ -500,7 +564,11 @@ bot.action(/^split_resume:(.+)$/, async (ctx) => {
 bot.action(/^split_new:(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   const draftId = ctx.match[1];
-  try { await deleteSession(draftId); } catch { /* ignore */ }
+  try {
+    await deleteSession(draftId);
+  } catch {
+    /* ignore */
+  }
   await ctx.scene.enter("SPLIT");
 });
 
@@ -542,24 +610,41 @@ bot.action(/^split_join:(.+)$/, async (ctx) => {
   const sessionId = ctx.match[1];
   const T = useT(ctx.session.userLanguage ?? Language.EN);
   const telegramId = String(ctx.from.id);
-  const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
-  const BOT_USERNAME = process.env.BOT_USERNAME ?? 'debtloanbot';
-  const openButton = Markup.inlineKeyboard([[Markup.button.url(T.splitJoinOpenBtn, `https://t.me/${BOT_USERNAME}/app`)]]);
+  const name =
+    ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : "");
+  const BOT_USERNAME = process.env.BOT_USERNAME ?? "debtloanbot";
+  const openButton = Markup.inlineKeyboard([
+    [
+      Markup.button.url(
+        T.splitJoinOpenBtn,
+        `https://t.me/${BOT_USERNAME}/debtmate`,
+      ),
+    ],
+  ]);
 
   try {
     const viewer = await findOrCreateUser(telegramId, name, ctx.from.username);
     const sess = await getSessionById(sessionId);
-    if (!sess) { await ctx.reply(T.splitSessionNotFound, { parse_mode: 'Markdown' }); return; }
+    if (!sess) {
+      await ctx.reply(T.splitSessionNotFound, { parse_mode: "Markdown" });
+      return;
+    }
 
     if (isSessionMember(sess, viewer.id)) {
       await ctx.editMessageReplyMarkup(openButton.reply_markup).catch(() => {});
-      await ctx.reply(T.splitAlreadyJoined, { parse_mode: 'Markdown', ...openButton });
+      await ctx.reply(T.splitAlreadyJoined, {
+        parse_mode: "Markdown",
+        ...openButton,
+      });
       return;
     }
 
     await joinSession(sessionId, viewer.id);
     await ctx.editMessageReplyMarkup(openButton.reply_markup).catch(() => {});
-    await ctx.reply(T.splitJoinSuccess(sess.name ?? null), { parse_mode: 'Markdown', ...openButton });
+    await ctx.reply(T.splitJoinSuccess(sess.name ?? null), {
+      parse_mode: "Markdown",
+      ...openButton,
+    });
   } catch {
     await ctx.reply(T.errSomethingWrong);
   }
@@ -572,29 +657,47 @@ bot.action(/^tx_delete_confirm:(.+)$/, async (ctx) => {
   const txId = ctx.match[1];
   const T = useT(ctx.session.userLanguage ?? Language.EN);
   const telegramId = String(ctx.from.id);
-  const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
+  const name =
+    ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : "");
 
   try {
     const viewer = await findOrCreateUser(telegramId, name);
-    const { deletedTransaction, relationship } = await deleteTransactionService(txId, viewer.id);
+    const { deletedTransaction, relationship } = await deleteTransactionService(
+      txId,
+      viewer.id,
+    );
 
-    await ctx.editMessageText(T.txDeleted, { parse_mode: 'Markdown' });
+    await ctx.editMessageText(T.txDeleted, { parse_mode: "Markdown" });
 
-    const contact = relationship.userAId === viewer.id ? relationship.userB : relationship.userA;
+    const contact =
+      relationship.userAId === viewer.id
+        ? relationship.userB
+        : relationship.userA;
     const contactT = useT(contact.language);
     const sym = currencySymbol(relationship.currency, contact.language);
-    const notifyMsg = deletedTransaction.type === 'LOAN'
-      ? contactT.notifyDeletedLoan(getDisplayName(viewer), sym, deletedTransaction.amount.toFixed(2))
-      : contactT.notifyDeletedDebt(getDisplayName(viewer), sym, deletedTransaction.amount.toFixed(2));
-    ctx.telegram.sendMessage(contact.telegramId, notifyMsg, { parse_mode: 'Markdown' }).catch(() => {});
+    const notifyMsg =
+      deletedTransaction.type === "LOAN"
+        ? contactT.notifyDeletedLoan(
+            getDisplayName(viewer),
+            sym,
+            deletedTransaction.amount.toFixed(2),
+          )
+        : contactT.notifyDeletedDebt(
+            getDisplayName(viewer),
+            sym,
+            deletedTransaction.amount.toFixed(2),
+          );
+    ctx.telegram
+      .sendMessage(contact.telegramId, notifyMsg, { parse_mode: "Markdown" })
+      .catch(() => {});
   } catch {
     await ctx.editMessageText(T.errSomethingWrong);
   }
 });
 
-bot.action('tx_delete_cancel', async (ctx) => {
+bot.action("tx_delete_cancel", async (ctx) => {
   await ctx.answerCbQuery();
-  await ctx.editMessageText('❌ Cancelled.');
+  await ctx.editMessageText("❌ Cancelled.");
 });
 
 // Settle single transaction
@@ -604,24 +707,44 @@ bot.action(/^tx_settle_confirm:(.+)$/, async (ctx) => {
   const txId = ctx.match[1];
   const T = useT(ctx.session.userLanguage ?? Language.EN);
   const telegramId = String(ctx.from.id);
-  const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
+  const name =
+    ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : "");
 
   try {
     const viewer = await findOrCreateUser(telegramId, name);
-    const { transaction, relationship } = await settleTransactionService(txId, viewer.id);
+    const { transaction, relationship } = await settleTransactionService(
+      txId,
+      viewer.id,
+    );
 
-    await ctx.editMessageText(T.txSettled, { parse_mode: 'Markdown' });
+    await ctx.editMessageText(T.txSettled, { parse_mode: "Markdown" });
 
-    const contact = relationship.userAId === viewer.id ? relationship.userB : relationship.userA;
+    const contact =
+      relationship.userAId === viewer.id
+        ? relationship.userB
+        : relationship.userA;
     const contactT = useT(contact.language);
     const sym = currencySymbol(relationship.currency, contact.language);
-    const notifyMsg = contactT.notifySettledTransaction(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
-    ctx.telegram.sendMessage(contact.telegramId, notifyMsg, {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [[{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId}` }]],
-      },
-    }).catch(() => {});
+    const notifyMsg = contactT.notifySettledTransaction(
+      getDisplayName(viewer),
+      sym,
+      transaction.amount.toFixed(2),
+    );
+    ctx.telegram
+      .sendMessage(contact.telegramId, notifyMsg, {
+        parse_mode: "Markdown",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: contactT.btnSendFeedback,
+                callback_data: `tx_feedback:${viewer.telegramId}`,
+              },
+            ],
+          ],
+        },
+      })
+      .catch(() => {});
   } catch {
     await ctx.editMessageText(T.errSomethingWrong);
   }
@@ -634,39 +757,63 @@ bot.action(/^settle_all_confirm:(.+)$/, async (ctx) => {
   const contactId = ctx.match[1];
   const T = useT(ctx.session.userLanguage ?? Language.EN);
   const telegramId = String(ctx.from.id);
-  const name = ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : '');
-  const contactName = ctx.session.activeContactName ?? '?';
+  const name =
+    ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : "");
+  const contactName = ctx.session.activeContactName ?? "?";
 
   try {
     const viewer = await findOrCreateUser(telegramId, name);
     const relationship = await getRelationshipBetween(viewer.id, contactId);
-    if (!relationship) { await ctx.editMessageText(T.errSomethingWrong); return; }
-
-    const { count, relationship: rel } = await settleAllService(relationship.id, viewer.id);
-
-    if (count === 0) {
-      await ctx.editMessageText(T.txSettleAllEmpty(contactName), { parse_mode: 'Markdown' });
+    if (!relationship) {
+      await ctx.editMessageText(T.errSomethingWrong);
       return;
     }
 
-    await ctx.editMessageText(T.txSettleAllDone(count, contactName), { parse_mode: 'Markdown' });
+    const { count, relationship: rel } = await settleAllService(
+      relationship.id,
+      viewer.id,
+    );
+
+    if (count === 0) {
+      await ctx.editMessageText(T.txSettleAllEmpty(contactName), {
+        parse_mode: "Markdown",
+      });
+      return;
+    }
+
+    await ctx.editMessageText(T.txSettleAllDone(count, contactName), {
+      parse_mode: "Markdown",
+    });
 
     const contact = rel.userAId === viewer.id ? rel.userB : rel.userA;
     const contactT = useT(contact.language);
-    ctx.telegram.sendMessage(contact.telegramId, contactT.notifySettledAll(getDisplayName(viewer)), {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [[{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId}` }]],
-      },
-    }).catch(() => {});
+    ctx.telegram
+      .sendMessage(
+        contact.telegramId,
+        contactT.notifySettledAll(getDisplayName(viewer)),
+        {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: contactT.btnSendFeedback,
+                  callback_data: `tx_feedback:${viewer.telegramId}`,
+                },
+              ],
+            ],
+          },
+        },
+      )
+      .catch(() => {});
   } catch {
     await ctx.editMessageText(T.errSomethingWrong);
   }
 });
 
-bot.action('settle_cancel', async (ctx) => {
+bot.action("settle_cancel", async (ctx) => {
   await ctx.answerCbQuery();
-  await ctx.editMessageText('❌ Cancelled.');
+  await ctx.editMessageText("❌ Cancelled.");
 });
 
 bot.action(/^recurring_cancel:(.+)$/, async (ctx) => {
@@ -678,7 +825,9 @@ bot.action(/^recurring_cancel:(.+)$/, async (ctx) => {
   try {
     const recurring = await getRecurringTransactionById(recurringId);
     if (!recurring) {
-      await ctx.editMessageText(T.recurringNotFound, { parse_mode: 'Markdown' });
+      await ctx.editMessageText(T.recurringNotFound, {
+        parse_mode: "Markdown",
+      });
       return;
     }
 
@@ -691,20 +840,31 @@ bot.action(/^recurring_cancel:(.+)$/, async (ctx) => {
     const rel = recurring.relationship;
     const contact = rel.userAId === viewer.id ? rel.userB : rel.userA;
     const sym = currencySymbol(rel.currency, ctx.session.userLanguage);
-    const typeLabel = recurring.type === 'LOAN' ? T.txTypeLabelLoan : T.txTypeLabelDebt;
+    const typeLabel =
+      recurring.type === "LOAN" ? T.txTypeLabelLoan : T.txTypeLabelDebt;
 
     await ctx.editMessageText(
-      T.recurringCancelPrompt(typeLabel, sym, recurring.amount.toFixed(2), getDisplayName(contact)),
+      T.recurringCancelPrompt(
+        typeLabel,
+        sym,
+        recurring.amount.toFixed(2),
+        getDisplayName(contact),
+      ),
       {
-        parse_mode: 'Markdown',
+        parse_mode: "Markdown",
         ...Markup.inlineKeyboard([
-          [Markup.button.callback(T.recurringCancelConfirmBtn, `recurring_cancel_confirm:${recurringId}`)],
-          [Markup.button.callback(T.btnCancel, 'recurring_cancel_abort')],
+          [
+            Markup.button.callback(
+              T.recurringCancelConfirmBtn,
+              `recurring_cancel_confirm:${recurringId}`,
+            ),
+          ],
+          [Markup.button.callback(T.btnCancel, "recurring_cancel_abort")],
         ]),
       },
     );
   } catch (err) {
-    console.error('recurring_cancel error:', err);
+    console.error("recurring_cancel error:", err);
     await ctx.reply(T.errSomethingWrong);
   }
 });
@@ -722,16 +882,16 @@ bot.action(/^recurring_cancel_confirm:(.+)$/, async (ctx) => {
       return;
     }
     await cancelRecurringTransaction(recurringId, viewer.id);
-    await ctx.editMessageText(T.recurringCancelled, { parse_mode: 'Markdown' });
+    await ctx.editMessageText(T.recurringCancelled, { parse_mode: "Markdown" });
   } catch (err) {
-    console.error('recurring_cancel_confirm error:', err);
+    console.error("recurring_cancel_confirm error:", err);
     await ctx.editMessageText(T.errSomethingWrong);
   }
 });
 
-bot.action('recurring_cancel_abort', async (ctx) => {
+bot.action("recurring_cancel_abort", async (ctx) => {
   await ctx.answerCbQuery();
-  await ctx.editMessageText('❌ Cancelled.');
+  await ctx.editMessageText("❌ Cancelled.");
 });
 
 // Catch-all for unhandled callbacks
