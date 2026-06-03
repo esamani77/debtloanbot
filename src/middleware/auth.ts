@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
+import { verifyAccessToken } from '../services/authService';
+import { findOrCreateUser, findUserById } from '../services/userService';
 
 interface TelegramUser {
   id: number;
@@ -27,7 +29,6 @@ function validateInitData(initDataRaw: string, botToken: string): TelegramUser |
 
     if (expectedHash !== hash) return null;
 
-    // Optional: reject initData older than 24 hours
     const authDate = Number(params.get('auth_date'));
     if (Date.now() / 1000 - authDate > 86400) return null;
 
@@ -40,32 +41,71 @@ function validateInitData(initDataRaw: string, botToken: string): TelegramUser |
   }
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  const BOT_TOKEN = process.env.BOT_TOKEN;
-  if (!BOT_TOKEN) {
-    res.status(500).json({ error: 'Server misconfiguration.' });
-    return;
-  }
-
-  // Expect: Authorization: tma <initDataRaw>
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization ?? '';
-  const initDataRaw = authHeader.startsWith('tma ') ? authHeader.slice(4) : null;
 
-  if (!initDataRaw) {
-    res.status(401).json({ error: 'Missing Authorization header.' });
+  if (authHeader.startsWith('tma ')) {
+    const BOT_TOKEN = process.env.BOT_TOKEN;
+    if (!BOT_TOKEN) {
+      res.status(500).json({ error: 'Server misconfiguration.' });
+      return;
+    }
+
+    const tgUser = validateInitData(authHeader.slice(4), BOT_TOKEN);
+    if (!tgUser) {
+      res.status(401).json({ error: 'Invalid or expired Telegram initData.' });
+      return;
+    }
+
+    const name = tgUser.first_name + (tgUser.last_name ? ` ${tgUser.last_name}` : '');
+    const user = await findOrCreateUser(String(tgUser.id), name, tgUser.username);
+
+    res.locals.userId = user.id;
+    res.locals.telegramId = String(tgUser.id);
+    res.locals.telegramName = name;
+    res.locals.telegramUsername = tgUser.username ?? undefined;
+    next();
     return;
   }
 
-  const user = validateInitData(initDataRaw, BOT_TOKEN);
-  if (!user) {
-    res.status(401).json({ error: 'Invalid or expired Telegram initData.' });
+  if (authHeader.startsWith('Bearer ')) {
+    try {
+      const { userId } = verifyAccessToken(authHeader.slice(7));
+      const user = await findUserById(userId);
+      if (!user) {
+        res.status(401).json({ error: 'User not found.' });
+        return;
+      }
+      res.locals.userId = userId;
+      next();
+      return;
+    } catch {
+      res.status(401).json({ error: 'Invalid or expired access token.' });
+      return;
+    }
+  }
+
+  res.status(401).json({ error: 'Missing Authorization header.' });
+}
+
+// Narrower middleware for auth-only routes that require a Bearer token (web auth only)
+export async function requireWebAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const authHeader = req.headers.authorization ?? '';
+  if (!authHeader.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Bearer token required.' });
     return;
   }
 
-  res.locals.telegramId = String(user.id);
-  res.locals.telegramName =
-    user.first_name + (user.last_name ? ` ${user.last_name}` : '');
-  res.locals.telegramUsername = user.username ?? undefined;
-
-  next();
+  try {
+    const { userId } = verifyAccessToken(authHeader.slice(7));
+    const user = await findUserById(userId);
+    if (!user) {
+      res.status(401).json({ error: 'User not found.' });
+      return;
+    }
+    res.locals.userId = userId;
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid or expired access token.' });
+  }
 }

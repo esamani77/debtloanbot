@@ -167,6 +167,8 @@ export interface Translations {
   settlementRequestSent: (name: string) => string;
   settlementRequestCooldown: (hoursLeft: number) => string;
   settlementRequestReceived: (name: string, sym: string, amount: string) => string;
+  settlementReqNoBankAccount: string;
+  settlementRequestReceivedWithAccount: (name: string, sym: string, amount: string, bankName: string, cardNumber: string, accountNumber: string) => string;
 
   // Bill Splitting
   splitAskName: string;

@@ -200,7 +200,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
         }
 
         d.contactsCache = relationships.map(({ contact }) => ({
-          telegramId: contact.telegramId,
+          telegramId: contact.telegramId ?? '',
           displayName: getDisplayName(contact),
         }));
         d.collectingMode = 'contact';

@@ -1,13 +1,16 @@
 import { Request, Response } from 'express';
-import { findOrCreateUser, getDisplayName } from '../services/userService';
+import { findUserById, getDisplayName } from '../services/userService';
 import { getUserRelationships, getRelationshipBetween } from '../services/relationshipService';
 import { getBalance, getRecentTransactions, settleAllTransactions as settleAllService } from '../services/transactionService';
+import { getUserBankAccounts } from '../services/bankAccountService';
 import { bot } from '../bot';
 import { useT } from '../i18n';
+import { currencySymbol } from '../utils/currency';
 
 export async function listContacts(req: Request, res: Response): Promise<void> {
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName, res.locals.telegramUsername);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const relationships = await getUserRelationships(viewer.id);
 
     res.json(
@@ -24,7 +27,8 @@ export async function listContacts(req: Request, res: Response): Promise<void> {
 
 export async function getContactBalance(req: Request, res: Response): Promise<void> {
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const contactId = req.params.id as string;
 
     const relationship = await getRelationshipBetween(viewer.id, contactId);
@@ -42,7 +46,8 @@ export async function getContactBalance(req: Request, res: Response): Promise<vo
 
 export async function getContactLogs(req: Request, res: Response): Promise<void> {
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const contactId = req.params.id as string;
     const limit = Math.min(Number(req.query.limit) || 20, 100);
 
@@ -63,7 +68,8 @@ export async function settleAllTransactions(req: Request, res: Response): Promis
   const contactId = req.params.id as string;
 
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
 
     const relationship = await getRelationshipBetween(viewer.id, contactId);
     if (!relationship) {
@@ -77,18 +83,75 @@ export async function settleAllTransactions(req: Request, res: Response): Promis
 
     if (count > 0) {
       const contact = rel.userAId === viewer.id ? rel.userB : rel.userA;
-      const contactT = useT(contact.language);
-      const notifyMsg = contactT.notifySettledAll(getDisplayName(viewer));
-      bot.telegram.sendMessage(contact.telegramId, notifyMsg, {
-        parse_mode: "Markdown",
-        reply_markup: {
-          inline_keyboard: [[{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId}` }]],
-        },
-      }).catch(() => {});
+      if (contact.telegramId) {
+        const contactT = useT(contact.language);
+        const notifyMsg = contactT.notifySettledAll(getDisplayName(viewer));
+        bot.telegram.sendMessage(contact.telegramId, notifyMsg, {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [[{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId ?? viewer.id}` }]],
+          },
+        }).catch(() => {});
+      }
     }
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "";
-    if (msg === "Not authorized.") { res.status(403).json({ error: msg }); return; }
+    const msg = err instanceof Error ? err.message : '';
+    if (msg === 'Not authorized.') { res.status(403).json({ error: msg }); return; }
     res.status(500).json({ error: 'Failed to settle transactions.' });
+  }
+}
+
+export async function requestSettlement(req: Request, res: Response): Promise<void> {
+  const contactId = req.params.id as string;
+
+  try {
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
+
+    const accounts = await getUserBankAccounts(viewer.id);
+    if (accounts.length === 0) {
+      res.status(422).json({ error: 'no_bank_account' });
+      return;
+    }
+
+    const relationship = await getRelationshipBetween(viewer.id, contactId);
+    if (!relationship) {
+      res.status(404).json({ error: 'No relationship found with this contact.' });
+      return;
+    }
+
+    const { amount, direction } = await getBalance(relationship.id, viewer.id);
+    if (direction !== 'owed') {
+      res.status(400).json({ error: 'You are not owed money in this relationship.' });
+      return;
+    }
+
+    const contact = await findUserById(contactId);
+    if (!contact || !contact.telegramId) {
+      res.status(400).json({ error: 'Contact has no Telegram account.' });
+      return;
+    }
+
+    const acct = accounts[0];
+    const contactT = useT(contact.language);
+    const sym = currencySymbol(relationship.currency, contact.language);
+    const senderName = getDisplayName(viewer);
+
+    await bot.telegram.sendMessage(
+      contact.telegramId,
+      contactT.settlementRequestReceivedWithAccount(
+        senderName,
+        sym,
+        amount.toFixed(2),
+        acct.bankName,
+        acct.cardNumber,
+        acct.accountNumber,
+      ),
+      { parse_mode: 'Markdown' },
+    ).catch(() => {});
+
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: 'Failed to send settlement request.' });
   }
 }

@@ -50,8 +50,8 @@ export const nicknameSetupScene = new Scenes.WizardScene<BotContext>(
       }
 
       if (ctx.callbackQuery.data === 'nn_keep') {
-        await setNickname(telegramId, null);
         const user = await findUserByTelegramId(telegramId);
+        if (user) await setNickname(user.id, null);
         const displayName = user ? getDisplayName(user) : (state.telegramName ?? '');
 
         if (state.mode === 'onboarding') {
@@ -80,7 +80,8 @@ export const nicknameSetupScene = new Scenes.WizardScene<BotContext>(
       return;
     }
 
-    await setNickname(telegramId, trimmed);
+    const userForNickname = await findUserByTelegramId(telegramId);
+    if (userForNickname) await setNickname(userForNickname.id, trimmed);
 
     if (state.mode === 'onboarding') {
       await ctx.reply(T.nicknameSet(trimmed), {

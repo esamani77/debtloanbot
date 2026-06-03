@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
-import { findOrCreateUser, findUserById } from '../services/userService';
+import { findUserById } from '../services/userService';
 import {
   getUserBankAccounts,
-  getBankAccountById,
   addBankAccount,
   updateBankAccount,
   deleteBankAccount,
@@ -51,7 +50,8 @@ function parseBody(body: unknown): { name: string; cardNumber: string; accountNu
 
 export async function listMyBankAccounts(req: Request, res: Response): Promise<void> {
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const accounts = await getUserBankAccounts(viewer.id);
     res.json(accounts.map(serializeAccount));
   } catch {
@@ -62,14 +62,13 @@ export async function listMyBankAccounts(req: Request, res: Response): Promise<v
 export async function createBankAccount(req: Request, res: Response): Promise<void> {
   const data = parseBody(req.body);
   if (!data) {
-    res.status(400).json({
-      error: 'name, cardNumber (16 digits), accountNumber, and bankName are required.',
-    });
+    res.status(400).json({ error: 'name, cardNumber (16 digits), accountNumber, and bankName are required.' });
     return;
   }
 
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const account = await addBankAccount(viewer.id, data);
     res.status(201).json(serializeAccount(account));
   } catch {
@@ -80,19 +79,15 @@ export async function createBankAccount(req: Request, res: Response): Promise<vo
 export async function updateBankAccountHandler(req: Request, res: Response): Promise<void> {
   const data = parseBody(req.body);
   if (!data) {
-    res.status(400).json({
-      error: 'name, cardNumber (16 digits), accountNumber, and bankName are required.',
-    });
+    res.status(400).json({ error: 'name, cardNumber (16 digits), accountNumber, and bankName are required.' });
     return;
   }
 
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const updated = await updateBankAccount(String(req.params.id), viewer.id, data);
-    if (!updated) {
-      res.status(404).json({ error: 'Bank account not found.' });
-      return;
-    }
+    if (!updated) { res.status(404).json({ error: 'Bank account not found.' }); return; }
     res.json(serializeAccount(updated));
   } catch {
     res.status(500).json({ error: 'Failed to update bank account.' });
@@ -101,12 +96,10 @@ export async function updateBankAccountHandler(req: Request, res: Response): Pro
 
 export async function deleteBankAccountHandler(req: Request, res: Response): Promise<void> {
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const deleted = await deleteBankAccount(String(req.params.id), viewer.id);
-    if (!deleted) {
-      res.status(404).json({ error: 'Bank account not found.' });
-      return;
-    }
+    if (!deleted) { res.status(404).json({ error: 'Bank account not found.' }); return; }
     res.status(204).send();
   } catch {
     res.status(500).json({ error: 'Failed to delete bank account.' });
@@ -116,10 +109,7 @@ export async function deleteBankAccountHandler(req: Request, res: Response): Pro
 export async function getContactBankAccounts(req: Request, res: Response): Promise<void> {
   try {
     const contact = await findUserById(String(req.params.id));
-    if (!contact) {
-      res.status(404).json({ error: 'Contact not found.' });
-      return;
-    }
+    if (!contact) { res.status(404).json({ error: 'Contact not found.' }); return; }
     const accounts = await getUserBankAccounts(contact.id);
     res.json(accounts.map(serializeAccount));
   } catch {

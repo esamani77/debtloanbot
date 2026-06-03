@@ -8,9 +8,14 @@ datasource db {
 
 model User {
   id           String         @id @default(cuid())
-  telegramId   String         @unique
+  telegramId   String?        @unique
   username     String?        @unique
   name         String
+  email        String?        @unique
+  phone        String?        @unique
+  passwordHash String?
+  emailVerified Boolean       @default(false)
+  phoneVerified Boolean       @default(false)
   nickname     String?
   language     Language       @default(EN)
   theme        Theme          @default(SYSTEM)
@@ -23,6 +28,38 @@ model User {
   recurringTransactions RecurringTransaction[] @relation("RecurringCreatedBy")
   expenses              Expense[]
   expenseCategories     ExpenseCategory[]
+  sessions     Session[]
+  connectTokens TelegramConnectToken[]
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  target    String
+  code      String
+  type      OtpType
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  @@index([target, type])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+}
+
+model TelegramConnectToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 model BankAccount {
@@ -191,6 +228,11 @@ enum RecurringInterval {
   WEEKLY
   BIWEEKLY
   MONTHLY
+}
+
+enum OtpType {
+  EMAIL_REGISTRATION
+  PHONE_REGISTRATION
 }
 
 model PendingInvite {

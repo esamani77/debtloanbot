@@ -274,16 +274,18 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
               : contactT.notifyLent(viewer.name, contactSym, transactionAmount.toFixed(2));
           const notePart = state.note ? `\n${contactT.notifyNote(state.note)}` : "";
           const recurringPart = `\n${contactT.recurringLabel(intervalLabel)}`;
-          ctx.telegram
-            .sendMessage(contact.telegramId, `${notifyMsg}${notePart}${recurringPart}`, {
-              parse_mode: "Markdown",
-              reply_markup: {
-                inline_keyboard: [
-                  [{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId}` }],
-                ],
-              },
-            })
-            .catch(() => {});
+          if (contact.telegramId) {
+            ctx.telegram
+              .sendMessage(contact.telegramId, `${notifyMsg}${notePart}${recurringPart}`, {
+                parse_mode: "Markdown",
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId ?? viewer.id}` }],
+                  ],
+                },
+              })
+              .catch(() => {});
+          }
         }
       } else {
         const transaction = await addTransaction({
@@ -305,16 +307,18 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
           const fullMsg = state.note
             ? `${notifyMsg}\n${contactT.notifyNote(state.note)}`
             : notifyMsg;
-          ctx.telegram
-            .sendMessage(contact.telegramId, fullMsg, {
-              parse_mode: "Markdown",
-              reply_markup: {
-                inline_keyboard: [
-                  [{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId}` }],
-                ],
-              },
-            })
-            .catch(() => {});
+          if (contact.telegramId) {
+            ctx.telegram
+              .sendMessage(contact.telegramId, fullMsg, {
+                parse_mode: "Markdown",
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId ?? viewer.id}` }],
+                  ],
+                },
+              })
+              .catch(() => {});
+          }
         }
 
         await ctx.reply(

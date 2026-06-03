@@ -97,6 +97,7 @@ async function sendDailyReminders(): Promise<void> {
       owes: owes.length,
       owed: owed.length,
     });
+    if (!user.telegramId) continue;
     await bot.telegram
       .sendMessage(user.telegramId, msg, { parse_mode: "Markdown" })
       .then(() => console.log(`[reminderJob] Sent to ${user.telegramId}`))

@@ -1,18 +1,23 @@
 import { Request, Response } from 'express';
 import { Theme } from '@prisma/client';
-import { findOrCreateUser, setNickname, getDisplayName, setUserTheme } from '../services/userService';
+import { findUserById, setNickname, getDisplayName, setUserTheme } from '../services/userService';
 
 const VALID_THEMES = Object.values(Theme);
 
 export async function getMe(req: Request, res: Response): Promise<void> {
   try {
-    const user = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const user = await findUserById(res.locals.userId as string);
+    if (!user) { res.status(401).json({ error: 'User not found.' }); return; }
     res.json({
       id: user.id,
       telegramId: user.telegramId,
       name: user.name,
       nickname: user.nickname,
       displayName: getDisplayName(user),
+      email: user.email,
+      phone: user.phone,
+      emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
       language: user.language,
       theme: user.theme,
       createdAt: user.createdAt,
@@ -38,7 +43,7 @@ export async function patchNickname(req: Request, res: Response): Promise<void> 
   }
 
   try {
-    const user = await setNickname(res.locals.telegramId, trimmed);
+    const user = await setNickname(res.locals.userId as string, trimmed);
     res.json({
       nickname: user.nickname,
       displayName: getDisplayName(user),
@@ -50,7 +55,8 @@ export async function patchNickname(req: Request, res: Response): Promise<void> 
 
 export async function getTheme(req: Request, res: Response): Promise<void> {
   try {
-    const user = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const user = await findUserById(res.locals.userId as string);
+    if (!user) { res.status(401).json({ error: 'User not found.' }); return; }
     res.json({ theme: user.theme });
   } catch {
     res.status(500).json({ error: 'Failed to fetch theme.' });
@@ -66,7 +72,7 @@ export async function patchTheme(req: Request, res: Response): Promise<void> {
   }
 
   try {
-    const user = await setUserTheme(res.locals.telegramId, theme as Theme);
+    const user = await setUserTheme(res.locals.userId as string, theme as Theme);
     res.json({ theme: user.theme });
   } catch {
     res.status(500).json({ error: 'Failed to update theme.' });

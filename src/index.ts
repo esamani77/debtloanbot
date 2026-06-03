@@ -4,6 +4,7 @@ initSentry();
 import express from "express";
 import { bot } from "./bot";
 import healthRouter from "./routes/health";
+import authRouter from "./routes/auth";
 import apiRouter from "./routes/api";
 import { getSharedSession } from "./controllers/splitController";
 import cors from "cors";
@@ -37,6 +38,7 @@ app.get("/openapi.json", (_req, res) => {
 
 // Mount routes
 app.use("/", healthRouter);
+app.use("/api/auth", authRouter);   // public — no requireAuth
 app.use("/api", apiRouter);
 // Public share route — no auth required
 app.get("/api/splits/share/:token", getSharedSession);

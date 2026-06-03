@@ -33,13 +33,15 @@ async function processRecurringTransactions(): Promise<void> {
       const creatorT = useT(creator.language);
       const contactT = useT(contact.language);
 
-      bot.telegram
-        .sendMessage(
-          creator.telegramId,
-          creatorT.recurringMaterialized(intervalLabel, creatorSym, transaction.amount.toFixed(2), getDisplayName(contact)),
-          { parse_mode: "Markdown" },
-        )
-        .catch(() => {});
+      if (creator.telegramId) {
+        bot.telegram
+          .sendMessage(
+            creator.telegramId,
+            creatorT.recurringMaterialized(intervalLabel, creatorSym, transaction.amount.toFixed(2), getDisplayName(contact)),
+            { parse_mode: "Markdown" },
+          )
+          .catch(() => {});
+      }
 
       const notifyMsg =
         item.type === "DEBT"
@@ -48,9 +50,11 @@ async function processRecurringTransactions(): Promise<void> {
       const noteMsgPart = item.note ? `\n${contactT.notifyNote(item.note)}` : "";
       const recurringPart = `\n${contactT.recurringLabel(intervalLabel)}`;
 
-      bot.telegram
-        .sendMessage(contact.telegramId, `${notifyMsg}${noteMsgPart}${recurringPart}`, { parse_mode: "Markdown" })
-        .catch(() => {});
+      if (contact.telegramId) {
+        bot.telegram
+          .sendMessage(contact.telegramId, `${notifyMsg}${noteMsgPart}${recurringPart}`, { parse_mode: "Markdown" })
+          .catch(() => {});
+      }
 
       console.log(`[recurringJob] Materialized ${item.id}`);
       Sentry.logger.info("Recurring transaction materialized", { id: item.id });

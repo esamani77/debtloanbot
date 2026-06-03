@@ -6,7 +6,12 @@ import {
   addBankAccount,
   updateBankAccount,
   getBankAccountById,
+  getUserBankAccounts,
 } from '../../services/bankAccountService';
+import { getRelationshipBetween } from '../../services/relationshipService';
+import { getBalance } from '../../services/transactionService';
+import { currencySymbol } from '../../utils/currency';
+import { settlementReqCooldowns } from '../settlementCooldown';
 import { useT } from '../../i18n';
 
 interface BankAccountWizardState {
@@ -202,6 +207,44 @@ export const bankAccountScene = new Scenes.WizardScene<BotContext>(
             [Markup.button.callback(T.btnAccounts, 'go_accounts')],
           ]),
         });
+
+        const pendingDebtorId = ctx.session.pendingSettlementDebtorId;
+        if (pendingDebtorId) {
+          ctx.session.pendingSettlementDebtorId = undefined;
+          const debtor = await findUserByTelegramId(pendingDebtorId);
+          if (debtor) {
+            const relationship = await getRelationshipBetween(user.id, debtor.id);
+            if (relationship) {
+              const { amount, direction } = await getBalance(relationship.id, user.id);
+              if (direction === 'owed') {
+                const accounts = await getUserBankAccounts(user.id);
+                const acct = accounts[0];
+                if (acct) {
+                  const sym = currencySymbol(relationship.currency, debtor.language);
+                  const debtorT = useT(debtor.language);
+                  await ctx.telegram.sendMessage(
+                    pendingDebtorId,
+                    debtorT.settlementRequestReceivedWithAccount(
+                      user.nickname ?? user.name,
+                      sym,
+                      amount.toFixed(2),
+                      acct.bankName,
+                      acct.cardNumber,
+                      acct.accountNumber,
+                    ),
+                    { parse_mode: 'Markdown' },
+                  ).catch(() => {});
+                  settlementReqCooldowns.set(`${String(ctx.from!.id)}:${pendingDebtorId}`, Date.now());
+                  const viewerT = useT(ctx.session.userLanguage ?? Language.EN);
+                  await ctx.reply(
+                    viewerT.settlementRequestSent(debtor.nickname ?? debtor.name),
+                    { parse_mode: 'Markdown' },
+                  );
+                }
+              }
+            }
+          }
+        }
       }
     } catch {
       await ctx.reply(T.errSomethingWrong);

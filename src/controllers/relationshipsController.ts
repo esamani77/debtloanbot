@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Currency } from '@prisma/client';
-import { findOrCreateUser } from '../services/userService';
+import { findUserById } from '../services/userService';
 import { updateRelationshipCurrency } from '../services/relationshipService';
 import { ALL_CURRENCIES } from '../utils/currency';
 import prisma from '../db/prisma';
@@ -14,13 +14,11 @@ export async function patchRelationshipCurrency(req: Request, res: Response): Pr
   }
 
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const relationshipId = req.params.id as string;
 
-    // Verify the viewer is part of this relationship
-    const relationship = await prisma.relationship.findUnique({
-      where: { id: relationshipId },
-    });
+    const relationship = await prisma.relationship.findUnique({ where: { id: relationshipId } });
 
     if (!relationship) {
       res.status(404).json({ error: 'Relationship not found.' });

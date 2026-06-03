@@ -40,7 +40,7 @@ import {
   handleDeleteExecute,
   withdrawalInfoHandler,
 } from "./commands/bankAccounts";
-import { getBankAccountById } from "../services/bankAccountService";
+import { getBankAccountById, getUserBankAccounts } from "../services/bankAccountService";
 import {
   findUserByTelegramId,
   findOrCreateUser,
@@ -71,10 +71,7 @@ import { en } from "../i18n/en";
 import { fa } from "../i18n/fa";
 import { Sentry } from "../sentry";
 
-// In-memory rate limit: one settlement request per sender+recipient pair per hour.
-// Resets on server restart — acceptable for single-process deployment.
-const settlementReqCooldowns = new Map<string, number>();
-const SETTLEMENT_REQ_COOLDOWN_MS = 60 * 60 * 1000;
+import { settlementReqCooldowns, SETTLEMENT_REQ_COOLDOWN_MS } from "./settlementCooldown";
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 if (!BOT_TOKEN) {
@@ -191,6 +188,19 @@ bot.use(stage.middleware());
 bot.start(async (ctx) => {
   const payload =
     (ctx as BotContext & { startPayload?: string }).startPayload ?? "";
+
+  if (payload.startsWith("connect_")) {
+    if (!ctx.from) return;
+    const token = payload.slice(8);
+    const { completeTelegramConnect } = await import("../services/authService");
+    const result = await completeTelegramConnect(
+      token,
+      String(ctx.from.id),
+      ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : ""),
+    );
+    await ctx.reply(result.message);
+    return;
+  }
 
   if (payload.startsWith("edit_")) {
     const txId = payload.slice(5);
@@ -529,6 +539,15 @@ bot.action(/^settlement_req:(\d+)$/, async (ctx) => {
       return;
     }
 
+    const accounts = await getUserBankAccounts(viewer.id);
+    if (accounts.length === 0) {
+      ctx.session.pendingSettlementDebtorId = debtorTelegramId;
+      await ctx.reply(T.settlementReqNoBankAccount, { parse_mode: "Markdown" });
+      await ctx.scene.enter("BANK_ACCOUNT", { mode: "add" });
+      return;
+    }
+
+    const acct = accounts[0];
     const debtorT = useT(debtor.language);
     const sym = currencySymbol(relationship.currency, debtor.language);
     const senderName = viewer.nickname ?? viewer.name;
@@ -536,7 +555,7 @@ bot.action(/^settlement_req:(\d+)$/, async (ctx) => {
     await ctx.telegram
       .sendMessage(
         debtorTelegramId,
-        debtorT.settlementRequestReceived(senderName, sym, amount.toFixed(2)),
+        debtorT.settlementRequestReceivedWithAccount(senderName, sym, amount.toFixed(2), acct.bankName, acct.cardNumber, acct.accountNumber),
         { parse_mode: "Markdown" },
       )
       .catch(() => {});
@@ -702,9 +721,11 @@ bot.action(/^tx_delete_confirm:(.+)$/, async (ctx) => {
             sym,
             deletedTransaction.amount.toFixed(2),
           );
-    ctx.telegram
-      .sendMessage(contact.telegramId, notifyMsg, { parse_mode: "Markdown" })
-      .catch(() => {});
+    if (contact.telegramId) {
+      ctx.telegram
+        .sendMessage(contact.telegramId, notifyMsg, { parse_mode: "Markdown" })
+        .catch(() => {});
+    }
   } catch {
     await ctx.editMessageText(T.errSomethingWrong);
   }
@@ -745,21 +766,23 @@ bot.action(/^tx_settle_confirm:(.+)$/, async (ctx) => {
       sym,
       transaction.amount.toFixed(2),
     );
-    ctx.telegram
-      .sendMessage(contact.telegramId, notifyMsg, {
-        parse_mode: "Markdown",
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: contactT.btnSendFeedback,
-                callback_data: `tx_feedback:${viewer.telegramId}`,
-              },
+    if (contact.telegramId) {
+      ctx.telegram
+        .sendMessage(contact.telegramId, notifyMsg, {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: contactT.btnSendFeedback,
+                  callback_data: `tx_feedback:${viewer.telegramId ?? viewer.id}`,
+                },
+              ],
             ],
-          ],
-        },
-      })
-      .catch(() => {});
+          },
+        })
+        .catch(() => {});
+    }
   } catch {
     await ctx.editMessageText(T.errSomethingWrong);
   }
@@ -802,25 +825,27 @@ bot.action(/^settle_all_confirm:(.+)$/, async (ctx) => {
 
     const contact = rel.userAId === viewer.id ? rel.userB : rel.userA;
     const contactT = useT(contact.language);
-    ctx.telegram
-      .sendMessage(
-        contact.telegramId,
-        contactT.notifySettledAll(getDisplayName(viewer)),
-        {
-          parse_mode: "Markdown",
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: contactT.btnSendFeedback,
-                  callback_data: `tx_feedback:${viewer.telegramId}`,
-                },
+    if (contact.telegramId) {
+      ctx.telegram
+        .sendMessage(
+          contact.telegramId,
+          contactT.notifySettledAll(getDisplayName(viewer)),
+          {
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: contactT.btnSendFeedback,
+                    callback_data: `tx_feedback:${viewer.telegramId ?? viewer.id}`,
+                  },
+                ],
               ],
-            ],
+            },
           },
-        },
-      )
-      .catch(() => {});
+        )
+        .catch(() => {});
+    }
   } catch {
     await ctx.editMessageText(T.errSomethingWrong);
   }

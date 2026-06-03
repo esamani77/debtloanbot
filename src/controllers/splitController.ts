@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Currency, SplitType } from '@prisma/client';
-import { findOrCreateUser, getDisplayName } from '../services/userService';
+import { findUserById, getDisplayName } from '../services/userService';
 import { bot } from '../bot/index';
 import { notifySplitParticipants } from '../utils/splitNotifications';
 import {
@@ -26,10 +26,10 @@ const ALL_CURRENCIES: string[] = ['USD', 'EUR', 'GBP', 'IRT', 'TRY'];
 const SPLIT_TYPES: string[] = ['EQUAL', 'PERCENTAGE', 'CUSTOM'];
 const BOT_USERNAME = process.env.BOT_USERNAME ?? 'debtloanbot';
 
-// GET /api/splits
-export async function listSessions(req: Request, res: Response): Promise<void> {
+export async function listSessions(_req: Request, res: Response): Promise<void> {
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const sessions = await listUserSessions(viewer.id, 20);
 
     res.json(
@@ -49,7 +49,6 @@ export async function listSessions(req: Request, res: Response): Promise<void> {
   }
 }
 
-// POST /api/splits
 export async function createSession(req: Request, res: Response): Promise<void> {
   const { name, currency, participants, participantTelegramIds } = req.body as {
     name?: string;
@@ -82,7 +81,8 @@ export async function createSession(req: Request, res: Response): Promise<void> 
   }
 
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const session = await createDraftSession(
       viewer.id,
       name || undefined,
@@ -96,10 +96,10 @@ export async function createSession(req: Request, res: Response): Promise<void> 
   }
 }
 
-// GET /api/splits/:id
 export async function getSession(req: Request, res: Response): Promise<void> {
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const session = await getSessionById(String(req.params.id));
     if (!session) { res.status(404).json({ error: 'Session not found.' }); return; }
     if (!isSessionMember(session, viewer.id)) { res.status(403).json({ error: 'Access denied.' }); return; }
@@ -139,7 +139,6 @@ export async function getSession(req: Request, res: Response): Promise<void> {
   }
 }
 
-// POST /api/splits/:id/bills
 export async function addBill(req: Request, res: Response): Promise<void> {
   const { name, totalAmount, paidByIndex, splitType, shares } = req.body as {
     name?: string;
@@ -150,39 +149,33 @@ export async function addBill(req: Request, res: Response): Promise<void> {
   };
 
   if (!name || typeof name !== 'string' || !name.trim()) {
-    res.status(400).json({ error: 'name is required.' });
-    return;
+    res.status(400).json({ error: 'name is required.' }); return;
   }
   if (typeof totalAmount !== 'number' || totalAmount <= 0) {
-    res.status(400).json({ error: 'totalAmount must be a positive number.' });
-    return;
+    res.status(400).json({ error: 'totalAmount must be a positive number.' }); return;
   }
   if (typeof paidByIndex !== 'number' || paidByIndex < 0) {
-    res.status(400).json({ error: 'paidByIndex must be a non-negative integer.' });
-    return;
+    res.status(400).json({ error: 'paidByIndex must be a non-negative integer.' }); return;
   }
   if (!splitType || !SPLIT_TYPES.includes(splitType)) {
-    res.status(400).json({ error: `splitType must be one of: ${SPLIT_TYPES.join(', ')}.` });
-    return;
+    res.status(400).json({ error: `splitType must be one of: ${SPLIT_TYPES.join(', ')}.` }); return;
   }
   if (!Array.isArray(shares) || shares.some((s) => typeof s !== 'number')) {
-    res.status(400).json({ error: 'shares must be an array of numbers.' });
-    return;
+    res.status(400).json({ error: 'shares must be an array of numbers.' }); return;
   }
 
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const session = await getSessionById(String(req.params.id));
     if (!session) { res.status(404).json({ error: 'Session not found.' }); return; }
     if (!isSessionMember(session, viewer.id)) { res.status(403).json({ error: 'Access denied.' }); return; }
-    if (session.status !== 'DRAFT') { res.status(409).json({ error: 'Session is already calculated. Cannot add bills.' }); return; }
+    if (session.status !== 'DRAFT') { res.status(409).json({ error: 'Session is already calculated.' }); return; }
     if (paidByIndex >= session.participants.length) {
-      res.status(400).json({ error: 'paidByIndex out of range.' });
-      return;
+      res.status(400).json({ error: 'paidByIndex out of range.' }); return;
     }
     if ((shares as number[]).length !== session.participants.length) {
-      res.status(400).json({ error: `shares must have exactly ${session.participants.length} entries.` });
-      return;
+      res.status(400).json({ error: `shares must have exactly ${session.participants.length} entries.` }); return;
     }
 
     const bill = await addBillToSession(String(req.params.id), {
@@ -207,10 +200,10 @@ export async function addBill(req: Request, res: Response): Promise<void> {
   }
 }
 
-// POST /api/splits/:id/calculate
 export async function calculate(req: Request, res: Response): Promise<void> {
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const session = await getSessionById(String(req.params.id));
     if (!session) { res.status(404).json({ error: 'Session not found.' }); return; }
     if (!isSessionMember(session, viewer.id)) { res.status(403).json({ error: 'Access denied.' }); return; }
@@ -229,7 +222,7 @@ export async function calculate(req: Request, res: Response): Promise<void> {
       transfers,
       shareToken,
       creatorName: getDisplayName(viewer),
-      creatorTelegramId: viewer.telegramId,
+      creatorTelegramId: viewer.telegramId ?? undefined,
     }).catch(() => {});
 
     const bankAccounts = await getBankAccountsForParticipants(session.participants, session.participantTelegramIds);
@@ -255,7 +248,6 @@ export async function calculate(req: Request, res: Response): Promise<void> {
   }
 }
 
-// GET /api/splits/share/:token  (public — no auth)
 export async function getSharedSession(req: Request, res: Response): Promise<void> {
   try {
     const result = await getSessionByToken(String(req.params.token));
@@ -300,7 +292,6 @@ export async function getSharedSession(req: Request, res: Response): Promise<voi
   }
 }
 
-// PATCH /api/splits/:id  — update session metadata
 export async function updateSession(req: Request, res: Response): Promise<void> {
   const { name, currency } = req.body as { name?: string | null; currency?: string };
 
@@ -310,7 +301,8 @@ export async function updateSession(req: Request, res: Response): Promise<void> 
   }
 
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const session = await getSessionById(String(req.params.id));
     if (!session) { res.status(404).json({ error: 'Session not found.' }); return; }
     if (!isSessionMember(session, viewer.id)) { res.status(403).json({ error: 'Access denied.' }); return; }
@@ -326,10 +318,10 @@ export async function updateSession(req: Request, res: Response): Promise<void> 
   }
 }
 
-// POST /api/splits/join/:token  — join a session by share token
 export async function joinSplitSession(req: Request, res: Response): Promise<void> {
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const result = await getSessionByToken(String(req.params.token));
     if (!result) { res.status(404).json({ error: 'Session not found.' }); return; }
     if (result === 'expired') { res.status(410).json({ error: 'Session expired.' }); return; }
@@ -341,7 +333,6 @@ export async function joinSplitSession(req: Request, res: Response): Promise<voi
   }
 }
 
-// PUT /api/splits/:id/bills  — replace all bills; any member can edit, resets to DRAFT
 export async function replaceSessionBills(req: Request, res: Response): Promise<void> {
   const { bills } = req.body as { bills?: unknown[] };
 
@@ -359,12 +350,12 @@ export async function replaceSessionBills(req: Request, res: Response): Promise<
   }
 
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const session = await getSessionById(String(req.params.id));
     if (!session) { res.status(404).json({ error: 'Session not found.' }); return; }
     if (!isSessionMember(session, viewer.id)) { res.status(403).json({ error: 'Access denied.' }); return; }
 
-    // Reset to DRAFT (invalidates old calculation + share token)
     await resetSessionToDraft(String(req.params.id));
 
     const typedBills = (bills as Record<string, unknown>[]).map((b) => ({
@@ -382,10 +373,10 @@ export async function replaceSessionBills(req: Request, res: Response): Promise<
   }
 }
 
-// DELETE /api/splits/:id
 export async function removeSplitSession(req: Request, res: Response): Promise<void> {
   try {
-    const viewer = await findOrCreateUser(res.locals.telegramId, res.locals.telegramName);
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const session = await getSessionById(String(req.params.id));
     if (!session) { res.status(404).json({ error: 'Session not found.' }); return; }
     if (session.createdById !== viewer.id) { res.status(403).json({ error: 'Access denied.' }); return; }

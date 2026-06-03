@@ -28,7 +28,7 @@ export async function notifySplitParticipants({
   transfers: Transfer[];
   shareToken: string;
   creatorName: string;
-  creatorTelegramId: string;
+  creatorTelegramId?: string | null;
 }): Promise<void> {
   const shareLink = `https://t.me/${BOT_USERNAME}?start=split_${shareToken}`;
 
@@ -45,7 +45,7 @@ export async function notifySplitParticipants({
         where: { username: rawId.slice(1).toLowerCase() },
         select: { telegramId: true },
       });
-      if (user) {
+      if (user?.telegramId) {
         if (user.telegramId === creatorTelegramId) continue;
         chatId = user.telegramId;
       }

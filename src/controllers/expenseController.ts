@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Currency } from '@prisma/client';
-import { findUserByTelegramId } from '../services/userService';
+import { findUserById } from '../services/userService';
 import {
   createExpense,
   getExpenses,
@@ -13,8 +13,8 @@ import {
 } from '../services/expenseService';
 
 export async function listExpenses(req: Request, res: Response) {
-  const user = await findUserByTelegramId(res.locals.telegramId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  const user = await findUserById(res.locals.userId as string);
+  if (!user) return res.status(401).json({ error: 'User not found.' });
 
   const month = req.query.month ? parseInt(req.query.month as string) : undefined;
   const year = req.query.year ? parseInt(req.query.year as string) : undefined;
@@ -25,8 +25,8 @@ export async function listExpenses(req: Request, res: Response) {
 }
 
 export async function createExpenseHandler(req: Request, res: Response) {
-  const user = await findUserByTelegramId(res.locals.telegramId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  const user = await findUserById(res.locals.userId as string);
+  if (!user) return res.status(401).json({ error: 'User not found.' });
 
   const { title, amount, currency, categoryId, note, date, transactionId } = req.body;
   if (!title || amount == null || !currency || !categoryId) {
@@ -53,8 +53,8 @@ export async function createExpenseHandler(req: Request, res: Response) {
 }
 
 export async function getExpenseStatsHandler(req: Request, res: Response) {
-  const user = await findUserByTelegramId(res.locals.telegramId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  const user = await findUserById(res.locals.userId as string);
+  if (!user) return res.status(401).json({ error: 'User not found.' });
 
   const now = new Date();
   const month = req.query.month ? parseInt(req.query.month as string) : now.getMonth() + 1;
@@ -65,8 +65,8 @@ export async function getExpenseStatsHandler(req: Request, res: Response) {
 }
 
 export async function getExpenseHandler(req: Request, res: Response) {
-  const user = await findUserByTelegramId(res.locals.telegramId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  const user = await findUserById(res.locals.userId as string);
+  if (!user) return res.status(401).json({ error: 'User not found.' });
 
   const expense = await getExpenseById(String(req.params.id), user.id);
   if (!expense) return res.status(404).json({ error: 'Expense not found' });
@@ -74,8 +74,8 @@ export async function getExpenseHandler(req: Request, res: Response) {
 }
 
 export async function updateExpenseHandler(req: Request, res: Response) {
-  const user = await findUserByTelegramId(res.locals.telegramId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  const user = await findUserById(res.locals.userId as string);
+  if (!user) return res.status(401).json({ error: 'User not found.' });
 
   const { title, amount, currency, categoryId, note, date } = req.body;
 
@@ -96,8 +96,8 @@ export async function updateExpenseHandler(req: Request, res: Response) {
 }
 
 export async function deleteExpenseHandler(req: Request, res: Response) {
-  const user = await findUserByTelegramId(res.locals.telegramId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  const user = await findUserById(res.locals.userId as string);
+  if (!user) return res.status(401).json({ error: 'User not found.' });
 
   const deleted = await deleteExpense(String(req.params.id), user.id);
   if (!deleted) return res.status(404).json({ error: 'Expense not found' });
@@ -105,8 +105,8 @@ export async function deleteExpenseHandler(req: Request, res: Response) {
 }
 
 export async function linkTransactionHandler(req: Request, res: Response) {
-  const user = await findUserByTelegramId(res.locals.telegramId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  const user = await findUserById(res.locals.userId as string);
+  if (!user) return res.status(401).json({ error: 'User not found.' });
 
   const { transactionId } = req.body;
   if (!transactionId) return res.status(400).json({ error: 'transactionId is required' });
@@ -120,8 +120,8 @@ export async function linkTransactionHandler(req: Request, res: Response) {
 }
 
 export async function unlinkTransactionHandler(req: Request, res: Response) {
-  const user = await findUserByTelegramId(res.locals.telegramId);
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  const user = await findUserById(res.locals.userId as string);
+  if (!user) return res.status(401).json({ error: 'User not found.' });
 
   try {
     const expense = await unlinkExpenseFromTransaction(String(req.params.id), user.id);

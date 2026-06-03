@@ -47,7 +47,7 @@ export async function setLangAction(
 
   try {
     let user = await findOrCreateUser(telegramId, name);
-    user = await setUserLanguage(telegramId, language);
+    user = await setUserLanguage(user.id, language);
     ctx.session.userLanguage = language;
 
     const T = useT(language);
@@ -193,7 +193,7 @@ export async function setLangAction(
         );
 
         // Notify creator
-        if (creator) {
+        if (creator?.telegramId) {
           const creatorT = useT(creator.language);
           ctx.telegram
             .sendMessage(
@@ -257,19 +257,21 @@ export async function setLangAction(
             parse_mode: "Markdown",
           });
 
-          const inviterT = useT(inviter.language);
-          ctx.telegram
-            .sendMessage(
-              inviter.telegramId,
-              inviterT.startInviterNotified(name),
-              {
-                parse_mode: "Markdown",
-                ...Markup.inlineKeyboard([
-                  [Markup.button.callback(inviterT.btnContacts, "go_contacts")],
-                ]),
-              },
-            )
-            .catch(() => {});
+          if (inviter.telegramId) {
+            const inviterT = useT(inviter.language);
+            ctx.telegram
+              .sendMessage(
+                inviter.telegramId,
+                inviterT.startInviterNotified(name),
+                {
+                  parse_mode: "Markdown",
+                  ...Markup.inlineKeyboard([
+                    [Markup.button.callback(inviterT.btnContacts, "go_contacts")],
+                  ]),
+                },
+              )
+              .catch(() => {});
+          }
         } else {
           await ctx.reply(
             T.startAlreadyConnected(name, getDisplayName(inviter)),

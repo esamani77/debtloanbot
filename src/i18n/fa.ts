@@ -238,6 +238,10 @@ export const fa: Translations = {
   settlementRequestCooldown: (h) => `⏳ اخیراً به این شخص درخواست تسویه فرستادید. *${h} ساعت* دیگر دوباره امتحان کنید.`,
   settlementRequestReceived: (name, sym, amount) =>
     `📢 *${name}* از شما درخواست تسویه بدهی کرده است.\n\nشما به آن‌ها *${sym}${amount}* بدهکار هستید.\n\nلطفاً در اسرع وقت مبلغ را پرداخت کنید.`,
+  settlementReqNoBankAccount:
+    '🏦 برای ارسال درخواست تسویه، ابتدا باید یک حساب بانکی ثبت کنید تا طرف مقابل بداند پول را کجا واریز کند.\n\nالان یک حساب اضافه کنید — درخواست شما پس از ذخیره به‌طور خودکار ارسال می‌شود.',
+  settlementRequestReceivedWithAccount: (name, sym, amount, bankName, cardNumber, accountNumber) =>
+    `📢 *${name}* از شما درخواست تسویه بدهی کرده است.\n\nشما به آن‌ها *${sym}${amount}* بدهکار هستید.\n\n🏦 *واریز به:*\n*${bankName}*\n💳 \`${cardNumber}\`\n🔢 \`${accountNumber}\``,
 
   // Currency
   currencyPickerTitle: (name) =>

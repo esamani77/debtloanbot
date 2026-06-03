@@ -1,21 +1,18 @@
-import { Request, Response } from "express";
-import { RecurringInterval, TransactionType } from "@prisma/client";
-import { findOrCreateUser } from "../services/userService";
-import { getRelationshipBetween } from "../services/relationshipService";
+import { Request, Response } from 'express';
+import { RecurringInterval, TransactionType } from '@prisma/client';
+import { findUserById } from '../services/userService';
+import { getRelationshipBetween } from '../services/relationshipService';
 import {
   createRecurringTransaction,
   getActiveRecurringForUser,
   cancelRecurringTransaction,
   getRecurringTransactionById,
-} from "../services/recurringTransactionService";
+} from '../services/recurringTransactionService';
 
-export async function listRecurring(req: Request, res: Response): Promise<void> {
+export async function listRecurring(_req: Request, res: Response): Promise<void> {
   try {
-    const viewer = await findOrCreateUser(
-      res.locals.telegramId,
-      res.locals.telegramName,
-      res.locals.telegramUsername,
-    );
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const items = await getActiveRecurringForUser(viewer.id);
 
     res.json(
@@ -37,8 +34,8 @@ export async function listRecurring(req: Request, res: Response): Promise<void> 
       }),
     );
   } catch (err) {
-    console.error("listRecurring error:", err);
-    res.status(500).json({ error: "Failed to fetch recurring transactions." });
+    console.error('listRecurring error:', err);
+    res.status(500).json({ error: 'Failed to fetch recurring transactions.' });
   }
 }
 
@@ -51,34 +48,18 @@ export async function createRecurring(req: Request, res: Response): Promise<void
     interval?: string;
   };
 
-  if (!contactId) {
-    res.status(400).json({ error: "contactId is required." });
-    return;
-  }
-  if (typeof amount !== "number" || amount <= 0) {
-    res.status(400).json({ error: "amount must be a positive number." });
-    return;
-  }
-  if (type !== "LOAN" && type !== "DEBT") {
-    res.status(400).json({ error: "type must be LOAN or DEBT." });
-    return;
-  }
-  if (!["WEEKLY", "BIWEEKLY", "MONTHLY"].includes(interval ?? "")) {
-    res.status(400).json({ error: "interval must be WEEKLY, BIWEEKLY, or MONTHLY." });
-    return;
+  if (!contactId) { res.status(400).json({ error: 'contactId is required.' }); return; }
+  if (typeof amount !== 'number' || amount <= 0) { res.status(400).json({ error: 'amount must be a positive number.' }); return; }
+  if (type !== 'LOAN' && type !== 'DEBT') { res.status(400).json({ error: 'type must be LOAN or DEBT.' }); return; }
+  if (!['WEEKLY', 'BIWEEKLY', 'MONTHLY'].includes(interval ?? '')) {
+    res.status(400).json({ error: 'interval must be WEEKLY, BIWEEKLY, or MONTHLY.' }); return;
   }
 
   try {
-    const viewer = await findOrCreateUser(
-      res.locals.telegramId,
-      res.locals.telegramName,
-      res.locals.telegramUsername,
-    );
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const relationship = await getRelationshipBetween(viewer.id, contactId);
-    if (!relationship) {
-      res.status(404).json({ error: "No relationship found." });
-      return;
-    }
+    if (!relationship) { res.status(404).json({ error: 'No relationship found.' }); return; }
 
     const { recurring, firstTransaction } = await createRecurringTransaction({
       relationshipId: relationship.id,
@@ -99,8 +80,8 @@ export async function createRecurring(req: Request, res: Response): Promise<void
       firstTransactionId: firstTransaction.id,
     });
   } catch (err) {
-    console.error("createRecurring error:", err);
-    res.status(500).json({ error: "Failed to create recurring transaction." });
+    console.error('createRecurring error:', err);
+    res.status(500).json({ error: 'Failed to create recurring transaction.' });
   }
 }
 
@@ -108,31 +89,19 @@ export async function deleteRecurring(req: Request, res: Response): Promise<void
   const id = req.params.id as string;
 
   try {
-    const viewer = await findOrCreateUser(
-      res.locals.telegramId,
-      res.locals.telegramName,
-      res.locals.telegramUsername,
-    );
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
 
     const recurring = await getRecurringTransactionById(id);
-    if (!recurring) {
-      res.status(404).json({ error: "Recurring transaction not found." });
-      return;
-    }
+    if (!recurring) { res.status(404).json({ error: 'Recurring transaction not found.' }); return; }
 
     await cancelRecurringTransaction(id, viewer.id);
     res.status(204).send();
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "";
-    if (msg === "Not authorized.") {
-      res.status(403).json({ error: msg });
-      return;
-    }
-    if (msg === "Recurring transaction not found.") {
-      res.status(404).json({ error: msg });
-      return;
-    }
-    console.error("deleteRecurring error:", err);
-    res.status(500).json({ error: "Failed to cancel recurring transaction." });
+    const msg = err instanceof Error ? err.message : '';
+    if (msg === 'Not authorized.') { res.status(403).json({ error: msg }); return; }
+    if (msg === 'Recurring transaction not found.') { res.status(404).json({ error: msg }); return; }
+    console.error('deleteRecurring error:', err);
+    res.status(500).json({ error: 'Failed to cancel recurring transaction.' });
   }
 }

@@ -38,6 +38,7 @@ export interface SessionData extends Scenes.WizardSession {
   feedbackTargetTelegramId?: string;
   feedbackTargetName?: string;
   splitDraft?: SplitDraft;
+  pendingSettlementDebtorId?: string;
 }
 
 export interface BotContext extends Context {

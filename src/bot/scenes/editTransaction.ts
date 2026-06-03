@@ -140,7 +140,9 @@ export const editTransactionScene = new Scenes.WizardScene<BotContext>(
       const fullMsg = transaction.note
         ? `${notifyMsg}\n${contactT.notifyNote(transaction.note)}`
         : notifyMsg;
-      ctx.telegram.sendMessage(contact.telegramId, fullMsg, { parse_mode: 'Markdown' }).catch(() => {});
+      if (contact.telegramId) {
+        ctx.telegram.sendMessage(contact.telegramId, fullMsg, { parse_mode: 'Markdown' }).catch(() => {});
+      }
     } catch {
       await ctx.reply(T.errSomethingWrong);
     }

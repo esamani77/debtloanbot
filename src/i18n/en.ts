@@ -235,6 +235,10 @@ export const en: Translations = {
   settlementRequestCooldown: (h) => `⏳ You already sent a settlement request to this person recently. Try again in *${h}h*. `,
   settlementRequestReceived: (name, sym, amount) =>
     `📢 *${name}* is requesting you to settle your debt.\n\nYou owe them *${sym}${amount}*.\n\nPlease transfer the amount at your earliest convenience.`,
+  settlementReqNoBankAccount:
+    '🏦 You need a bank account registered so the other person knows where to send the money.\n\nAdding one now — your settlement request will be sent automatically after.',
+  settlementRequestReceivedWithAccount: (name, sym, amount, bankName, cardNumber, accountNumber) =>
+    `📢 *${name}* is requesting you to settle your debt.\n\nYou owe them *${sym}${amount}*.\n\n🏦 *Transfer to:*\n*${bankName}*\n💳 \`${cardNumber}\`\n🔢 \`${accountNumber}\``,
 
   // Currency
   currencyPickerTitle: (name) =>
