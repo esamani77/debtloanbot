@@ -38,7 +38,7 @@ app.get("/openapi.json", (_req, res) => {
 
 // Mount routes
 app.use("/", healthRouter);
-app.use("/api/auth", authRouter);   // public — no requireAuth
+app.use("/api/auth", authRouter); // public — no requireAuth
 app.use("/api", apiRouter);
 // Public share route — no auth required
 app.get("/api/splits/share/:token", getSharedSession);
@@ -73,7 +73,6 @@ async function main(): Promise<void> {
     app.use(bot.webhookCallback(webhookPath));
 
     await bot.telegram.setWebhook(`${WEBHOOK_URL}${webhookPath}`);
-    console.log(`Webhook set to: ${WEBHOOK_URL}${webhookPath}`);
 
     app.listen(PORT, () => {
       console.log(
@@ -81,9 +80,7 @@ async function main(): Promise<void> {
       );
     });
     startReminderJob();
-    console.log(
-      `Reminder job scheduled (cron: ${process.env.REMINDER_CRON ?? "*/5 * * * *"})`,
-    );
+
     startRecurringJob();
   } else {
     // Development: use long polling
@@ -97,9 +94,7 @@ async function main(): Promise<void> {
   }
 
   startReminderJob();
-  console.log(
-    `Reminder job scheduled (cron: ${process.env.REMINDER_CRON ?? "*/5 * * * *"})`,
-  );
+
   startRecurringJob();
 }
 

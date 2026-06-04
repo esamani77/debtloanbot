@@ -114,7 +114,7 @@ async function sendDailyReminders(): Promise<void> {
 }
 
 export function startReminderJob(): void {
-  const schedule = "*/5 * * * *";
+  const schedule = process.env.REMINDER_CRON ?? "0 * * * *";
   Sentry.logger.info("Reminder job started before cron", { action: "before" });
 
   cron.schedule(schedule, async () => {
