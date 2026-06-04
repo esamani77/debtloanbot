@@ -17,15 +17,26 @@ import { ensureSystemCategories } from "./services/expenseCategoryService";
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const NODE_ENV = process.env.NODE_ENV ?? "development";
 
+const allowedOrigins = (process.env.CORS_ORIGINS ?? "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 const app = express();
 app.use(express.json());
 
 app.use(
   cors({
-    origin: "https://v0-debtmate-app.vercel.app",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin ${origin} not allowed`));
+      }
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: undefined,
-    credentials: true, // only if you're using cookies/auth
+    credentials: true,
   }),
 );
 
