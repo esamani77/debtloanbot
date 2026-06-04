@@ -35,6 +35,7 @@ export interface SessionData extends Scenes.WizardSession {
   userLanguage?: Language;
   pendingInvite?: string;
   pendingSplitToken?: string;
+  pendingStartPayload?: string;
   feedbackTargetTelegramId?: string;
   feedbackTargetName?: string;
   splitDraft?: SplitDraft;

@@ -7,7 +7,7 @@ import { nicknameSetupScene } from "./scenes/nicknameSetup";
 import { feedbackScene } from "./scenes/feedbackScene";
 import { splitScene } from "./scenes/splitScene";
 import { editTransactionScene } from "./scenes/editTransaction";
-import { startHandler } from "./commands/start";
+import { startHandler, processStartPayload } from "./commands/start";
 import { inviteHandler } from "./commands/invite";
 import { contactsHandler } from "./commands/contacts";
 import { selectContactAction } from "./commands/select";
@@ -172,6 +172,14 @@ bot.use(async (ctx, next) => {
 
   const missing = await getMissingChannels(ctx, ctx.from.id);
   if (missing.length === 0) return next();
+
+  // Capture /start payload before blocking so it can be replayed after the user joins
+  if (ctx.message && "text" in ctx.message) {
+    const parts = ctx.message.text.split(" ");
+    if (parts[0] === "/start" && parts[1]) {
+      ctx.session.pendingStartPayload = parts[1].trim();
+    }
+  }
 
   await ctx.reply(
     `⚠️ To use this bot you must join ${missing.length > 1 ? "both channels" : "our channel"} first:`,
@@ -595,7 +603,24 @@ bot.action("check_membership", async (ctx) => {
 
   const missing = await getMissingChannels(ctx, ctx.from.id);
   if (missing.length === 0) {
-    await ctx.editMessageText("✅ Verified! You can now use the bot.");
+    const stored = ctx.session.pendingStartPayload;
+    if (stored) {
+      ctx.session.pendingStartPayload = undefined;
+      await ctx.editMessageText("✅ Verified! Loading your link...");
+      await processStartPayload(ctx, stored);
+      if (ctx.session.userLanguage) {
+        await setLangAction(ctx, ctx.session.userLanguage);
+      } else {
+        await ctx.reply(
+          "🌐 Choose your language:\n\nزبان خود را انتخاب کنید:",
+          Markup.keyboard([
+            [Markup.button.text("🇬🇧 English"), Markup.button.text("🇮🇷 فارسی")],
+          ]).resize().oneTime(),
+        );
+      }
+    } else {
+      await ctx.editMessageText("✅ Verified! You can now use the bot.");
+    }
   } else {
     await ctx.editMessageReplyMarkup(buildJoinKeyboard(missing).reply_markup);
     await ctx.answerCbQuery(
