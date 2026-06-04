@@ -40,7 +40,10 @@ import {
   handleDeleteExecute,
   withdrawalInfoHandler,
 } from "./commands/bankAccounts";
-import { getBankAccountById, getUserBankAccounts } from "../services/bankAccountService";
+import {
+  getBankAccountById,
+  getUserBankAccounts,
+} from "../services/bankAccountService";
 import {
   findUserByTelegramId,
   findOrCreateUser,
@@ -71,7 +74,10 @@ import { en } from "../i18n/en";
 import { fa } from "../i18n/fa";
 import { Sentry } from "../sentry";
 
-import { settlementReqCooldowns, SETTLEMENT_REQ_COOLDOWN_MS } from "./settlementCooldown";
+import {
+  settlementReqCooldowns,
+  SETTLEMENT_REQ_COOLDOWN_MS,
+} from "./settlementCooldown";
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 if (!BOT_TOKEN) {
@@ -196,7 +202,8 @@ bot.start(async (ctx) => {
     const result = await completeTelegramConnect(
       token,
       String(ctx.from.id),
-      ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : ""),
+      ctx.from.first_name +
+        (ctx.from.last_name ? ` ${ctx.from.last_name}` : ""),
     );
     await ctx.reply(result.message);
     return;
@@ -514,8 +521,12 @@ bot.action(/^settlement_req:(\d+)$/, async (ctx) => {
   const cooldownKey = `${viewerTelegramId}:${debtorTelegramId}`;
   const lastSent = settlementReqCooldowns.get(cooldownKey);
   if (lastSent && Date.now() - lastSent < SETTLEMENT_REQ_COOLDOWN_MS) {
-    const hoursLeft = Math.ceil((SETTLEMENT_REQ_COOLDOWN_MS - (Date.now() - lastSent)) / (60 * 60 * 1000));
-    await ctx.reply(T.settlementRequestCooldown(hoursLeft), { parse_mode: "Markdown" });
+    const hoursLeft = Math.ceil(
+      (SETTLEMENT_REQ_COOLDOWN_MS - (Date.now() - lastSent)) / (60 * 60 * 1000),
+    );
+    await ctx.reply(T.settlementRequestCooldown(hoursLeft), {
+      parse_mode: "Markdown",
+    });
     return;
   }
 
@@ -555,7 +566,14 @@ bot.action(/^settlement_req:(\d+)$/, async (ctx) => {
     await ctx.telegram
       .sendMessage(
         debtorTelegramId,
-        debtorT.settlementRequestReceivedWithAccount(senderName, sym, amount.toFixed(2), acct.bankName, acct.cardNumber, acct.accountNumber),
+        debtorT.settlementRequestReceivedWithAccount(
+          senderName,
+          sym,
+          amount.toFixed(2),
+          acct.bankName,
+          acct.cardNumber,
+          acct.accountNumber,
+        ),
         { parse_mode: "Markdown" },
       )
       .catch(() => {});
@@ -646,7 +664,7 @@ bot.action(/^split_join:(.+)$/, async (ctx) => {
   const telegramId = String(ctx.from.id);
   const name =
     ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : "");
-  const BOT_USERNAME = process.env.BOT_USERNAME ?? "debtloanbot";
+  const BOT_USERNAME = process.env.BOT_USERNAME ?? "debt_mate_bot";
   const openButton = Markup.inlineKeyboard([
     [
       Markup.button.url(

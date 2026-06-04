@@ -81,7 +81,7 @@ export async function setLangAction(
         const alreadyMember = viewer
           ? isSessionMember(result, viewer.id)
           : false;
-        const BOT_USERNAME = process.env.BOT_USERNAME ?? "debtloanbot";
+        const BOT_USERNAME = process.env.BOT_USERNAME ?? "debt_mate_bot";
         const miniAppUrl = `https://t.me/${BOT_USERNAME}/debtmate`;
         const joinButton = alreadyMember
           ? Markup.button.url(T.splitJoinOpenBtn, miniAppUrl)
@@ -160,7 +160,7 @@ export async function setLangAction(
 
         // Show personalized split summary
         const session = invite.splitSession;
-        const BOT_USERNAME = process.env.BOT_USERNAME ?? "debtloanbot";
+        const BOT_USERNAME = process.env.BOT_USERNAME ?? "debt_mate_bot";
         const netBalances = computeNetBalances(
           session.participants,
           session.bills,
@@ -266,7 +266,12 @@ export async function setLangAction(
                 {
                   parse_mode: "Markdown",
                   ...Markup.inlineKeyboard([
-                    [Markup.button.callback(inviterT.btnContacts, "go_contacts")],
+                    [
+                      Markup.button.callback(
+                        inviterT.btnContacts,
+                        "go_contacts",
+                      ),
+                    ],
                   ]),
                 },
               )

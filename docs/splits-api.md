@@ -17,9 +17,10 @@ Authorization: tma <initDataRaw>
 `initDataRaw` is the raw `window.Telegram.WebApp.initData` string from the Telegram Mini App SDK. It is validated server-side using HMAC-SHA256 against the bot token. The data must be no older than 24 hours.
 
 **Example:**
+
 ```js
 const headers = {
-  'Content-Type': 'application/json',
+  "Content-Type": "application/json",
   Authorization: `tma ${window.Telegram.WebApp.initData}`,
 };
 ```
@@ -30,11 +31,11 @@ const headers = {
 
 ### Session Status
 
-| Value        | Meaning                                               |
-|--------------|-------------------------------------------------------|
-| `DRAFT`      | Bills can still be added or edited                    |
-| `CALCULATED` | Balances have been calculated; share link is active   |
-| `SHARED`     | Session has been shared via the Telegram bot          |
+| Value        | Meaning                                             |
+| ------------ | --------------------------------------------------- |
+| `DRAFT`      | Bills can still be added or edited                  |
+| `CALCULATED` | Balances have been calculated; share link is active |
+| `SHARED`     | Session has been shared via the Telegram bot        |
 
 ### Currency
 
@@ -42,11 +43,11 @@ Accepted values: `USD`, `EUR`, `GBP`, `IRR`, `TRY`
 
 ### Split Type
 
-| Value        | Meaning                                                                 |
-|--------------|-------------------------------------------------------------------------|
-| `EQUAL`      | Total divided equally; `shares` are computed amounts per person         |
-| `PERCENTAGE` | `shares` are percentages (must sum to 100); server converts to amounts  |
-| `CUSTOM`     | `shares` are exact amounts (must sum to `totalAmount`)                  |
+| Value        | Meaning                                                                |
+| ------------ | ---------------------------------------------------------------------- |
+| `EQUAL`      | Total divided equally; `shares` are computed amounts per person        |
+| `PERCENTAGE` | `shares` are percentages (must sum to 100); server converts to amounts |
+| `CUSTOM`     | `shares` are exact amounts (must sum to `totalAmount`)                 |
 
 ### Bill Object
 
@@ -83,6 +84,7 @@ Accepted values: `USD`, `EUR`, `GBP`, `IRR`, `TRY`
 List all split sessions belonging to the authenticated user (up to 20, newest first).
 
 **Response `200`**
+
 ```json
 [
   {
@@ -105,6 +107,7 @@ List all split sessions belonging to the authenticated user (up to 20, newest fi
 Create a new split session in `DRAFT` status.
 
 **Request body**
+
 ```json
 {
   "name": "Trip to Istanbul",
@@ -113,23 +116,24 @@ Create a new split session in `DRAFT` status.
 }
 ```
 
-| Field          | Type       | Required | Constraints                     |
-|----------------|------------|----------|---------------------------------|
-| `name`         | `string`   | No       | Optional label for the session  |
-| `currency`     | `string`   | Yes      | One of the accepted currencies  |
-| `participants` | `string[]` | Yes      | 2–20 non-empty unique names     |
+| Field          | Type       | Required | Constraints                    |
+| -------------- | ---------- | -------- | ------------------------------ |
+| `name`         | `string`   | No       | Optional label for the session |
+| `currency`     | `string`   | Yes      | One of the accepted currencies |
+| `participants` | `string[]` | Yes      | 2–20 non-empty unique names    |
 
 **Response `201`**
+
 ```json
 { "id": "cuid_abc123" }
 ```
 
 **Errors**
 
-| Status | Reason                                       |
-|--------|----------------------------------------------|
+| Status | Reason                                         |
+| ------ | ---------------------------------------------- |
 | `400`  | Invalid currency, or participants out of range |
-| `401`  | Missing or invalid auth header               |
+| `401`  | Missing or invalid auth header                 |
 
 ---
 
@@ -138,6 +142,7 @@ Create a new split session in `DRAFT` status.
 Get full detail for a session, including all bills, net balances, and transfers (if calculated).
 
 **Response `200`**
+
 ```json
 {
   "id": "cuid_abc123",
@@ -162,7 +167,7 @@ Get full detail for a session, including all bills, net balances, and transfers 
     { "from": "Reza", "to": "Ali", "amount": 200 }
   ],
   "shareToken": "tok_xyz",
-  "shareLink": "https://t.me/debtloanbot?start=split_tok_xyz",
+  "shareLink": "https://t.me/debt_mate_bot?start=split_tok_xyz",
   "expiresAt": "2026-06-15T10:00:00.000Z",
   "createdAt": "2026-05-15T10:00:00.000Z"
 }
@@ -174,10 +179,10 @@ A positive `netBalance` means the participant is owed that amount. A negative va
 
 **Errors**
 
-| Status | Reason                        |
-|--------|-------------------------------|
+| Status | Reason                          |
+| ------ | ------------------------------- |
 | `403`  | Session belongs to another user |
-| `404`  | Session not found             |
+| `404`  | Session not found               |
 
 ---
 
@@ -186,6 +191,7 @@ A positive `netBalance` means the participant is owed that amount. A negative va
 Update the session name and/or currency. Only works at any status (name change is always safe; currency change on a calculated session resets nothing, but recalculating after will use the new currency).
 
 **Request body** (all fields optional)
+
 ```json
 {
   "name": "Renamed Trip",
@@ -196,6 +202,7 @@ Update the session name and/or currency. Only works at any status (name change i
 Send `"name": null` to clear the session name.
 
 **Response `200`**
+
 ```json
 { "ok": true }
 ```
@@ -215,6 +222,7 @@ Permanently delete a session and all its bills.
 Add a single bill to a `DRAFT` session.
 
 **Request body**
+
 ```json
 {
   "name": "Hotel",
@@ -225,20 +233,22 @@ Add a single bill to a `DRAFT` session.
 }
 ```
 
-| Field         | Type       | Required | Constraints                                               |
-|---------------|------------|----------|-----------------------------------------------------------|
-| `name`        | `string`   | Yes      | Non-empty                                                 |
-| `totalAmount` | `number`   | Yes      | Positive                                                  |
-| `paidByIndex` | `number`   | Yes      | Valid index into `participants[]`                         |
-| `splitType`   | `string`   | Yes      | `EQUAL`, `PERCENTAGE`, or `CUSTOM`                        |
-| `shares`      | `number[]` | Yes      | Length must equal `participants.length`                   |
+| Field         | Type       | Required | Constraints                             |
+| ------------- | ---------- | -------- | --------------------------------------- |
+| `name`        | `string`   | Yes      | Non-empty                               |
+| `totalAmount` | `number`   | Yes      | Positive                                |
+| `paidByIndex` | `number`   | Yes      | Valid index into `participants[]`       |
+| `splitType`   | `string`   | Yes      | `EQUAL`, `PERCENTAGE`, or `CUSTOM`      |
+| `shares`      | `number[]` | Yes      | Length must equal `participants.length` |
 
 **Notes on `shares`:**
+
 - `EQUAL` — pass the pre-computed equal amounts (use the helper below, or compute yourself: `totalAmount / n` with last person absorbing rounding).
 - `PERCENTAGE` — pass percentages, e.g. `[50, 30, 20]`. Must sum to `100`.
 - `CUSTOM` — pass exact amounts. Must sum to `totalAmount`.
 
 **Response `201`**
+
 ```json
 {
   "id": "bill_2",
@@ -254,7 +264,7 @@ Add a single bill to a `DRAFT` session.
 **Errors**
 
 | Status | Reason                                                  |
-|--------|---------------------------------------------------------|
+| ------ | ------------------------------------------------------- |
 | `400`  | Validation failure (see message)                        |
 | `409`  | Session is already calculated; add bills is not allowed |
 
@@ -269,6 +279,7 @@ Replace **all** bills in a session at once. Automatically resets the session to 
 Use this for an edit-all-bills flow (e.g., a full bill editor screen).
 
 **Request body**
+
 ```json
 {
   "bills": [
@@ -291,6 +302,7 @@ Use this for an edit-all-bills flow (e.g., a full bill editor screen).
 ```
 
 **Response `200`**
+
 ```json
 { "ok": true, "billCount": 2 }
 ```
@@ -304,10 +316,11 @@ Calculate net balances and the minimal set of transfers to settle all debts. Mar
 Calling this again on an already-calculated session recalculates from scratch (useful after editing bills).
 
 **Response `200`**
+
 ```json
 {
   "netBalances": [
-    { "participant": "Ali",  "balance": 1400 },
+    { "participant": "Ali", "balance": 1400 },
     { "participant": "Sara", "balance": -600 },
     { "participant": "Reza", "balance": -800 }
   ],
@@ -324,13 +337,11 @@ Calling this again on an already-calculated session recalculates from scratch (u
       "to": "Ali",
       "amount": 600,
       "symbol": "₺",
-      "bankAccounts": [
-        { "bank": "Mellat", "accountNumber": "1234-5678" }
-      ]
+      "bankAccounts": [{ "bank": "Mellat", "accountNumber": "1234-5678" }]
     }
   ],
   "shareToken": "tok_xyz",
-  "shareLink": "https://t.me/debtloanbot?start=split_tok_xyz"
+  "shareLink": "https://t.me/debt_mate_bot?start=split_tok_xyz"
 }
 ```
 
@@ -338,9 +349,9 @@ Calling this again on an already-calculated session recalculates from scratch (u
 
 **Errors**
 
-| Status | Reason                   |
-|--------|--------------------------|
-| `400`  | Session has no bills     |
+| Status | Reason               |
+| ------ | -------------------- |
+| `400`  | Session has no bills |
 
 ---
 
@@ -349,6 +360,7 @@ Calling this again on an already-calculated session recalculates from scratch (u
 Load a shared session by its share token. This endpoint is public — no `Authorization` header required. Use it to build the share page that participants can open from the Telegram share link.
 
 **Response `200`**
+
 ```json
 {
   "id": "cuid_abc123",
@@ -364,14 +376,14 @@ Load a shared session by its share token. This endpoint is public — no `Author
       "paidBy": "Ali",
       "splitType": "EQUAL",
       "shares": [
-        { "participant": "Ali",  "amount": 200 },
+        { "participant": "Ali", "amount": 200 },
         { "participant": "Sara", "amount": 200 },
         { "participant": "Reza", "amount": 200 }
       ]
     }
   ],
   "netBalances": [
-    { "participant": "Ali",  "balance": 1400 },
+    { "participant": "Ali", "balance": 1400 },
     { "participant": "Sara", "balance": -600 },
     { "participant": "Reza", "balance": -800 }
   ],
@@ -392,10 +404,10 @@ Note: `shares` on each bill is an array of `{ participant, amount }` objects her
 
 **Errors**
 
-| Status | Reason            |
-|--------|-------------------|
-| `404`  | Token not found   |
-| `410`  | Session expired   |
+| Status | Reason          |
+| ------ | --------------- |
+| `404`  | Token not found |
+| `410`  | Session expired |
 
 ---
 
@@ -444,7 +456,7 @@ For `PERCENTAGE`, pass the percentages directly — the server stores them as-is
 
 ```js
 function percentageToAmounts(total, percentages) {
-  return percentages.map(p => Math.round((p / 100) * total * 100) / 100);
+  return percentages.map((p) => Math.round((p / 100) * total * 100) / 100);
 }
 ```
 
@@ -460,12 +472,12 @@ All errors return JSON:
 { "error": "Human-readable description." }
 ```
 
-| Status | Meaning                          |
-|--------|----------------------------------|
-| `400`  | Validation error                 |
-| `401`  | Missing / invalid auth           |
-| `403`  | Not your session                 |
-| `404`  | Resource not found               |
+| Status | Meaning                                               |
+| ------ | ----------------------------------------------------- |
+| `400`  | Validation error                                      |
+| `401`  | Missing / invalid auth                                |
+| `403`  | Not your session                                      |
+| `404`  | Resource not found                                    |
 | `409`  | Conflict (e.g. editing a calculated session via POST) |
-| `410`  | Gone (share link expired)        |
-| `500`  | Server error                     |
+| `410`  | Gone (share link expired)                             |
+| `500`  | Server error                                          |

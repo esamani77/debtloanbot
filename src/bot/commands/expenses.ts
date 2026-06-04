@@ -5,7 +5,7 @@ import { findOrCreateUser } from "../../services/userService";
 import { getExpenseStats } from "../../services/expenseService";
 import { useT } from "../../i18n";
 
-const BOT_USERNAME = process.env.BOT_USERNAME ?? "debtloanbot";
+const BOT_USERNAME = process.env.BOT_USERNAME ?? "debt_mate_bot";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: "$",

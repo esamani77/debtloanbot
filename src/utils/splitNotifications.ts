@@ -1,11 +1,11 @@
-import type { Telegram } from 'telegraf';
-import { Language } from '@prisma/client';
-import prisma from '../db/prisma';
-import { useT } from '../i18n';
-import { currencySymbol } from './currency';
-import type { Transfer } from './debtSimplification';
+import type { Telegram } from "telegraf";
+import { Language } from "@prisma/client";
+import prisma from "../db/prisma";
+import { useT } from "../i18n";
+import { currencySymbol } from "./currency";
+import type { Transfer } from "./debtSimplification";
 
-const BOT_USERNAME = process.env.BOT_USERNAME ?? 'debtloanbot';
+const BOT_USERNAME = process.env.BOT_USERNAME ?? "debt_mate_bot";
 
 export async function notifySplitParticipants({
   telegram,
@@ -40,7 +40,7 @@ export async function notifySplitParticipants({
     if (/^\d+$/.test(rawId)) {
       if (rawId === creatorTelegramId) continue;
       chatId = rawId;
-    } else if (rawId.startsWith('@')) {
+    } else if (rawId.startsWith("@")) {
       const user = await prisma.user.findFirst({
         where: { username: rawId.slice(1).toLowerCase() },
         select: { telegramId: true },
@@ -62,9 +62,20 @@ export async function notifySplitParticipants({
 
     const myName = participants[i];
     const myBalance = netBalances[i];
-    const myTransfers = transfers.filter((t) => t.from === myName || t.to === myName);
+    const myTransfers = transfers.filter(
+      (t) => t.from === myName || t.to === myName,
+    );
 
-    const msg = T.splitNotifyResultsReady(creatorName, sessionName, sym, myBalance, myTransfers, shareLink);
-    await telegram.sendMessage(chatId, msg, { parse_mode: 'Markdown' }).catch(() => {});
+    const msg = T.splitNotifyResultsReady(
+      creatorName,
+      sessionName,
+      sym,
+      myBalance,
+      myTransfers,
+      shareLink,
+    );
+    await telegram
+      .sendMessage(chatId, msg, { parse_mode: "Markdown" })
+      .catch(() => {});
   }
 }
