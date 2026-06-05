@@ -17,10 +17,13 @@ import { ensureSystemCategories } from "./services/expenseCategoryService";
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const NODE_ENV = process.env.NODE_ENV ?? "development";
 
-const allowedOrigins = (process.env.CORS_ORIGINS ?? "")
-  .split(",")
-  .map((o) => o.trim())
-  .filter(Boolean);
+const allowedOrigins = [
+  ...(process.env.CORS_ORIGINS ?? "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
+  "http://localhost:3000",
+];
 
 const app = express();
 app.use(express.json());
