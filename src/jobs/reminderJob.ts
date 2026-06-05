@@ -15,8 +15,6 @@ interface BalanceEntry {
 }
 
 async function sendDailyReminders(): Promise<void> {
-  console.log("[reminderJob] Starting daily reminder run...");
-
   const relationships = await prisma.relationship.findMany({
     where: { transactions: { some: { isSettled: false } } },
     include: {
@@ -28,14 +26,6 @@ async function sendDailyReminders(): Promise<void> {
       },
     },
   });
-
-  console.log(
-    `[reminderJob] Found ${relationships.length} relationships with unsettled transactions`,
-  );
-
-  Sentry.logger.info(
-    `[reminderJob] Found ${relationships.length} relationships with unsettled transactions`,
-  );
 
   const userBalances = new Map<string, { user: User; items: BalanceEntry[] }>();
 
@@ -64,11 +54,6 @@ async function sendDailyReminders(): Promise<void> {
     addEntry(rel.userB, rel.userA, netB, rel.currency);
   }
 
-  console.log(`[reminderJob] Sending reminders to ${userBalances.size} users`);
-
-  Sentry.logger.info(
-    `[reminderJob] Sending reminders to ${userBalances.size} users`,
-  );
   for (const { user, items } of userBalances.values()) {
     const t = useT(user.language);
     const owes = items
@@ -86,31 +71,12 @@ async function sendDailyReminders(): Promise<void> {
         amount: i.netBalance.toFixed(2),
       }));
     const msg = t.reminderMessage(owes, owed);
-    console.log(
-      `[reminderJob] Sending to user ${user.telegramId} (owes: ${owes.length}, owed: ${owed.length})`,
-    );
-    Sentry.logger.info("Reminder job sending", {
-      action: "sending",
-      user: user.telegramId,
-      userName: user.name,
-      userLanguage: user.language,
-      owes: owes.length,
-      owed: owed.length,
-    });
-    if (!user.telegramId) continue;
-    await bot.telegram
-      .sendMessage(user.telegramId, msg, { parse_mode: "Markdown" })
-      .then(() => console.log(`[reminderJob] Sent to ${user.telegramId}`))
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error(
-          `[reminderJob] Failed to send to ${user.telegramId}:`,
-          message,
-        );
-      });
-  }
 
-  console.log("[reminderJob] Done.");
+    if (!user.telegramId) continue;
+    await bot.telegram.sendMessage(user.telegramId, msg, {
+      parse_mode: "Markdown",
+    });
+  }
 }
 
 export function startReminderJob(): void {

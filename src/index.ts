@@ -22,7 +22,7 @@ const allowedOrigins = [
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean),
-  "http://localhost:3000",
+  "http://localhost:3001",
 ];
 
 const app = express();

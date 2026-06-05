@@ -16,23 +16,23 @@ services:
       timeout: 5s
       retries: 5
 
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    env_file:
-      - .env
-    environment:
-      # Override DB URLs to point at the Docker postgres service
-      DATABASE_URL: "postgresql://debtmate:debtmate@postgres:5432/debtmate"
-      DIRECT_URL: "postgresql://debtmate:debtmate@postgres:5432/debtmate"
-      PORT: "3000"
-    ports:
-      - "3000:3000"
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   restart: unless-stopped
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     # Override DB URLs to point at the Docker postgres service
+  #     DATABASE_URL: "postgresql://debtmate:debtmate@postgres:54320/debtmate"
+  #     DIRECT_URL: "postgresql://debtmate:debtmate@postgres:54320/debtmate"
+  #     PORT: "3000"
+  #   ports:
+  #     - "3000:3000"
 
 volumes:
   postgres_data:
