@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import { OtpType } from '@prisma/client';
 import prisma from '../db/prisma';
 import { verifyOtp } from './otpService';
@@ -102,6 +103,41 @@ export async function loginWithPhone(phone: string, password: string): Promise<T
 
   const tokens = await generateTokens(user.id);
   return { ...tokens, user: { id: user.id, name: user.name, phone: user.phone! } };
+}
+
+export async function loginWithGoogle(idToken: string): Promise<TokenPair & { user: { id: string; name: string; email: string } }> {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) throw new Error('GOOGLE_CLIENT_ID not set');
+
+  const client = new OAuth2Client(clientId);
+  const ticket = await client.verifyIdToken({ idToken, audience: clientId });
+  const payload = ticket.getPayload();
+  if (!payload) throw new Error('INVALID_TOKEN');
+
+  const googleId = payload.sub;
+  const email = payload.email ?? '';
+  const name = payload.name ?? email.split('@')[0] ?? 'User';
+
+  let user = await prisma.user.findUnique({ where: { googleId } });
+
+  if (!user && email) {
+    const byEmail = await prisma.user.findUnique({ where: { email } });
+    if (byEmail) {
+      user = await prisma.user.update({
+        where: { id: byEmail.id },
+        data: { googleId, emailVerified: true },
+      });
+    }
+  }
+
+  if (!user) {
+    user = await prisma.user.create({
+      data: { googleId, email: email || undefined, name, emailVerified: !!email },
+    });
+  }
+
+  const tokens = await generateTokens(user.id);
+  return { ...tokens, user: { id: user.id, name: user.name, email: user.email ?? '' } };
 }
 
 export async function initTelegramConnect(userId: string): Promise<{ deepLink: string; token: string; expiresAt: Date }> {

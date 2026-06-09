@@ -6,6 +6,7 @@ import {
   login,
   refresh,
   logout,
+  googleVerify,
   connectTelegramInit,
   connectTelegramStatus,
 } from '../controllers/authController';
@@ -17,6 +18,7 @@ router.post('/register', register);
 router.post('/login', login);
 router.post('/refresh', refresh);
 router.post('/logout', logout);
+router.post('/google/verify', googleVerify);
 
 router.post('/connect/telegram/init', requireWebAuth, connectTelegramInit);
 router.get('/connect/telegram/status', requireWebAuth, connectTelegramStatus);

@@ -6,6 +6,7 @@ import {
   registerWithPhone,
   loginWithEmail,
   loginWithPhone,
+  loginWithGoogle,
   refreshAccessToken,
   revokeSession,
   initTelegramConnect,
@@ -173,6 +174,31 @@ export async function logout(req: Request, res: Response): Promise<void> {
 
   await revokeSession(refreshToken);
   res.json({ message: "Logged out." });
+}
+
+export async function googleVerify(req: Request, res: Response): Promise<void> {
+  const { idToken } = req.body as { idToken?: string };
+
+  if (!idToken || typeof idToken !== 'string') {
+    res.status(400).json({ error: 'idToken is required.' });
+    return;
+  }
+
+  try {
+    const result = await loginWithGoogle(idToken);
+    res.json(result);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '';
+    if (msg === 'INVALID_TOKEN') {
+      res.status(401).json({ error: 'Invalid Google token.' });
+      return;
+    }
+    if (msg.includes('GOOGLE_CLIENT_ID')) {
+      res.status(500).json({ error: 'Server misconfiguration.' });
+      return;
+    }
+    res.status(500).json({ error: 'Google login failed.' });
+  }
 }
 
 export async function connectTelegramInit(
