@@ -200,20 +200,28 @@ bot.use(stage.middleware());
 
 // Command handlers
 bot.start(async (ctx) => {
-  const payload =
-    (ctx as BotContext & { startPayload?: string }).startPayload ?? "";
+  // ctx.startPayload is set by Telegraf for /start TOKEN, fall back to raw message parsing
+  const telegrafPayload = (ctx as BotContext & { startPayload?: string }).startPayload ?? "";
+  const rawText = ctx.message && "text" in ctx.message ? ctx.message.text : "";
+  const rawPayload = rawText.startsWith("/start ") ? rawText.slice(7).trim() : "";
+  const payload = telegrafPayload || rawPayload;
 
   if (payload.startsWith("connect_")) {
     if (!ctx.from) return;
     const token = payload.slice(8);
-    const { completeTelegramConnect } = await import("../services/authService");
-    const result = await completeTelegramConnect(
-      token,
-      String(ctx.from.id),
-      ctx.from.first_name +
-        (ctx.from.last_name ? ` ${ctx.from.last_name}` : ""),
-    );
-    await ctx.reply(result.message);
+    try {
+      const { completeTelegramConnect } = await import("../services/authService");
+      const result = await completeTelegramConnect(
+        token,
+        String(ctx.from.id),
+        ctx.from.first_name +
+          (ctx.from.last_name ? ` ${ctx.from.last_name}` : ""),
+      );
+      await ctx.reply(result.message);
+    } catch (err) {
+      console.error("connect_ error:", err);
+      await ctx.reply("Something went wrong while connecting your account. Please try again.");
+    }
     return;
   }
 
