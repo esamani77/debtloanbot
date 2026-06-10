@@ -8,6 +8,18 @@ export async function processStartPayload(ctx: BotContext, payload: string): Pro
   if (!ctx.from) return;
   const telegramId = String(ctx.from.id);
 
+  if (payload.startsWith('connect_')) {
+    const token = payload.slice(8);
+    const { completeTelegramConnect } = await import('../../services/authService');
+    const result = await completeTelegramConnect(
+      token,
+      String(ctx.from.id),
+      ctx.from.first_name + (ctx.from.last_name ? ` ${ctx.from.last_name}` : ''),
+    );
+    await ctx.reply(result.message);
+    return;
+  }
+
   if (payload.startsWith('split_')) {
     ctx.session.pendingSplitToken = payload.slice(6);
     ctx.session.pendingInvite = undefined;
