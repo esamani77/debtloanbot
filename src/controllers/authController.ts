@@ -10,7 +10,13 @@ import {
   refreshAccessToken,
   revokeSession,
   initTelegramConnect,
+  connectEmail,
+  connectPhone,
 } from "../services/authService";
+import {
+  sendEmailConnectOtp,
+  sendPhoneConnectOtp,
+} from "../services/otpService";
 import { findUserById } from "../services/userService";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -238,5 +244,103 @@ export async function connectTelegramStatus(
     });
   } else {
     res.json({ connected: false });
+  }
+}
+
+export async function sendConnectEmailOtp(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const { email } = req.body as { email?: string };
+  if (!email || !EMAIL_REGEX.test(email)) {
+    res.status(400).json({ error: "A valid email address is required." });
+    return;
+  }
+  try {
+    await sendEmailConnectOtp(email);
+    res.json({ message: "OTP sent. Expires in 10 minutes." });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("Please wait")) {
+      res.status(429).json({ error: msg });
+      return;
+    }
+    res.status(500).json({ error: "Failed to send OTP." });
+  }
+}
+
+export async function verifyEmailConnect(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const { email, otp } = req.body as { email?: string; otp?: string };
+  if (!email || !otp) {
+    res.status(400).json({ error: "email and otp are required." });
+    return;
+  }
+  try {
+    await connectEmail(res.locals.userId as string, email, otp);
+    res.json({ message: "Email connected successfully." });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg === "Invalid or expired OTP.") {
+      res.status(422).json({ error: msg });
+      return;
+    }
+    if (msg.includes("already associated")) {
+      res.status(409).json({ error: msg });
+      return;
+    }
+    res.status(500).json({ error: "Failed to connect email." });
+  }
+}
+
+export async function sendConnectPhoneOtp(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const { phone } = req.body as { phone?: string };
+  if (!phone || !PHONE_REGEX.test(phone)) {
+    res
+      .status(400)
+      .json({ error: "A valid phone number in E.164 format is required (e.g. +989121234567)." });
+    return;
+  }
+  try {
+    await sendPhoneConnectOtp(phone);
+    res.json({ message: "OTP sent. Expires in 10 minutes." });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("Please wait")) {
+      res.status(429).json({ error: msg });
+      return;
+    }
+    res.status(500).json({ error: "Failed to send OTP." });
+  }
+}
+
+export async function verifyPhoneConnect(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const { phone, otp } = req.body as { phone?: string; otp?: string };
+  if (!phone || !otp) {
+    res.status(400).json({ error: "phone and otp are required." });
+    return;
+  }
+  try {
+    await connectPhone(res.locals.userId as string, phone, otp);
+    res.json({ message: "Phone number connected successfully." });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg === "Invalid or expired OTP.") {
+      res.status(422).json({ error: msg });
+      return;
+    }
+    if (msg.includes("already associated")) {
+      res.status(409).json({ error: msg });
+      return;
+    }
+    res.status(500).json({ error: "Failed to connect phone." });
   }
 }

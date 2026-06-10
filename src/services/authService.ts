@@ -181,6 +181,28 @@ export async function completeTelegramConnect(token: string, telegramId: string,
   return { success: true, message: 'Your Telegram account has been connected successfully!' };
 }
 
+export async function connectEmail(userId: string, email: string, otp: string): Promise<void> {
+  await verifyOtp(email, otp, OtpType.EMAIL_CONNECT);
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing && existing.id !== userId) {
+    throw new Error('This email is already associated with another account.');
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: { email, emailVerified: true } });
+}
+
+export async function connectPhone(userId: string, phone: string, otp: string): Promise<void> {
+  await verifyOtp(phone, otp, OtpType.PHONE_CONNECT);
+
+  const existing = await prisma.user.findUnique({ where: { phone } });
+  if (existing && existing.id !== userId) {
+    throw new Error('This phone number is already associated with another account.');
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: { phone, phoneVerified: true } });
+}
+
 export function verifyAccessToken(token: string): { userId: string } {
   const payload = jwt.verify(token, jwtSecret()) as { userId: string };
   return { userId: payload.userId };

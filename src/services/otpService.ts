@@ -111,6 +111,48 @@ export async function sendEmailOtp(email: string): Promise<void> {
   });
 }
 
+export async function sendEmailConnectOtp(email: string): Promise<void> {
+  await checkResendCooldown(email, OtpType.EMAIL_CONNECT);
+
+  const code = generateCode();
+  const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+
+  await prisma.otpCode.create({
+    data: { target: email, code, type: OtpType.EMAIL_CONNECT, expiresAt },
+  });
+
+  await sendMail({
+    to: email,
+    subject: "Your DebtMate verification code",
+    text: `Your verification code is: ${code}\n\nIt expires in ${OTP_TTL_MINUTES} minutes.`,
+    html: otpEmailHtml(code),
+  });
+}
+
+export async function sendPhoneConnectOtp(phone: string): Promise<void> {
+  await checkResendCooldown(phone, OtpType.PHONE_CONNECT);
+
+  const code = generateCode();
+  const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+
+  await prisma.otpCode.create({
+    data: { target: phone, code, type: OtpType.PHONE_CONNECT, expiresAt },
+  });
+
+  const twilioSid = process.env.TWILIO_SID;
+  if (twilioSid) {
+    const twilio = require("twilio");
+    const client = twilio(twilioSid, process.env.TWILIO_TOKEN);
+    await client.messages.create({
+      body: `Your DebtMate verification code: ${code}. Expires in ${OTP_TTL_MINUTES} minutes.`,
+      from: process.env.TWILIO_FROM,
+      to: phone,
+    });
+  } else {
+    console.log(`[OTP DEV] Phone OTP for ${phone}: ${code}`);
+  }
+}
+
 export async function sendPhoneOtp(phone: string): Promise<void> {
   await checkResendCooldown(phone, OtpType.PHONE_REGISTRATION);
 

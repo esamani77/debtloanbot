@@ -234,6 +234,8 @@ enum RecurringInterval {
 enum OtpType {
   EMAIL_REGISTRATION
   PHONE_REGISTRATION
+  EMAIL_CONNECT
+  PHONE_CONNECT
 }
 
 model PendingInvite {
