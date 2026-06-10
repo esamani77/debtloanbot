@@ -1,4 +1,3 @@
-import nodemailer from "nodemailer";
 import { MailtrapClient } from "mailtrap";
 import { Resend } from "resend";
 
@@ -18,24 +17,32 @@ function resolveDriver(): MailDriver {
 }
 
 async function sendViaBrevo(options: MailOptions): Promise<void> {
-  const login = process.env.BREVO_SMTP_LOGIN;
   const apiKey = process.env.BREVO_API_KEY;
-  if (!login) throw new Error("BREVO_SMTP_LOGIN is not set");
   if (!apiKey) throw new Error("BREVO_API_KEY is not set");
 
-  const transporter = nodemailer.createTransport({
-    host: "smtp-relay.brevo.com",
-    port: 587,
-    secure: false,
-    auth: { user: login, pass: apiKey },
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      "api-key": apiKey,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: {
+        name: process.env.BREVO_FROM_NAME ?? "DebtMate",
+        email: process.env.BREVO_FROM_EMAIL ?? "no-reply@debtmate.ir",
+      },
+      to: [{ email: options.to }],
+      subject: options.subject,
+      textContent: options.text,
+      ...(options.html ? { htmlContent: options.html } : {}),
+    }),
   });
-  await transporter.sendMail({
-    from: process.env.BREVO_FROM ?? "noreply@debtmate.app",
-    to: options.to,
-    subject: options.subject,
-    text: options.text,
-    html: options.html,
-  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Brevo API error ${response.status}: ${body}`);
+  }
 }
 
 async function sendViaMailtrap(options: MailOptions): Promise<void> {

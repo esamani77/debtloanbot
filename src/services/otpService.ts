@@ -11,28 +11,81 @@ function generateCode(): string {
 }
 
 function otpEmailHtml(code: string): string {
+  const digitCells = code
+    .split("")
+    .map(
+      (d) =>
+        `<td style="padding:0 4px"><div style="width:46px;height:58px;background:#1a2922;border:1.5px solid #2e4038;border-radius:10px;font-size:28px;font-weight:700;color:#ffffff;text-align:center;line-height:58px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">${d}</div></td>`,
+    )
+    .join("");
+
   return `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0">
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Your DebtMate verification code</title>
+</head>
+<body style="margin:0;padding:0;background:#0d1412;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="padding:48px 16px">
     <tr><td align="center">
-      <table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;padding:40px;max-width:480px">
-        <tr><td align="center" style="padding-bottom:24px">
-          <span style="font-size:26px;font-weight:700;color:#111">DebtMate</span>
+      <table width="480" cellpadding="0" cellspacing="0" role="presentation" style="max-width:480px;width:100%;background:#141f1b;border:1px solid #243028;border-radius:20px;overflow:hidden">
+
+        <!-- top accent bar -->
+        <tr><td height="4" style="background:#e07855;font-size:0;line-height:0">&nbsp;</td></tr>
+
+        <!-- logo -->
+        <tr><td align="center" style="padding:36px 40px 0">
+          <table cellpadding="0" cellspacing="0" role="presentation">
+            <tr>
+              <td style="background:#e07855;border-radius:9px;width:38px;height:38px;text-align:center;vertical-align:middle">
+                <span style="font-size:19px;font-weight:800;color:#ffffff;line-height:38px;display:block">D</span>
+              </td>
+              <td style="padding-left:9px;vertical-align:middle">
+                <span style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-0.3px">Debt</span><span style="font-size:20px;font-weight:700;color:#e07855;letter-spacing:-0.3px">Mate</span>
+              </td>
+            </tr>
+          </table>
         </td></tr>
-        <tr><td style="font-size:16px;color:#333;padding-bottom:8px;font-weight:600">
-          Verify your email address
+
+        <!-- heading -->
+        <tr><td align="center" style="padding:28px 40px 10px">
+          <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.4px">Verify your email address</h1>
         </td></tr>
-        <tr><td style="font-size:15px;color:#555;padding-bottom:24px">
-          Enter this code to complete verification. It expires in ${OTP_TTL_MINUTES} minutes.
+
+        <!-- subtitle -->
+        <tr><td align="center" style="padding:0 40px 30px">
+          <p style="margin:0;font-size:14px;color:#7a9e90;line-height:1.65">
+            Enter the code below in the DebtMate app to complete sign-up.
+          </p>
         </td></tr>
-        <tr><td align="center" style="padding-bottom:24px">
-          <div style="background:#f4f4f4;border-radius:10px;padding:18px 32px;font-size:36px;font-weight:700;letter-spacing:10px;color:#111;display:inline-block">${code}</div>
+
+        <!-- otp digit boxes -->
+        <tr><td align="center" style="padding:0 40px 14px">
+          <table cellpadding="0" cellspacing="0" role="presentation">
+            <tr>${digitCells}</tr>
+          </table>
         </td></tr>
-        <tr><td style="font-size:13px;color:#999;border-top:1px solid #eee;padding-top:20px">
-          If you didn't request this, you can safely ignore this email.
+
+        <!-- expiry -->
+        <tr><td align="center" style="padding:0 40px 34px">
+          <p style="margin:0;font-size:13px;color:#4d7060">
+            Expires in <span style="color:#e07855;font-weight:600">${OTP_TTL_MINUTES}&nbsp;minutes</span>
+          </p>
         </td></tr>
+
+        <!-- divider -->
+        <tr><td style="padding:0 40px">
+          <div style="height:1px;background:#1e2d28;font-size:0;line-height:0">&nbsp;</div>
+        </td></tr>
+
+        <!-- footer -->
+        <tr><td align="center" style="padding:24px 40px 32px">
+          <p style="margin:0;font-size:12px;color:#3a5448;line-height:1.7">
+            If you didn't request this code, you can safely ignore this email.<br>Your account remains secure.
+          </p>
+        </td></tr>
+
       </table>
     </td></tr>
   </table>
