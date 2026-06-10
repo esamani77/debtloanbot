@@ -222,14 +222,15 @@ async function mergeBotUserIntoWebUser(primaryId: string, secondaryId: string): 
       }
     }
 
-    // Copy telegramId + username to primary (preserve primary's name)
+    // Delete the secondary first (cascade removes Sessions and TelegramConnectTokens),
+    // freeing the unique telegramId before we assign it to the primary.
+    await tx.user.delete({ where: { id: secondaryId } });
+
+    // Now safe to set telegramId + username on primary (no uniqueness conflict)
     await tx.user.update({
       where: { id: primaryId },
-      data: { telegramId: secondary.telegramId, username: secondary.username },
+      data: { telegramId: secondary.telegramId, username: secondary.username ?? undefined },
     });
-
-    // Delete the secondary — Sessions and TelegramConnectTokens cascade
-    await tx.user.delete({ where: { id: secondaryId } });
   });
 }
 
