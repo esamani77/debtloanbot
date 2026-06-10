@@ -155,6 +155,84 @@ export async function initTelegramConnect(userId: string): Promise<{ deepLink: s
   return { deepLink, token, expiresAt };
 }
 
+async function mergeBotUserIntoWebUser(primaryId: string, secondaryId: string): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const secondary = await tx.user.findUniqueOrThrow({ where: { id: secondaryId } });
+
+    // Handle all relationships the bot-only user is part of
+    const secondaryRels = await tx.relationship.findMany({
+      where: { OR: [{ userAId: secondaryId }, { userBId: secondaryId }] },
+    });
+
+    for (const rel of secondaryRels) {
+      const counterpartyId = rel.userAId === secondaryId ? rel.userBId : rel.userAId;
+
+      if (counterpartyId === primaryId) {
+        // Debt between the two accounts being merged — discard it
+        await tx.transaction.deleteMany({ where: { relationshipId: rel.id } });
+        await tx.recurringTransaction.deleteMany({ where: { relationshipId: rel.id } });
+        await tx.relationship.delete({ where: { id: rel.id } });
+        continue;
+      }
+
+      const existingRel = await tx.relationship.findFirst({
+        where: {
+          OR: [
+            { userAId: primaryId, userBId: counterpartyId },
+            { userAId: counterpartyId, userBId: primaryId },
+          ],
+        },
+      });
+
+      if (existingRel) {
+        // Primary already knows this counterparty — absorb the secondary's transactions
+        await tx.transaction.updateMany({
+          where: { relationshipId: rel.id },
+          data: { relationshipId: existingRel.id },
+        });
+        await tx.recurringTransaction.updateMany({
+          where: { relationshipId: rel.id },
+          data: { relationshipId: existingRel.id },
+        });
+        await tx.relationship.delete({ where: { id: rel.id } });
+      } else {
+        // Re-point the relationship to the primary user
+        if (rel.userAId === secondaryId) {
+          await tx.relationship.update({ where: { id: rel.id }, data: { userAId: primaryId } });
+        } else {
+          await tx.relationship.update({ where: { id: rel.id }, data: { userBId: primaryId } });
+        }
+      }
+    }
+
+    // Transfer all remaining data owned by the secondary
+    await tx.transaction.updateMany({ where: { createdById: secondaryId }, data: { createdById: primaryId } });
+    await tx.recurringTransaction.updateMany({ where: { createdById: secondaryId }, data: { createdById: primaryId } });
+    await tx.bankAccount.updateMany({ where: { userId: secondaryId }, data: { userId: primaryId } });
+    await tx.splitSession.updateMany({ where: { createdById: secondaryId }, data: { createdById: primaryId } });
+    await tx.expense.updateMany({ where: { userId: secondaryId }, data: { userId: primaryId } });
+    await tx.expenseCategory.updateMany({ where: { userId: secondaryId }, data: { userId: primaryId } });
+
+    // Patch joinedUserIds string arrays on SplitSessions
+    const sessions = await tx.splitSession.findMany({ select: { id: true, joinedUserIds: true } });
+    for (const s of sessions) {
+      if (s.joinedUserIds.includes(secondaryId)) {
+        const updated = [...new Set(s.joinedUserIds.map((id) => (id === secondaryId ? primaryId : id)))];
+        await tx.splitSession.update({ where: { id: s.id }, data: { joinedUserIds: updated } });
+      }
+    }
+
+    // Copy telegramId + username to primary (preserve primary's name)
+    await tx.user.update({
+      where: { id: primaryId },
+      data: { telegramId: secondary.telegramId, username: secondary.username },
+    });
+
+    // Delete the secondary — Sessions and TelegramConnectTokens cascade
+    await tx.user.delete({ where: { id: secondaryId } });
+  });
+}
+
 export async function completeTelegramConnect(token: string, telegramId: string, telegramName: string): Promise<{ success: boolean; message: string }> {
   const record = await prisma.telegramConnectToken.findUnique({ where: { token } });
 
@@ -164,7 +242,19 @@ export async function completeTelegramConnect(token: string, telegramId: string,
 
   const existingWithTelegram = await prisma.user.findUnique({ where: { telegramId } });
   if (existingWithTelegram && existingWithTelegram.id !== record.userId) {
-    return { success: false, message: 'This Telegram account is already linked to another DebtMate account.' };
+    const isBotOnly =
+      !existingWithTelegram.email &&
+      !existingWithTelegram.phone &&
+      !existingWithTelegram.googleId &&
+      !existingWithTelegram.passwordHash;
+
+    if (!isBotOnly) {
+      return { success: false, message: 'This Telegram account is already linked to another DebtMate account.' };
+    }
+
+    await mergeBotUserIntoWebUser(record.userId, existingWithTelegram.id);
+    await prisma.telegramConnectToken.update({ where: { token }, data: { used: true } });
+    return { success: true, message: 'Your Telegram account has been connected and your data has been merged successfully!' };
   }
 
   const currentUser = await prisma.user.findUnique({ where: { id: record.userId } });
