@@ -23,13 +23,13 @@ export async function verifyCaptcha(
       remoteip: (req.ip ?? ''),
     });
 
-    const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+    const googleRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString(),
     });
 
-    const data = (await verifyRes.json()) as { success: boolean; 'error-codes'?: string[] };
+    const data = (await googleRes.json()) as { success: boolean; 'error-codes'?: string[] };
 
     if (!data.success) {
       res.status(400).json({ error: 'CAPTCHA_FAILED' });
