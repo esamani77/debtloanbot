@@ -6,6 +6,7 @@ import { getUserBankAccounts } from '../services/bankAccountService';
 import { bot } from '../bot';
 import { useT } from '../i18n';
 import { currencySymbol } from '../utils/currency';
+import prisma from '../db/prisma';
 
 export async function listContacts(req: Request, res: Response): Promise<void> {
   try {
@@ -25,13 +26,21 @@ export async function listContacts(req: Request, res: Response): Promise<void> {
   }
 }
 
+async function resolveRelationship(viewerId: string, idParam: string) {
+  const byPair = await getRelationshipBetween(viewerId, idParam);
+  if (byPair) return byPair;
+  const byId = await prisma.relationship.findUnique({ where: { id: idParam } });
+  if (byId && (byId.userAId === viewerId || byId.userBId === viewerId)) return byId;
+  return null;
+}
+
 export async function getContactBalance(req: Request, res: Response): Promise<void> {
   try {
     const viewer = await findUserById(res.locals.userId as string);
     if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
     const contactId = req.params.id as string;
 
-    const relationship = await getRelationshipBetween(viewer.id, contactId);
+    const relationship = await resolveRelationship(viewer.id, contactId);
     if (!relationship) {
       res.status(404).json({ error: 'No relationship found with this contact.' });
       return;
@@ -51,7 +60,7 @@ export async function getContactLogs(req: Request, res: Response): Promise<void>
     const contactId = req.params.id as string;
     const limit = Math.min(Number(req.query.limit) || 20, 100);
 
-    const relationship = await getRelationshipBetween(viewer.id, contactId);
+    const relationship = await resolveRelationship(viewer.id, contactId);
     if (!relationship) {
       res.status(404).json({ error: 'No relationship found with this contact.' });
       return;
@@ -71,7 +80,7 @@ export async function settleAllTransactions(req: Request, res: Response): Promis
     const viewer = await findUserById(res.locals.userId as string);
     if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
 
-    const relationship = await getRelationshipBetween(viewer.id, contactId);
+    const relationship = await resolveRelationship(viewer.id, contactId);
     if (!relationship) {
       res.status(404).json({ error: 'No relationship found with this contact.' });
       return;
@@ -114,7 +123,7 @@ export async function requestSettlement(req: Request, res: Response): Promise<vo
       return;
     }
 
-    const relationship = await getRelationshipBetween(viewer.id, contactId);
+    const relationship = await resolveRelationship(viewer.id, contactId);
     if (!relationship) {
       res.status(404).json({ error: 'No relationship found with this contact.' });
       return;
@@ -126,7 +135,8 @@ export async function requestSettlement(req: Request, res: Response): Promise<vo
       return;
     }
 
-    const contact = await findUserById(contactId);
+    const contactUserId = relationship.userAId === viewer.id ? relationship.userBId : relationship.userAId;
+    const contact = await findUserById(contactUserId);
     if (!contact || !contact.telegramId) {
       res.status(400).json({ error: 'Contact has no Telegram account.' });
       return;
