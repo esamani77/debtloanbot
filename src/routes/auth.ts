@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireWebAuth } from '../middleware/auth';
+import { verifyCaptcha } from '../middleware/recaptcha';
 import {
   sendOtp,
   register,
@@ -17,9 +18,9 @@ import {
 
 const router = Router();
 
-router.post('/otp/send', sendOtp);
-router.post('/register', register);
-router.post('/login', login);
+router.post('/otp/send', verifyCaptcha, sendOtp);
+router.post('/register', verifyCaptcha, register);
+router.post('/login', verifyCaptcha, login);
 router.post('/refresh', refresh);
 router.post('/logout', logout);
 router.post('/google/verify', googleVerify);

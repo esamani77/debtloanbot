@@ -62,7 +62,7 @@ export async function getContactLogs(req: Request, res: Response): Promise<void>
 
     const relationship = await resolveRelationship(viewer.id, contactId);
     if (!relationship) {
-      res.status(404).json({ error: 'No relationship found with this contact.' });
+      res.json({ currency: 'USD', transactions: [] });
       return;
     }
 
