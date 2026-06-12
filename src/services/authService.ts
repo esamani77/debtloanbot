@@ -5,6 +5,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { OtpType } from '@prisma/client';
 import prisma from '../db/prisma';
 import { verifyOtp } from './otpService';
+import { sendWelcomeMail } from './mailService';
 
 const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES ?? '15m';
 const REFRESH_EXPIRES_DAYS = parseInt(process.env.JWT_REFRESH_EXPIRES_DAYS ?? '30', 10);
@@ -62,6 +63,8 @@ export async function registerWithEmail(email: string, password: string, otp: st
 
   const user = await prisma.user.create({ data: { email, passwordHash, name, emailVerified: true } });
   const tokens = await generateTokens(user.id);
+
+  sendWelcomeMail(email, name);
 
   return { ...tokens, user: { id: user.id, name: user.name, email: user.email! } };
 }
@@ -134,6 +137,7 @@ export async function loginWithGoogle(idToken: string): Promise<TokenPair & { us
     user = await prisma.user.create({
       data: { googleId, email: email || undefined, name, emailVerified: !!email },
     });
+    if (email) sendWelcomeMail(email, name);
   }
 
   const tokens = await generateTokens(user.id);
