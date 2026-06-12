@@ -80,53 +80,94 @@ async function sendViaResend(options: MailOptions): Promise<void> {
 }
 
 function welcomeHtml(name: string, botLink: string): string {
+  const features: string[] = [
+    "Track debts and loans with friends",
+    "Split bills across any group",
+    "Get reminders and settle with one tap",
+    "Connect your Telegram for instant updates",
+  ];
+
+  const featureRows = features
+    .map(
+      (f) => `
+        <tr>
+          <td valign="top" style="padding:0 0 10px 0;width:22px">
+            <span style="display:inline-block;width:18px;height:18px;background:#e07855;border-radius:50%;text-align:center;line-height:18px;font-size:11px;font-weight:700;color:#ffffff">✓</span>
+          </td>
+          <td style="padding:0 0 10px 8px;font-size:14px;color:#7a9e90;line-height:1.5">${f}</td>
+        </tr>`,
+    )
+    .join("");
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Welcome to DebtMate</title>
-  <style>
-    body { margin: 0; padding: 0; background: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    .wrapper { max-width: 560px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-    .header { background: #1a1a2e; padding: 36px 40px; text-align: center; }
-    .header h1 { margin: 0; color: #ffffff; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
-    .header p { margin: 6px 0 0; color: #a0a0c0; font-size: 14px; }
-    .body { padding: 36px 40px; }
-    .body p { margin: 0 0 16px; color: #444; font-size: 15px; line-height: 1.6; }
-    .features { list-style: none; margin: 0 0 28px; padding: 0; }
-    .features li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; color: #444; font-size: 15px; }
-    .features li::before { content: "✓"; color: #6c63ff; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
-    .cta { display: block; text-align: center; background: #6c63ff; color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-size: 15px; font-weight: 600; margin: 0 0 28px; }
-    .divider { border: none; border-top: 1px solid #eee; margin: 24px 0; }
-    .footer { padding: 20px 40px; text-align: center; background: #fafafa; }
-    .footer p { margin: 0; color: #aaa; font-size: 12px; line-height: 1.6; }
-  </style>
 </head>
-<body>
-  <div class="wrapper">
-    <div class="header">
-      <h1>Welcome to DebtMate 👋</h1>
-      <p>Your personal debt tracker</p>
-    </div>
-    <div class="body">
-      <p>Hi <strong>${name}</strong>,</p>
-      <p>You're all set! DebtMate helps you track shared expenses, split bills, and settle up — without the awkwardness.</p>
-      <ul class="features">
-        <li>Track debts and loans with friends</li>
-        <li>Split bills across any group</li>
-        <li>Get reminders and settle with one tap</li>
-        <li>Use the Telegram bot for instant updates</li>
-      </ul>
-      <a href="${botLink}" class="cta">Open the Telegram Bot</a>
-      <hr class="divider" />
-      <p style="font-size:13px; color:#888;">You can also access DebtMate directly from Telegram. Connect your account in the app settings any time.</p>
-    </div>
-    <div class="footer">
-      <p>© ${new Date().getFullYear()} DebtMate · <a href="https://debtmate.ir" style="color:#6c63ff; text-decoration:none;">debtmate.ir</a></p>
-      <p>You received this because you signed up for a DebtMate account.</p>
-    </div>
-  </div>
+<body style="margin:0;padding:0;background:#0d1412;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="padding:48px 16px">
+    <tr><td align="center">
+      <table width="480" cellpadding="0" cellspacing="0" role="presentation" style="max-width:480px;width:100%;background:#141f1b;border:1px solid #243028;border-radius:20px;overflow:hidden">
+
+        <!-- top accent bar -->
+        <tr><td height="4" style="background:#e07855;font-size:0;line-height:0">&nbsp;</td></tr>
+
+        <!-- logo -->
+        <tr><td align="center" style="padding:36px 40px 0">
+          <table cellpadding="0" cellspacing="0" role="presentation">
+            <tr>
+              <td style="background:#e07855;border-radius:9px;width:38px;height:38px;text-align:center;vertical-align:middle">
+                <span style="font-size:19px;font-weight:800;color:#ffffff;line-height:38px;display:block">D</span>
+              </td>
+              <td style="padding-left:9px;vertical-align:middle">
+                <span style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-0.3px">Debt</span><span style="font-size:20px;font-weight:700;color:#e07855;letter-spacing:-0.3px">Mate</span>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- heading -->
+        <tr><td align="center" style="padding:28px 40px 10px">
+          <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.4px">Welcome aboard, ${name}!</h1>
+        </td></tr>
+
+        <!-- subtitle -->
+        <tr><td align="center" style="padding:0 40px 28px">
+          <p style="margin:0;font-size:14px;color:#7a9e90;line-height:1.65">
+            Your account is ready. Here's what you can do with DebtMate.
+          </p>
+        </td></tr>
+
+        <!-- feature list -->
+        <tr><td style="padding:0 40px 28px">
+          <table cellpadding="0" cellspacing="0" role="presentation" width="100%">
+            ${featureRows}
+          </table>
+        </td></tr>
+
+        <!-- CTA button -->
+        <tr><td align="center" style="padding:0 40px 34px">
+          <a href="${botLink}" style="display:inline-block;background:#e07855;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 32px;border-radius:10px;letter-spacing:0.1px">Open Telegram Bot</a>
+        </td></tr>
+
+        <!-- divider -->
+        <tr><td style="padding:0 40px">
+          <div style="height:1px;background:#1e2d28;font-size:0;line-height:0">&nbsp;</div>
+        </td></tr>
+
+        <!-- footer -->
+        <tr><td align="center" style="padding:24px 40px 32px">
+          <p style="margin:0;font-size:12px;color:#3a5448;line-height:1.7">
+            You received this because you created a DebtMate account.<br>
+            &copy; ${new Date().getFullYear()} DebtMate &middot; <a href="https://debtmate.ir" style="color:#4d7060;text-decoration:none">debtmate.ir</a>
+          </p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
 </body>
 </html>`;
 }
