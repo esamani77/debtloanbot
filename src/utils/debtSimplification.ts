@@ -71,11 +71,8 @@ export function simplifyDebts(
   return transfers;
 }
 
-export function computeEqualShares(totalAmount: number, n: number, currency: Currency): number[] {
+export function computeEqualShares(totalAmount: number, n: number, _currency: Currency): number[] {
   if (n === 0) return [];
-  const base = roundForCurrency(totalAmount / n, currency);
-  const shares = new Array<number>(n).fill(base);
-  const delta = Math.round((totalAmount - base * n) * 1000) / 1000;
-  if (Math.abs(delta) > 0) shares[n - 1] = roundForCurrency(shares[n - 1] + delta, currency);
-  return shares;
+  const share = Math.round((totalAmount / n) * 1000) / 1000;
+  return new Array<number>(n).fill(share);
 }

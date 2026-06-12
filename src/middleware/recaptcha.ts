@@ -3,9 +3,12 @@ import https from 'node:https';
 
 const ENABLED = process.env.RECAPTCHA_ENABLED === 'true';
 const SECRET = process.env.RECAPTCHA_SECRET_KEY ?? '';
+const MIN_SCORE = parseFloat(process.env.RECAPTCHA_MIN_SCORE ?? '0.5');
 
 interface RecaptchaVerifyResponse {
   success: boolean;
+  score?: number;
+  action?: string;
   'error-codes'?: string[];
 }
 
@@ -62,7 +65,7 @@ export async function verifyCaptcha(
       params.toString()
     );
 
-    if (!data.success) {
+    if (!data.success || (data.score !== undefined && data.score < MIN_SCORE)) {
       res.status(400).json({ error: 'CAPTCHA_FAILED' });
       return;
     }
