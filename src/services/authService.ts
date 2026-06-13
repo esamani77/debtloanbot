@@ -296,6 +296,27 @@ export async function connectPhone(userId: string, phone: string, otp: string): 
   await prisma.user.update({ where: { id: userId }, data: { phone, phoneVerified: true } });
 }
 
+export async function resetPassword(
+  target: string,
+  method: 'email' | 'phone',
+  code: string,
+  newPassword: string,
+): Promise<void> {
+  const otpType = method === 'email' ? OtpType.EMAIL_RESET : OtpType.PHONE_RESET;
+  await verifyOtp(target, code, otpType);
+
+  const user = await prisma.user.findUnique({
+    where: method === 'email' ? { email: target } : { phone: target },
+  });
+  if (!user) throw new Error('No account found for this ' + method + '.');
+
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: user.id }, data: { passwordHash } }),
+    prisma.session.deleteMany({ where: { userId: user.id } }),
+  ]);
+}
+
 export function verifyAccessToken(token: string): { userId: string } {
   const payload = jwt.verify(token, jwtSecret()) as { userId: string };
   return { userId: payload.userId };

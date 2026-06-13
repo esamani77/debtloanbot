@@ -14,6 +14,8 @@ import {
   verifyEmailConnect,
   sendConnectPhoneOtp,
   verifyPhoneConnect,
+  sendForgotPasswordOtp,
+  resetPassword,
 } from '../controllers/authController';
 
 const router = Router();
@@ -32,5 +34,8 @@ router.post('/connect/email/send-otp', requireWebAuth, sendConnectEmailOtp);
 router.post('/connect/email/verify', requireWebAuth, verifyEmailConnect);
 router.post('/connect/phone/send-otp', requireWebAuth, sendConnectPhoneOtp);
 router.post('/connect/phone/verify', requireWebAuth, verifyPhoneConnect);
+
+router.post('/forgot-password/send-otp', verifyCaptcha, sendForgotPasswordOtp);
+router.post('/forgot-password/reset', resetPassword);
 
 export default router;

@@ -13,10 +13,13 @@ import {
   initTelegramConnect,
   connectEmail,
   connectPhone,
+  resetPassword as resetPasswordService,
 } from "../services/authService";
 import {
   sendEmailConnectOtp,
   sendPhoneConnectOtp,
+  sendEmailResetOtp,
+  sendPhoneResetOtp,
 } from "../services/otpService";
 import { findUserById } from "../services/userService";
 
@@ -351,5 +354,74 @@ export async function verifyPhoneConnect(
       return;
     }
     res.status(500).json({ error: "Failed to connect phone." });
+  }
+}
+
+export async function sendForgotPasswordOtp(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const { target, method } = req.body as { target?: string; method?: string };
+  if (!target || (method !== "email" && method !== "phone")) {
+    res.status(400).json({ error: "target and method (email|phone) are required." });
+    return;
+  }
+  if (method === "email" && !EMAIL_REGEX.test(target)) {
+    res.status(400).json({ error: "Invalid email address." });
+    return;
+  }
+  if (method === "phone" && !PHONE_REGEX.test(target)) {
+    res.status(400).json({ error: "A valid phone number in E.164 format is required (e.g. +989121234567)." });
+    return;
+  }
+  try {
+    if (method === "email") {
+      await sendEmailResetOtp(target);
+    } else {
+      await sendPhoneResetOtp(target);
+    }
+    res.json({ message: "OTP sent. Expires in 10 minutes." });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("Please wait")) {
+      res.status(429).json({ error: msg });
+      return;
+    }
+    res.status(500).json({ error: "Failed to send OTP." });
+  }
+}
+
+export async function resetPassword(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const { target, method, code, newPassword } = req.body as {
+    target?: string;
+    method?: string;
+    code?: string;
+    newPassword?: string;
+  };
+  if (!target || !code || !newPassword || (method !== "email" && method !== "phone")) {
+    res.status(400).json({ error: "target, method, code, and newPassword are required." });
+    return;
+  }
+  if (typeof newPassword === "string" && newPassword.length < 8) {
+    res.status(400).json({ error: "Password must be at least 8 characters." });
+    return;
+  }
+  try {
+    await resetPasswordService(target, method, code, newPassword);
+    res.json({ message: "Password reset successfully." });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg === "Invalid or expired OTP.") {
+      res.status(422).json({ error: msg });
+      return;
+    }
+    if (msg.includes("No account found")) {
+      res.status(404).json({ error: msg });
+      return;
+    }
+    res.status(500).json({ error: "Failed to reset password." });
   }
 }

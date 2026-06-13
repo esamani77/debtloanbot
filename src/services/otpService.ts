@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { OtpType } from "@prisma/client";
 import prisma from "../db/prisma";
 import { sendMail } from "./mailService";
+import { sendOtpSms } from "./smsService";
 
 const OTP_TTL_MINUTES = 10;
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
@@ -139,18 +140,7 @@ export async function sendPhoneConnectOtp(phone: string): Promise<void> {
     data: { target: phone, code, type: OtpType.PHONE_CONNECT, expiresAt },
   });
 
-  const twilioSid = process.env.TWILIO_SID;
-  if (twilioSid) {
-    const twilio = require("twilio");
-    const client = twilio(twilioSid, process.env.TWILIO_TOKEN);
-    await client.messages.create({
-      body: `Your DebtMate verification code: ${code}. Expires in ${OTP_TTL_MINUTES} minutes.`,
-      from: process.env.TWILIO_FROM,
-      to: phone,
-    });
-  } else {
-    console.log(`[OTP DEV] Phone OTP for ${phone}: ${code}`);
-  }
+  await sendOtpSms(phone, code);
 }
 
 export async function sendPhoneOtp(phone: string): Promise<void> {
@@ -163,18 +153,38 @@ export async function sendPhoneOtp(phone: string): Promise<void> {
     data: { target: phone, code, type: OtpType.PHONE_REGISTRATION, expiresAt },
   });
 
-  const twilioSid = process.env.TWILIO_SID;
-  if (twilioSid) {
-    const twilio = require("twilio");
-    const client = twilio(twilioSid, process.env.TWILIO_TOKEN);
-    await client.messages.create({
-      body: `Your DebtMate verification code: ${code}. Expires in ${OTP_TTL_MINUTES} minutes.`,
-      from: process.env.TWILIO_FROM,
-      to: phone,
-    });
-  } else {
-    console.log(`[OTP DEV] Phone OTP for ${phone}: ${code}`);
-  }
+  await sendOtpSms(phone, code);
+}
+
+export async function sendEmailResetOtp(email: string): Promise<void> {
+  await checkResendCooldown(email, OtpType.EMAIL_RESET);
+
+  const code = generateCode();
+  const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+
+  await prisma.otpCode.create({
+    data: { target: email, code, type: OtpType.EMAIL_RESET, expiresAt },
+  });
+
+  await sendMail({
+    to: email,
+    subject: "Your DebtMate password reset code",
+    text: `Your password reset code is: ${code}\n\nIt expires in ${OTP_TTL_MINUTES} minutes.`,
+    html: otpEmailHtml(code),
+  });
+}
+
+export async function sendPhoneResetOtp(phone: string): Promise<void> {
+  await checkResendCooldown(phone, OtpType.PHONE_RESET);
+
+  const code = generateCode();
+  const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+
+  await prisma.otpCode.create({
+    data: { target: phone, code, type: OtpType.PHONE_RESET, expiresAt },
+  });
+
+  await sendOtpSms(phone, code);
 }
 
 export async function verifyOtp(
