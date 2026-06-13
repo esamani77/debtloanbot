@@ -18,6 +18,7 @@ import {
   replaceAllBills,
   joinSession,
   isSessionMember,
+  setSessionPublic,
 } from "../services/splitService";
 import { computeNetBalances, simplifyDebts } from "../utils/debtSimplification";
 import { currencySymbol } from "../utils/currency";
@@ -47,6 +48,7 @@ export async function listSessions(
         participants: s.participants,
         billCount: s.bills.length,
         shareToken: s.shareToken,
+        isPublic: s.isPublic,
         createdAt: s.createdAt,
       })),
     );
@@ -180,6 +182,7 @@ export async function getSession(req: Request, res: Response): Promise<void> {
       netBalances,
       transfers,
       shareToken: session.shareToken,
+      isPublic: session.isPublic,
       shareLink: session.shareToken
         ? `https://t.me/${BOT_USERNAME}?start=split_${session.shareToken}`
         : null,
@@ -358,6 +361,10 @@ export async function getSharedSession(
       res.status(410).json({ error: "Session expired." });
       return;
     }
+    if (!result.isPublic) {
+      res.status(403).json({ error: "This split is not public." });
+      return;
+    }
 
     const netBalances = computeNetBalances(result.participants, result.bills);
     const transfers = simplifyDebts(
@@ -399,11 +406,44 @@ export async function getSharedSession(
         amount: t.amount,
         bankAccounts: bankAccounts[t.to] ?? [],
       })),
+      isPublic: result.isPublic,
       createdAt: result.createdAt,
       expiresAt: result.expiresAt,
     });
   } catch {
     res.status(500).json({ error: "Failed to load session." });
+  }
+}
+
+export async function togglePublic(req: Request, res: Response): Promise<void> {
+  const { isPublic } = req.body as { isPublic?: unknown };
+  if (typeof isPublic !== "boolean") {
+    res.status(400).json({ error: "isPublic must be a boolean." });
+    return;
+  }
+  try {
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) {
+      res.status(401).json({ error: "User not found." });
+      return;
+    }
+    const session = await getSessionById(String(req.params.id));
+    if (!session) {
+      res.status(404).json({ error: "Session not found." });
+      return;
+    }
+    if (session.createdById !== viewer.id) {
+      res.status(403).json({ error: "Access denied." });
+      return;
+    }
+    if (session.status === "DRAFT") {
+      res.status(400).json({ error: "Calculate the split before making it public." });
+      return;
+    }
+    await setSessionPublic(session.id, isPublic);
+    res.json({ isPublic });
+  } catch {
+    res.status(500).json({ error: "Failed to update visibility." });
   }
 }
 

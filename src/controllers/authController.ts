@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { OtpType } from "@prisma/client";
 import { sendEmailOtp, sendPhoneOtp } from "../services/otpService";
+import { sendWelcomeMail } from "../services/mailService";
 import {
   registerWithEmail,
   registerWithPhone,
@@ -99,6 +100,10 @@ export async function register(req: Request, res: Response): Promise<void> {
         : await registerWithPhone(target, password, otp);
 
     res.status(201).json(result);
+
+    if (method === "email") {
+      await sendWelcomeMail(target, result.user.name);
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : "";
     if (msg === "EMAIL_TAKEN" || msg === "PHONE_TAKEN") {
@@ -193,6 +198,10 @@ export async function googleVerify(req: Request, res: Response): Promise<void> {
   try {
     const result = await loginWithGoogle(idToken);
     res.json(result);
+
+    if (result.isNewUser && result.user.email) {
+      await sendWelcomeMail(result.user.email, result.user.name);
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : '';
     if (msg === 'INVALID_TOKEN') {

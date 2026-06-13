@@ -181,8 +181,6 @@ export async function sendWelcomeMail(to: string, name: string): Promise<void> {
     subject: 'Welcome to DebtMate!',
     text: `Hi ${name},\n\nWelcome to DebtMate! Track debts, split bills, and settle up easily.\n\nOpen the Telegram bot: ${botLink}\n\n— The DebtMate Team`,
     html: welcomeHtml(name, botLink),
-  }).catch((err) => {
-    console.error('[MAIL] Failed to send welcome email:', err);
   });
 }
 

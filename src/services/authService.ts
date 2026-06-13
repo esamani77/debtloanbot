@@ -5,7 +5,6 @@ import { OAuth2Client } from 'google-auth-library';
 import { OtpType } from '@prisma/client';
 import prisma from '../db/prisma';
 import { verifyOtp } from './otpService';
-import { sendWelcomeMail } from './mailService';
 
 const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES ?? '15m';
 const REFRESH_EXPIRES_DAYS = parseInt(process.env.JWT_REFRESH_EXPIRES_DAYS ?? '30', 10);
@@ -64,8 +63,6 @@ export async function registerWithEmail(email: string, password: string, otp: st
   const user = await prisma.user.create({ data: { email, passwordHash, name, emailVerified: true } });
   const tokens = await generateTokens(user.id);
 
-  sendWelcomeMail(email, name);
-
   return { ...tokens, user: { id: user.id, name: user.name, email: user.email! } };
 }
 
@@ -108,7 +105,7 @@ export async function loginWithPhone(phone: string, password: string): Promise<T
   return { ...tokens, user: { id: user.id, name: user.name, phone: user.phone! } };
 }
 
-export async function loginWithGoogle(idToken: string): Promise<TokenPair & { user: { id: string; name: string; email: string } }> {
+export async function loginWithGoogle(idToken: string): Promise<TokenPair & { isNewUser: boolean; user: { id: string; name: string; email: string } }> {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) throw new Error('GOOGLE_CLIENT_ID not set');
 
@@ -133,15 +130,16 @@ export async function loginWithGoogle(idToken: string): Promise<TokenPair & { us
     }
   }
 
+  let isNewUser = false;
   if (!user) {
     user = await prisma.user.create({
       data: { googleId, email: email || undefined, name, emailVerified: !!email },
     });
-    if (email) sendWelcomeMail(email, name);
+    isNewUser = true;
   }
 
   const tokens = await generateTokens(user.id);
-  return { ...tokens, user: { id: user.id, name: user.name, email: user.email ?? '' } };
+  return { ...tokens, isNewUser, user: { id: user.id, name: user.name, email: user.email ?? '' } };
 }
 
 export async function initTelegramConnect(userId: string): Promise<{ deepLink: string; token: string; expiresAt: Date }> {
