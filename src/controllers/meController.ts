@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Theme } from '@prisma/client';
 import { findUserById, setNickname, getDisplayName, setUserTheme } from '../services/userService';
+import { generateInviteLink } from '../utils/inviteLink';
 
 const VALID_THEMES = Object.values(Theme);
 
@@ -61,6 +62,11 @@ export async function getTheme(req: Request, res: Response): Promise<void> {
   } catch {
     res.status(500).json({ error: 'Failed to fetch theme.' });
   }
+}
+
+export async function getTelegramInvite(req: Request, res: Response): Promise<void> {
+  const link = generateInviteLink(res.locals.userId as string);
+  res.json({ link });
 }
 
 export async function patchTheme(req: Request, res: Response): Promise<void> {

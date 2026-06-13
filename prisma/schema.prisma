@@ -163,6 +163,7 @@ model SplitSession {
   shareToken   String?     @unique
   isPublic     Boolean     @default(false)
   expiresAt    DateTime?
+  lockedAt     DateTime?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   bills        BillItem[]
