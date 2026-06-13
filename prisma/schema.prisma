@@ -31,6 +31,7 @@ model User {
   expenseCategories     ExpenseCategory[]
   sessions     Session[]
   connectTokens TelegramConnectToken[]
+  webContactInvite WebContactInvite?
 }
 
 model OtpCode {
@@ -245,4 +246,11 @@ model PendingInvite {
   telegramId String   @id
   payload    String
   createdAt  DateTime @default(now())
+}
+
+model WebContactInvite {
+  token     String   @id
+  inviterId String   @unique
+  inviter   User     @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }

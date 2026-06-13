@@ -7,6 +7,7 @@ import healthRouter from "./routes/health";
 import authRouter from "./routes/auth";
 import apiRouter from "./routes/api";
 import { getSharedSession } from "./controllers/splitController";
+import contactInvitesRouter from "./routes/contactInvites";
 import cors from "cors";
 import morgan from "morgan";
 import { openapiSpec } from "./openapi";
@@ -55,6 +56,8 @@ app.use("/", healthRouter);
 app.use("/api/auth", authRouter); // public — no requireAuth
 // Public share route must be before /api (which applies requireAuth to all /api/*)
 app.get("/api/splits/share/:token", getSharedSession);
+// Contact invites: has both public (GET /:token) and authenticated routes; mount before /api
+app.use("/api/contact-invites", contactInvitesRouter);
 app.use("/api", apiRouter);
 
 // Sentry error handler — must be after all routes
