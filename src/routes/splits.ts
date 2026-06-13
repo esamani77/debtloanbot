@@ -10,6 +10,7 @@ import {
   replaceSessionBills,
   joinSplitSession,
   togglePublic,
+  lockSplit,
 } from '../controllers/splitController';
 
 const router = Router();
@@ -24,5 +25,6 @@ router.post('/:id/bills', addBill);
 router.put('/:id/bills', replaceSessionBills);
 router.post('/:id/calculate', calculate);
 router.patch('/:id/public', togglePublic);
+router.post('/:id/lock', lockSplit);
 
 export default router;

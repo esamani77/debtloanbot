@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
-import { Theme } from '@prisma/client';
-import { findUserById, setNickname, getDisplayName, setUserTheme } from '../services/userService';
+import { Language, Theme } from '@prisma/client';
+import { findUserById, setNickname, getDisplayName, setUserTheme, setUserLanguage } from '../services/userService';
 import { generateInviteLink } from '../utils/inviteLink';
 
 const VALID_THEMES = Object.values(Theme);
+const VALID_LANGUAGES = Object.values(Language);
 
 export async function getMe(req: Request, res: Response): Promise<void> {
   try {
@@ -82,5 +83,21 @@ export async function patchTheme(req: Request, res: Response): Promise<void> {
     res.json({ theme: user.theme });
   } catch {
     res.status(500).json({ error: 'Failed to update theme.' });
+  }
+}
+
+export async function patchLanguage(req: Request, res: Response): Promise<void> {
+  const { language } = req.body as { language?: unknown };
+
+  if (!language || typeof language !== 'string' || !VALID_LANGUAGES.includes(language as Language)) {
+    res.status(400).json({ error: `language must be one of: ${VALID_LANGUAGES.join(', ')}.` });
+    return;
+  }
+
+  try {
+    const user = await setUserLanguage(res.locals.userId as string, language as Language);
+    res.json({ language: user.language });
+  } catch {
+    res.status(500).json({ error: 'Failed to update language.' });
   }
 }

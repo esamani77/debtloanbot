@@ -19,6 +19,7 @@ import {
   joinSession,
   isSessionMember,
   setSessionPublic,
+  lockSession,
 } from "../services/splitService";
 import { computeNetBalances, simplifyDebts } from "../utils/debtSimplification";
 import { currencySymbol } from "../utils/currency";
@@ -49,6 +50,7 @@ export async function listSessions(
         billCount: s.bills.length,
         shareToken: s.shareToken,
         isPublic: s.isPublic,
+        lockedAt: s.lockedAt,
         createdAt: s.createdAt,
       })),
     );
@@ -187,6 +189,7 @@ export async function getSession(req: Request, res: Response): Promise<void> {
         ? `https://t.me/${BOT_USERNAME}?start=split_${session.shareToken}`
         : null,
       expiresAt: session.expiresAt,
+      lockedAt: session.lockedAt,
       createdAt: session.createdAt,
     });
   } catch {
@@ -243,8 +246,8 @@ export async function addBill(req: Request, res: Response): Promise<void> {
       res.status(403).json({ error: "Access denied." });
       return;
     }
-    if (session.status !== "DRAFT") {
-      res.status(409).json({ error: "Session is already calculated." });
+    if (session.lockedAt) {
+      res.status(423).json({ error: "Session is locked and cannot be modified." });
       return;
     }
     if (paidByIndex >= session.participants.length) {
@@ -260,6 +263,7 @@ export async function addBill(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    const wasCalculated = session.status !== "DRAFT";
     const bill = await addBillToSession(String(req.params.id), {
       name: name.trim(),
       totalAmount,
@@ -267,6 +271,10 @@ export async function addBill(req: Request, res: Response): Promise<void> {
       splitType: splitType as SplitType,
       shares: shares as number[],
     });
+
+    if (wasCalculated) {
+      await resetSessionToDraft(String(req.params.id));
+    }
 
     res.status(201).json({
       id: bill.id,
@@ -276,6 +284,7 @@ export async function addBill(req: Request, res: Response): Promise<void> {
       paidBy: session.participants[bill.paidByIndex],
       splitType: bill.splitType,
       shares: bill.shares,
+      resetToDraft: wasCalculated,
     });
   } catch {
     res.status(500).json({ error: "Failed to add bill." });
@@ -582,6 +591,10 @@ export async function replaceSessionBills(
       res.status(403).json({ error: "Access denied." });
       return;
     }
+    if (session.lockedAt) {
+      res.status(423).json({ error: "Session is locked and cannot be modified." });
+      return;
+    }
 
     await resetSessionToDraft(String(req.params.id));
 
@@ -597,6 +610,33 @@ export async function replaceSessionBills(
     res.json({ ok: true, billCount: typedBills.length });
   } catch {
     res.status(500).json({ error: "Failed to replace bills." });
+  }
+}
+
+export async function lockSplit(req: Request, res: Response): Promise<void> {
+  try {
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) {
+      res.status(401).json({ error: "User not found." });
+      return;
+    }
+    const session = await getSessionById(String(req.params.id));
+    if (!session) {
+      res.status(404).json({ error: "Session not found." });
+      return;
+    }
+    if (session.createdById !== viewer.id) {
+      res.status(403).json({ error: "Access denied." });
+      return;
+    }
+    if (session.lockedAt) {
+      res.status(200).json({ lockedAt: session.lockedAt });
+      return;
+    }
+    await lockSession(String(req.params.id));
+    res.json({ lockedAt: new Date() });
+  } catch {
+    res.status(500).json({ error: "Failed to lock session." });
   }
 }
 

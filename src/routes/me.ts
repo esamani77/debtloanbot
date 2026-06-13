@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getMe, patchNickname, getTheme, patchTheme, getTelegramInvite } from '../controllers/meController';
+import { getMe, patchNickname, getTheme, patchTheme, patchLanguage, getTelegramInvite } from '../controllers/meController';
 import {
   listMyBankAccounts,
   createBankAccount,
@@ -14,6 +14,7 @@ router.patch('/nickname', patchNickname);
 router.get('/telegram-invite', getTelegramInvite);
 router.get('/theme', getTheme);
 router.patch('/theme', patchTheme);
+router.patch('/language', patchLanguage);
 router.get('/bank-accounts', listMyBankAccounts);
 router.post('/bank-accounts', createBankAccount);
 router.put('/bank-accounts/:id', updateBankAccountHandler);

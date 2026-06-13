@@ -85,6 +85,10 @@ export async function calculateSession(sessionId: string): Promise<SessionCalcul
   return { netBalances, transfers, shareToken, participantInvites };
 }
 
+export async function lockSession(id: string): Promise<void> {
+  await prisma.splitSession.update({ where: { id }, data: { lockedAt: new Date() } });
+}
+
 export async function setSessionPublic(id: string, isPublic: boolean): Promise<void> {
   await prisma.splitSession.update({ where: { id }, data: { isPublic } });
 }
