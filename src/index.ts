@@ -53,9 +53,9 @@ app.get("/openapi.json", (_req, res) => {
 // Mount routes
 app.use("/", healthRouter);
 app.use("/api/auth", authRouter); // public — no requireAuth
-app.use("/api", apiRouter);
-// Public share route — no auth required
+// Public share route must be before /api (which applies requireAuth to all /api/*)
 app.get("/api/splits/share/:token", getSharedSession);
+app.use("/api", apiRouter);
 
 // Sentry error handler — must be after all routes
 Sentry.setupExpressErrorHandler(app);
