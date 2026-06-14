@@ -32,6 +32,8 @@ model User {
   sessions     Session[]
   connectTokens TelegramConnectToken[]
   webContactInvite WebContactInvite?
+  groupsCreated    Group[]       @relation("GroupsCreated")
+  groupMemberships GroupMember[] @relation("GroupMemberships")
 }
 
 model OtpCode {
@@ -168,6 +170,35 @@ model SplitSession {
   updatedAt    DateTime    @updatedAt
   bills        BillItem[]
   participantInvites SplitParticipantInvite[]
+  groupId      String?
+  group        Group?      @relation(fields: [groupId], references: [id])
+}
+
+model Group {
+  id          String        @id @default(cuid())
+  name        String
+  createdById String
+  createdBy   User          @relation("GroupsCreated", fields: [createdById], references: [id])
+  members     GroupMember[]
+  splits      SplitSession[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model GroupMember {
+  id          String            @id @default(cuid())
+  groupId     String
+  group       Group             @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?             @relation("GroupMemberships", fields: [userId], references: [id])
+  name        String
+  email       String?
+  phone       String?
+  inviteToken String?           @unique
+  invitedAt   DateTime?
+  joinedAt    DateTime?
+  status      GroupMemberStatus @default(NAME_ONLY)
+  createdAt   DateTime          @default(now())
 }
 
 model SplitParticipantInvite {
@@ -232,6 +263,12 @@ enum RecurringInterval {
   WEEKLY
   BIWEEKLY
   MONTHLY
+}
+
+enum GroupMemberStatus {
+  ACTIVE
+  PENDING
+  NAME_ONLY
 }
 
 enum OtpType {

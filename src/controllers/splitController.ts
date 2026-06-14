@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Currency, SplitType } from "@prisma/client";
 import { findUserById, getDisplayName } from "../services/userService";
+import prisma from "../db/prisma";
 import { bot } from "../bot/index";
 import { notifySplitParticipants } from "../utils/splitNotifications";
 import {
@@ -52,6 +53,7 @@ export async function listSessions(
         isPublic: s.isPublic,
         lockedAt: s.lockedAt,
         createdAt: s.createdAt,
+        groupId: s.groupId ?? null,
       })),
     );
   } catch {
@@ -63,11 +65,12 @@ export async function createSession(
   req: Request,
   res: Response,
 ): Promise<void> {
-  const { name, currency, participants, participantTelegramIds } = req.body as {
+  const { name, currency, participants, participantTelegramIds, groupId } = req.body as {
     name?: string;
     currency?: string;
     participants?: unknown;
     participantTelegramIds?: unknown;
+    groupId?: string;
   };
 
   if (!currency || !ALL_CURRENCIES.includes(currency)) {
@@ -123,12 +126,33 @@ export async function createSession(
       res.status(401).json({ error: "User not found." });
       return;
     }
+
+    // Validate group membership if groupId provided
+    if (groupId) {
+      const group = await prisma.group.findUnique({
+        where: { id: groupId },
+        include: { members: { select: { userId: true } } },
+      });
+      if (!group) {
+        res.status(404).json({ error: "Group not found." });
+        return;
+      }
+      const isMember =
+        group.createdById === viewer.id ||
+        group.members.some((m) => m.userId === viewer.id);
+      if (!isMember) {
+        res.status(403).json({ error: "Not a member of this group." });
+        return;
+      }
+    }
+
     const session = await createDraftSession(
       viewer.id,
       name || undefined,
       currency as Currency,
       participants as string[],
       participantTelegramIds as string[] | undefined,
+      groupId,
     );
     res.status(201).json({ id: session.id });
   } catch {
@@ -191,6 +215,7 @@ export async function getSession(req: Request, res: Response): Promise<void> {
       expiresAt: session.expiresAt,
       lockedAt: session.lockedAt,
       createdAt: session.createdAt,
+      groupId: session.groupId ?? null,
     });
   } catch {
     res.status(500).json({ error: "Failed to get session." });

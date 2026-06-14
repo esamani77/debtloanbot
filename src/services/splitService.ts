@@ -30,10 +30,18 @@ export async function createDraftSession(
   currency: Currency,
   participants: string[],
   participantTelegramIds?: string[],
+  groupId?: string,
 ): Promise<{ id: string }> {
   const telegramIds = participantTelegramIds ?? participants.map(() => '');
   return prisma.splitSession.create({
-    data: { createdById: userId, name: name ?? null, currency, participants, participantTelegramIds: telegramIds },
+    data: {
+      createdById: userId,
+      name: name ?? null,
+      currency,
+      participants,
+      participantTelegramIds: telegramIds,
+      ...(groupId ? { groupId } : {}),
+    },
     select: { id: true },
   });
 }
