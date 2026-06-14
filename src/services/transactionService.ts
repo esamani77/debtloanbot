@@ -160,6 +160,7 @@ export async function updateTransaction(
 
   const rel = tx.relationship;
   if (rel.userAId !== viewerId && rel.userBId !== viewerId) throw new Error('Not authorized.');
+  if (tx.isSettled) throw new Error('Transaction is already settled.');
   if (data.amount !== undefined && data.amount <= 0) {
     throw new Error('Transaction amount must be a positive number.');
   }
@@ -189,12 +190,16 @@ export async function settleTransaction(transactionId: string, viewerId: string)
   const rel = tx.relationship;
   if (rel.userAId !== viewerId && rel.userBId !== viewerId) throw new Error('Not authorized.');
 
+  if (tx.isSettled) {
+    return { transaction: tx, relationship: rel, alreadySettled: true as const };
+  }
+
   const updated = await prisma.transaction.update({
     where: { id: transactionId },
     data: { isSettled: true },
   });
 
-  return { transaction: updated, relationship: rel };
+  return { transaction: updated, relationship: rel, alreadySettled: false as const };
 }
 
 export async function settleAllTransactions(relationshipId: string, viewerId: string) {
@@ -225,7 +230,7 @@ export async function deleteTransaction(transactionId: string, viewerId: string)
   const rel = tx.relationship;
   if (rel.userAId !== viewerId && rel.userBId !== viewerId) throw new Error('Not authorized.');
 
-  const snapshot = { id: tx.id, amount: tx.amount, type: tx.type, note: tx.note };
+  const snapshot = { id: tx.id, amount: tx.amount, type: tx.type, note: tx.note, createdById: tx.createdById };
 
   await prisma.transaction.delete({ where: { id: transactionId } });
 

@@ -19,7 +19,7 @@ export async function createTransaction(req: Request, res: Response): Promise<vo
     res.status(400).json({ error: 'contactId is required.' });
     return;
   }
-  if (typeof amount !== 'number' || amount <= 0) {
+  if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
     res.status(400).json({ error: 'amount must be a positive number.' });
     return;
   }
@@ -95,7 +95,10 @@ export async function updateTransaction(req: Request, res: Response): Promise<vo
     if (contact.telegramId) {
       const contactT = useT(contact.language);
       const sym = currencySymbol(relationship.currency, contact.language);
-      const notifyMsg = transaction.type === 'LOAN'
+      const effectiveType = transaction.createdById === viewer.id
+        ? transaction.type
+        : (transaction.type === 'LOAN' ? 'DEBT' : 'LOAN');
+      const notifyMsg = effectiveType === 'LOAN'
         ? contactT.notifyEditedLoan(getDisplayName(viewer), sym, transaction.amount.toFixed(2))
         : contactT.notifyEditedDebt(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
       const fullMsg = transaction.note ? `${notifyMsg}\n${contactT.notifyNote(transaction.note)}` : notifyMsg;
@@ -105,6 +108,7 @@ export async function updateTransaction(req: Request, res: Response): Promise<vo
     const msg = err instanceof Error ? err.message : '';
     if (msg === 'Not authorized.') { res.status(403).json({ error: msg }); return; }
     if (msg === 'Transaction not found.') { res.status(404).json({ error: msg }); return; }
+    if (msg === 'Transaction is already settled.') { res.status(422).json({ error: msg }); return; }
     res.status(500).json({ error: 'Failed to update transaction.' });
   }
 }
@@ -115,9 +119,11 @@ export async function settleTransaction(req: Request, res: Response): Promise<vo
   try {
     const viewer = await findUserById(res.locals.userId as string);
     if (!viewer) { res.status(401).json({ error: 'User not found.' }); return; }
-    const { transaction, relationship } = await settleTransactionService(id, viewer.id);
+    const { transaction, relationship, alreadySettled } = await settleTransactionService(id, viewer.id);
 
     res.json({ id: transaction.id, isSettled: transaction.isSettled });
+
+    if (alreadySettled) return;
 
     const contact = relationship.userAId === viewer.id ? relationship.userB : relationship.userA;
     if (contact.telegramId) {
@@ -153,7 +159,10 @@ export async function deleteTransaction(req: Request, res: Response): Promise<vo
     if (contact.telegramId) {
       const contactT = useT(contact.language);
       const sym = currencySymbol(relationship.currency, contact.language);
-      const notifyMsg = deletedTransaction.type === 'LOAN'
+      const effectiveType = deletedTransaction.createdById === viewer.id
+        ? deletedTransaction.type
+        : (deletedTransaction.type === 'LOAN' ? 'DEBT' : 'LOAN');
+      const notifyMsg = effectiveType === 'LOAN'
         ? contactT.notifyDeletedLoan(getDisplayName(viewer), sym, deletedTransaction.amount.toFixed(2))
         : contactT.notifyDeletedDebt(getDisplayName(viewer), sym, deletedTransaction.amount.toFixed(2));
       bot.telegram.sendMessage(contact.telegramId, notifyMsg, { parse_mode: 'Markdown' }).catch(() => {});
