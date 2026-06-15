@@ -43,14 +43,12 @@ export async function getRelationshipBetween(
   userAId: string,
   userBId: string
 ): Promise<Relationship | null> {
-  const [firstId, secondId] = [userAId, userBId].sort();
-
-  return prisma.relationship.findUnique({
+  return prisma.relationship.findFirst({
     where: {
-      userAId_userBId: {
-        userAId: firstId,
-        userBId: secondId,
-      },
+      OR: [
+        { userAId: userAId, userBId: userBId },
+        { userAId: userBId, userBId: userAId },
+      ],
     },
   });
 }
