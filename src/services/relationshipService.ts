@@ -81,6 +81,7 @@ export async function getUserRelationships(
       userA: true,
       userB: true,
       transactions: {
+        where: { isSettled: false },
         select: {
           amount: true,
           type: true,
