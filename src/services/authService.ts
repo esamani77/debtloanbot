@@ -198,12 +198,9 @@ async function mergeBotUserIntoWebUser(primaryId: string, secondaryId: string): 
         });
         await tx.relationship.delete({ where: { id: rel.id } });
       } else {
-        // Re-point the relationship to the primary user
-        if (rel.userAId === secondaryId) {
-          await tx.relationship.update({ where: { id: rel.id }, data: { userAId: primaryId } });
-        } else {
-          await tx.relationship.update({ where: { id: rel.id }, data: { userBId: primaryId } });
-        }
+        // Re-point the relationship to the primary user, preserving the sorted-ID invariant
+        const [sortedA, sortedB] = [primaryId, counterpartyId].sort();
+        await tx.relationship.update({ where: { id: rel.id }, data: { userAId: sortedA, userBId: sortedB } });
       }
     }
 
