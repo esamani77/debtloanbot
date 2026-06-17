@@ -2,8 +2,13 @@ import { Request, Response } from 'express';
 import { TransactionType } from '@prisma/client';
 import { findUserById, getDisplayName } from '../services/userService';
 import { getRelationshipBetween } from '../services/relationshipService';
-import { addTransaction, updateTransaction as updateTransactionService, deleteTransaction as deleteTransactionService, settleTransaction as settleTransactionService } from '../services/transactionService';
-import { bot } from '../bot';
+import {
+  addTransaction,
+  updateTransaction as updateTransactionService,
+  deleteTransaction as deleteTransactionService,
+  settleTransaction as settleTransactionService,
+} from '../services/transactionService';
+import { createAndNotify, NotificationType } from '../services/notificationService';
 import { useT } from '../i18n';
 import { currencySymbol } from '../utils/currency';
 
@@ -46,22 +51,6 @@ export async function createTransaction(req: Request, res: Response): Promise<vo
       note: note || undefined,
     });
 
-    const contact = await findUserById(contactId);
-    if (contact?.telegramId) {
-      const contactT = useT(contact.language);
-      const sym = currencySymbol(relationship.currency, contact.language);
-      const notifyMsg = type === 'DEBT'
-        ? contactT.notifyBorrowed(getDisplayName(viewer), sym, transaction.amount.toFixed(2))
-        : contactT.notifyLent(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
-      const fullMsg = note ? `${notifyMsg}\n${contactT.notifyNote(note)}` : notifyMsg;
-      bot.telegram.sendMessage(contact.telegramId, fullMsg, {
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: [[{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId ?? viewer.id}` }]],
-        },
-      }).catch(() => {});
-    }
-
     res.status(201).json({
       id: transaction.id,
       amount: transaction.amount,
@@ -70,6 +59,31 @@ export async function createTransaction(req: Request, res: Response): Promise<vo
       currency: relationship.currency,
       createdAt: transaction.createdAt,
     });
+
+    const contact = await findUserById(contactId);
+    if (!contact) return;
+
+    const contactT = useT(contact.language);
+    const sym = currencySymbol(relationship.currency, contact.language);
+    const tgMsg = type === 'DEBT'
+      ? contactT.notifyBorrowed(getDisplayName(viewer), sym, transaction.amount.toFixed(2))
+      : contactT.notifyLent(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
+    const tgFull = note ? `${tgMsg}\n${contactT.notifyNote(note)}` : tgMsg;
+
+    const title = type === 'DEBT'
+      ? `${getDisplayName(viewer)} recorded a debt`
+      : `${getDisplayName(viewer)} recorded a loan`;
+    const body = `${sym} ${transaction.amount.toFixed(2)}${note ? ` — ${note}` : ''}`;
+
+    createAndNotify(
+      contact.id,
+      NotificationType.TRANSACTION_ADDED,
+      title,
+      body,
+      { transactionId: transaction.id, contactId: viewer.id },
+      tgFull,
+      { reply_markup: { inline_keyboard: [[{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId ?? viewer.id}` }]] } },
+    ).catch(() => {});
   } catch {
     res.status(500).json({ error: 'Failed to create transaction.' });
   }
@@ -92,18 +106,27 @@ export async function updateTransaction(req: Request, res: Response): Promise<vo
     res.json({ id: transaction.id, amount: transaction.amount, note: transaction.note });
 
     const contact = relationship.userAId === viewer.id ? relationship.userB : relationship.userA;
-    if (contact.telegramId) {
-      const contactT = useT(contact.language);
-      const sym = currencySymbol(relationship.currency, contact.language);
-      const effectiveType = transaction.createdById === viewer.id
-        ? transaction.type
-        : (transaction.type === 'LOAN' ? 'DEBT' : 'LOAN');
-      const notifyMsg = effectiveType === 'LOAN'
-        ? contactT.notifyEditedLoan(getDisplayName(viewer), sym, transaction.amount.toFixed(2))
-        : contactT.notifyEditedDebt(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
-      const fullMsg = transaction.note ? `${notifyMsg}\n${contactT.notifyNote(transaction.note)}` : notifyMsg;
-      bot.telegram.sendMessage(contact.telegramId, fullMsg, { parse_mode: 'Markdown' }).catch(() => {});
-    }
+    const contactT = useT(contact.language);
+    const sym = currencySymbol(relationship.currency, contact.language);
+    const effectiveType = transaction.createdById === viewer.id
+      ? transaction.type
+      : (transaction.type === 'LOAN' ? 'DEBT' : 'LOAN');
+    const tgMsg = effectiveType === 'LOAN'
+      ? contactT.notifyEditedLoan(getDisplayName(viewer), sym, transaction.amount.toFixed(2))
+      : contactT.notifyEditedDebt(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
+    const tgFull = transaction.note ? `${tgMsg}\n${contactT.notifyNote(transaction.note)}` : tgMsg;
+
+    const title = `${getDisplayName(viewer)} edited a transaction`;
+    const body = `${sym} ${transaction.amount.toFixed(2)}${transaction.note ? ` — ${transaction.note}` : ''}`;
+
+    createAndNotify(
+      contact.id,
+      NotificationType.TRANSACTION_EDITED,
+      title,
+      body,
+      { transactionId: transaction.id, contactId: viewer.id },
+      tgFull,
+    ).catch(() => {});
   } catch (err) {
     const msg = err instanceof Error ? err.message : '';
     if (msg === 'Not authorized.') { res.status(403).json({ error: msg }); return; }
@@ -126,17 +149,22 @@ export async function settleTransaction(req: Request, res: Response): Promise<vo
     if (alreadySettled) return;
 
     const contact = relationship.userAId === viewer.id ? relationship.userB : relationship.userA;
-    if (contact.telegramId) {
-      const contactT = useT(contact.language);
-      const sym = currencySymbol(relationship.currency, contact.language);
-      const notifyMsg = contactT.notifySettledTransaction(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
-      bot.telegram.sendMessage(contact.telegramId, notifyMsg, {
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: [[{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId ?? viewer.id}` }]],
-        },
-      }).catch(() => {});
-    }
+    const contactT = useT(contact.language);
+    const sym = currencySymbol(relationship.currency, contact.language);
+    const tgMsg = contactT.notifySettledTransaction(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
+
+    const title = `${getDisplayName(viewer)} settled a transaction`;
+    const body = `${sym} ${transaction.amount.toFixed(2)} marked as settled`;
+
+    createAndNotify(
+      contact.id,
+      NotificationType.TRANSACTION_SETTLED,
+      title,
+      body,
+      { transactionId: transaction.id, contactId: viewer.id },
+      tgMsg,
+      { reply_markup: { inline_keyboard: [[{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId ?? viewer.id}` }]] } },
+    ).catch(() => {});
   } catch (err) {
     const msg = err instanceof Error ? err.message : '';
     if (msg === 'Not authorized.') { res.status(403).json({ error: msg }); return; }
@@ -156,17 +184,26 @@ export async function deleteTransaction(req: Request, res: Response): Promise<vo
     res.status(204).send();
 
     const contact = relationship.userAId === viewer.id ? relationship.userB : relationship.userA;
-    if (contact.telegramId) {
-      const contactT = useT(contact.language);
-      const sym = currencySymbol(relationship.currency, contact.language);
-      const effectiveType = deletedTransaction.createdById === viewer.id
-        ? deletedTransaction.type
-        : (deletedTransaction.type === 'LOAN' ? 'DEBT' : 'LOAN');
-      const notifyMsg = effectiveType === 'LOAN'
-        ? contactT.notifyDeletedLoan(getDisplayName(viewer), sym, deletedTransaction.amount.toFixed(2))
-        : contactT.notifyDeletedDebt(getDisplayName(viewer), sym, deletedTransaction.amount.toFixed(2));
-      bot.telegram.sendMessage(contact.telegramId, notifyMsg, { parse_mode: 'Markdown' }).catch(() => {});
-    }
+    const contactT = useT(contact.language);
+    const sym = currencySymbol(relationship.currency, contact.language);
+    const effectiveType = deletedTransaction.createdById === viewer.id
+      ? deletedTransaction.type
+      : (deletedTransaction.type === 'LOAN' ? 'DEBT' : 'LOAN');
+    const tgMsg = effectiveType === 'LOAN'
+      ? contactT.notifyDeletedLoan(getDisplayName(viewer), sym, deletedTransaction.amount.toFixed(2))
+      : contactT.notifyDeletedDebt(getDisplayName(viewer), sym, deletedTransaction.amount.toFixed(2));
+
+    const title = `${getDisplayName(viewer)} deleted a transaction`;
+    const body = `${sym} ${deletedTransaction.amount.toFixed(2)} was removed`;
+
+    createAndNotify(
+      contact.id,
+      NotificationType.TRANSACTION_DELETED,
+      title,
+      body,
+      { contactId: viewer.id },
+      tgMsg,
+    ).catch(() => {});
   } catch (err) {
     const msg = err instanceof Error ? err.message : '';
     if (msg === 'Not authorized.') { res.status(403).json({ error: msg }); return; }

@@ -34,6 +34,8 @@ model User {
   webContactInvite WebContactInvite?
   groupsCreated    Group[]       @relation("GroupsCreated")
   groupMemberships GroupMember[] @relation("GroupMemberships")
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
 }
 
 model OtpCode {
@@ -278,6 +280,52 @@ enum OtpType {
   PHONE_CONNECT
   EMAIL_RESET
   PHONE_RESET
+}
+
+enum NotificationType {
+  TRANSACTION_ADDED
+  TRANSACTION_EDITED
+  TRANSACTION_SETTLED
+  TRANSACTION_DELETED
+  SPLIT_SHARED
+  SETTLEMENT_REQUESTED
+  RECURRING_TRANSACTION
+}
+
+enum PushPlatform {
+  WEB
+  ANDROID
+  IOS
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model PushSubscription {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform  PushPlatform
+  endpoint  String?
+  p256dh    String?
+  auth      String?
+  fcmToken  String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([userId, endpoint])
+  @@unique([userId, fcmToken])
 }
 
 model PendingInvite {

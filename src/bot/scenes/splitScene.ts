@@ -28,6 +28,7 @@ import {
   getDisplayName,
   findOrCreateUser,
 } from "../../services/userService";
+import { normalizeDigits } from "../../utils/digits";
 import { notifySplitParticipants } from "../../utils/splitNotifications";
 import { getUserRelationships } from "../../services/relationshipService";
 import { generateInviteLink } from "../../utils/inviteLink";
@@ -521,7 +522,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     }
 
     if (!ctx.message || !("text" in ctx.message)) return;
-    const amount = parseFloat(ctx.message.text.trim());
+    const amount = parseFloat(normalizeDigits(ctx.message.text.trim()).replace(/,/g, ''));
     if (isNaN(amount) || amount <= 0) {
       await ctx.reply(t.splitInvalidAmount);
       return;
@@ -639,7 +640,7 @@ export const splitScene = new Scenes.WizardScene<BotContext>(
     }
 
     if (!ctx.message || !("text" in ctx.message)) return;
-    const val = parseFloat(ctx.message.text.trim());
+    const val = parseFloat(normalizeDigits(ctx.message.text.trim()).replace(/,/g, ''));
     if (isNaN(val) || val < 0) {
       await ctx.reply(t.splitInvalidAmount);
       return;

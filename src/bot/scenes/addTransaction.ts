@@ -7,6 +7,7 @@ import { addTransaction } from "../../services/transactionService";
 import { createRecurringTransaction } from "../../services/recurringTransactionService";
 import { currencySymbol } from "../../utils/currency";
 import { useT } from "../../i18n";
+import { normalizeDigits } from "../../utils/digits";
 
 interface WizardState {
   transactionType?: TransactionType;
@@ -109,7 +110,7 @@ export const addTransactionScene = new Scenes.WizardScene<BotContext>(
       return;
     }
 
-    const amount = parseFloat(ctx.message.text.trim());
+    const amount = parseFloat(normalizeDigits(ctx.message.text.trim()).replace(/,/g, ''));
 
     if (isNaN(amount) || amount <= 0) {
       await ctx.reply(

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { findUserById } from '../services/userService';
+import { normalizeDigits } from '../utils/digits';
 import {
   getUserBankAccounts,
   addBankAccount,
@@ -37,13 +38,13 @@ function parseBody(body: unknown): { name: string; cardNumber: string; accountNu
     typeof b.bankName !== 'string' || !b.bankName.trim()
   ) return null;
 
-  const digits = b.cardNumber.replace(/\D/g, '');
+  const digits = normalizeDigits(b.cardNumber).replace(/\D/g, '');
   if (digits.length !== 16) return null;
 
   return {
     name: b.name.trim(),
     cardNumber: digits,
-    accountNumber: (b.accountNumber as string).trim(),
+    accountNumber: normalizeDigits((b.accountNumber as string).trim()),
     bankName: (b.bankName as string).trim(),
   };
 }

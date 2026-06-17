@@ -1,9 +1,9 @@
 import cron from "node-cron";
-import { bot } from "../bot";
 import { useT } from "../i18n";
 import { currencySymbol } from "../utils/currency";
 import { getDisplayName } from "../services/userService";
 import { getDueRecurringTransactions, materializeRecurring } from "../services/recurringTransactionService";
+import { createAndNotify, NotificationType } from "../services/notificationService";
 import { Sentry } from "../sentry";
 
 const INTERVAL_LABELS: Record<string, string> = {
@@ -33,28 +33,31 @@ async function processRecurringTransactions(): Promise<void> {
       const creatorT = useT(creator.language);
       const contactT = useT(contact.language);
 
-      if (creator.telegramId) {
-        bot.telegram
-          .sendMessage(
-            creator.telegramId,
-            creatorT.recurringMaterialized(intervalLabel, creatorSym, transaction.amount.toFixed(2), getDisplayName(contact)),
-            { parse_mode: "Markdown" },
-          )
-          .catch(() => {});
-      }
+      // Notify creator
+      createAndNotify(
+        creator.id,
+        NotificationType.RECURRING_TRANSACTION,
+        `Recurring transaction fired`,
+        `${intervalLabel} · ${creatorSym} ${transaction.amount.toFixed(2)} with ${getDisplayName(contact)}`,
+        { transactionId: transaction.id, contactId: contact.id },
+        creatorT.recurringMaterialized(intervalLabel, creatorSym, transaction.amount.toFixed(2), getDisplayName(contact)),
+      ).catch(() => {});
 
-      const notifyMsg =
-        item.type === "DEBT"
-          ? contactT.notifyBorrowed(getDisplayName(creator), contactSym, transaction.amount.toFixed(2))
-          : contactT.notifyLent(getDisplayName(creator), contactSym, transaction.amount.toFixed(2));
+      // Notify contact
+      const tgMsg = item.type === "DEBT"
+        ? contactT.notifyBorrowed(getDisplayName(creator), contactSym, transaction.amount.toFixed(2))
+        : contactT.notifyLent(getDisplayName(creator), contactSym, transaction.amount.toFixed(2));
       const noteMsgPart = item.note ? `\n${contactT.notifyNote(item.note)}` : "";
       const recurringPart = `\n${contactT.recurringLabel(intervalLabel)}`;
 
-      if (contact.telegramId) {
-        bot.telegram
-          .sendMessage(contact.telegramId, `${notifyMsg}${noteMsgPart}${recurringPart}`, { parse_mode: "Markdown" })
-          .catch(() => {});
-      }
+      createAndNotify(
+        contact.id,
+        NotificationType.RECURRING_TRANSACTION,
+        `Recurring transaction from ${getDisplayName(creator)}`,
+        `${intervalLabel} · ${contactSym} ${transaction.amount.toFixed(2)}${item.note ? ` — ${item.note}` : ""}`,
+        { transactionId: transaction.id, contactId: creator.id },
+        `${tgMsg}${noteMsgPart}${recurringPart}`,
+      ).catch(() => {});
 
       console.log(`[recurringJob] Materialized ${item.id}`);
       Sentry.logger.info("Recurring transaction materialized", { id: item.id });

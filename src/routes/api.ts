@@ -8,6 +8,8 @@ import splitsRouter from './splits';
 import recurringRouter from './recurring';
 import expensesRouter from './expenses';
 import expenseCategoriesRouter from './expenseCategories';
+import notificationsRouter from './notifications';
+import pushRouter from './push';
 
 const router = Router();
 
@@ -21,5 +23,7 @@ router.use('/splits', splitsRouter);
 router.use('/recurring', recurringRouter);
 router.use('/expenses', expensesRouter);
 router.use('/expense-categories', expenseCategoriesRouter);
+router.use('/notifications', notificationsRouter);
+router.use('/push', pushRouter);
 
 export default router;

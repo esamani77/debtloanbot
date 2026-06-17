@@ -4,6 +4,7 @@ import prisma from "../db/prisma";
 import { useT } from "../i18n";
 import { currencySymbol } from "./currency";
 import type { Transfer } from "./debtSimplification";
+import { createAndNotify, NotificationType } from "../services/notificationService";
 
 const BOT_USERNAME = process.env.BOT_USERNAME ?? "debt_mate_bot";
 
@@ -37,28 +38,29 @@ export async function notifySplitParticipants({
     if (!rawId) continue;
 
     let chatId: string | undefined;
+    let dbUser: { id: string; language: Language; telegramId: string | null } | null = null;
+
     if (/^\d+$/.test(rawId)) {
       if (rawId === creatorTelegramId) continue;
       chatId = rawId;
-    } else if (rawId.startsWith("@")) {
-      const user = await prisma.user.findFirst({
-        where: { username: rawId.slice(1).toLowerCase() },
-        select: { telegramId: true },
+      dbUser = await prisma.user.findFirst({
+        where: { telegramId: chatId },
+        select: { id: true, language: true, telegramId: true },
       });
-      if (user?.telegramId) {
-        if (user.telegramId === creatorTelegramId) continue;
-        chatId = user.telegramId;
+    } else if (rawId.startsWith("@")) {
+      dbUser = await prisma.user.findFirst({
+        where: { username: rawId.slice(1).toLowerCase() },
+        select: { id: true, language: true, telegramId: true },
+      });
+      if (dbUser?.telegramId) {
+        if (dbUser.telegramId === creatorTelegramId) continue;
+        chatId = dbUser.telegramId;
       }
     }
-    if (!chatId) continue;
 
-    const dbUser = await prisma.user.findFirst({
-      where: { telegramId: chatId },
-      select: { language: true },
-    });
     const language = dbUser?.language ?? Language.EN;
     const T = useT(language);
-    const sym = currencySymbol(currency as any, language);
+    const sym = currencySymbol(currency as Parameters<typeof currencySymbol>[0], language);
 
     const myName = participants[i];
     const myBalance = netBalances[i];
@@ -66,7 +68,7 @@ export async function notifySplitParticipants({
       (t) => t.from === myName || t.to === myName,
     );
 
-    const msg = T.splitNotifyResultsReady(
+    const tgMsg = T.splitNotifyResultsReady(
       creatorName,
       sessionName,
       sym,
@@ -74,8 +76,28 @@ export async function notifySplitParticipants({
       myTransfers,
       shareLink,
     );
-    await telegram
-      .sendMessage(chatId, msg, { parse_mode: "Markdown" })
-      .catch(() => {});
+
+    if (dbUser) {
+      const splitTitle = sessionName
+        ? `Split results: ${sessionName}`
+        : `${creatorName} shared split results`;
+      const splitBody = myBalance === 0
+        ? `You're all settled up in this split`
+        : myBalance > 0
+          ? `You are owed ${sym} ${Math.abs(myBalance).toFixed(2)}`
+          : `You owe ${sym} ${Math.abs(myBalance).toFixed(2)}`;
+
+      createAndNotify(
+        dbUser.id,
+        NotificationType.SPLIT_SHARED,
+        splitTitle,
+        splitBody,
+        { splitId: shareToken },
+        tgMsg,
+      ).catch(() => {});
+    } else if (chatId) {
+      // Participant isn't registered — Telegram-only fallback
+      telegram.sendMessage(chatId, tgMsg, { parse_mode: "Markdown" }).catch(() => {});
+    }
   }
 }

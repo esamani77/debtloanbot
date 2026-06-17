@@ -3,10 +3,10 @@ import { findUserById, getDisplayName } from '../services/userService';
 import { getUserRelationships, getRelationshipBetween } from '../services/relationshipService';
 import { getBalance, getRecentTransactions, settleAllTransactions as settleAllService } from '../services/transactionService';
 import { getUserBankAccounts } from '../services/bankAccountService';
-import { bot } from '../bot';
 import { useT } from '../i18n';
 import { currencySymbol } from '../utils/currency';
 import prisma from '../db/prisma';
+import { createAndNotify, NotificationType } from '../services/notificationService';
 
 export async function listContacts(req: Request, res: Response): Promise<void> {
   try {
@@ -92,16 +92,17 @@ export async function settleAllTransactions(req: Request, res: Response): Promis
 
     if (count > 0) {
       const contact = rel.userAId === viewer.id ? rel.userB : rel.userA;
-      if (contact.telegramId) {
-        const contactT = useT(contact.language);
-        const notifyMsg = contactT.notifySettledAll(getDisplayName(viewer));
-        bot.telegram.sendMessage(contact.telegramId, notifyMsg, {
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [[{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId ?? viewer.id}` }]],
-          },
-        }).catch(() => {});
-      }
+      const contactT = useT(contact.language);
+      const tgMsg = contactT.notifySettledAll(getDisplayName(viewer));
+      createAndNotify(
+        contact.id,
+        NotificationType.TRANSACTION_SETTLED,
+        `${getDisplayName(viewer)} settled all transactions`,
+        `All debts between you and ${getDisplayName(viewer)} are now settled`,
+        { contactId: viewer.id },
+        tgMsg,
+        { reply_markup: { inline_keyboard: [[{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId ?? viewer.id}` }]] } },
+      ).catch(() => {});
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : '';
@@ -137,8 +138,8 @@ export async function requestSettlement(req: Request, res: Response): Promise<vo
 
     const contactUserId = relationship.userAId === viewer.id ? relationship.userBId : relationship.userAId;
     const contact = await findUserById(contactUserId);
-    if (!contact || !contact.telegramId) {
-      res.status(400).json({ error: 'Contact has no Telegram account.' });
+    if (!contact) {
+      res.status(404).json({ error: 'Contact not found.' });
       return;
     }
 
@@ -147,17 +148,23 @@ export async function requestSettlement(req: Request, res: Response): Promise<vo
     const sym = currencySymbol(relationship.currency, contact.language);
     const senderName = getDisplayName(viewer);
 
-    await bot.telegram.sendMessage(
-      contact.telegramId,
-      contactT.settlementRequestReceivedWithAccount(
-        senderName,
-        sym,
-        amount.toFixed(2),
-        acct.bankName,
-        acct.cardNumber,
-        acct.accountNumber,
-      ),
-      { parse_mode: 'Markdown' },
+    const tgMsg = contactT.settlementRequestReceivedWithAccount(
+      senderName,
+      sym,
+      amount.toFixed(2),
+      acct.bankName,
+      acct.cardNumber,
+      acct.accountNumber,
+    );
+    const body = `${senderName} is requesting ${sym} ${amount.toFixed(2)} — ${acct.bankName} ${acct.cardNumber}`;
+
+    createAndNotify(
+      contact.id,
+      NotificationType.SETTLEMENT_REQUESTED,
+      `${senderName} requested settlement`,
+      body,
+      { contactId: viewer.id },
+      tgMsg,
     ).catch(() => {});
 
     res.json({ ok: true });

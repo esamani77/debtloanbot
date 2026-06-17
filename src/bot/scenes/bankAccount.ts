@@ -13,6 +13,7 @@ import { getBalance } from '../../services/transactionService';
 import { currencySymbol } from '../../utils/currency';
 import { settlementReqCooldowns } from '../settlementCooldown';
 import { useT } from '../../i18n';
+import { normalizeDigits } from '../../utils/digits';
 
 interface BankAccountWizardState {
   mode?: 'add' | 'edit';
@@ -98,7 +99,7 @@ export const bankAccountScene = new Scenes.WizardScene<BotContext>(
       return;
     }
 
-    const raw = ctx.message.text.trim();
+    const raw = normalizeDigits(ctx.message.text.trim());
     const digits = raw.replace(/\D/g, '');
 
     if (digits.length !== 16) {
@@ -141,7 +142,7 @@ export const bankAccountScene = new Scenes.WizardScene<BotContext>(
       return;
     }
 
-    state.accountNumber = ctx.message.text.trim() || state.prefillAccountNumber;
+    state.accountNumber = normalizeDigits(ctx.message.text.trim()) || state.prefillAccountNumber;
 
     const hint = state.prefillBankName ? ` (current: ${state.prefillBankName})` : '';
     await ctx.reply(`${T.acctEnterBankName}${hint}`, {
