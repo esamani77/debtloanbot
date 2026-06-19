@@ -360,8 +360,16 @@ export const en: Translations = {
     return `🧾 *${name ?? 'Unnamed Split'}*\n💱 ${currency} (${sym})\n👥 ${participants.join(', ')}\n📋 ${billCount} bill${billCount !== 1 ? 's' : ''}\n${statusLabels[status] ?? status}`;
   },
   splitBtnAddBillToSession: '➕ Add Bill',
+  splitBtnEditBills: '✏️ Edit Bills',
   splitBtnRecalculate: '🧮 Recalculate',
   splitBtnShareSession: '🔗 Share',
+  splitEditBillsList: (bills: Array<{ name: string; totalAmount: number; currency: string }>) =>
+    `✏️ *Select a bill to edit or delete:*\n\n${bills.map((b, i) => `${i + 1}. ${b.name} — ${b.totalAmount} ${b.currency}`).join('\n')}`,
+  splitBtnEditBill: (name: string) => `✏️ ${name}`,
+  splitBtnDeleteBill: (name: string) => `🗑️ ${name}`,
+  splitBillDeleted: (name: string) => `✅ Bill *${name}* deleted.`,
+  splitBillDeleteFailed: '❌ Failed to delete bill.',
+  splitEditBillAskName: (current: string) => `📝 Enter new name for this bill.\n\nCurrent: *${current}*\n\n_(Send current name to keep it)_`,
   splitNoSessions: '🧾 *Bill Splitting*\n\nNo splits yet. Start one now!',
   splitAddingBillToSession: (name) => `➕ *Adding bill to "${name ?? 'split'}"*\n\nWhat was this expense?`,
 

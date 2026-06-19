@@ -17,6 +17,8 @@ import {
   updateSessionMeta,
   resetSessionToDraft,
   replaceAllBills,
+  updateBillInSession,
+  deleteBillFromSession,
   joinSession,
   isSessionMember,
   setSessionPublic,
@@ -635,6 +637,96 @@ export async function replaceSessionBills(
     res.json({ ok: true, billCount: typedBills.length });
   } catch {
     res.status(500).json({ error: "Failed to replace bills." });
+  }
+}
+
+export async function updateBill(req: Request, res: Response): Promise<void> {
+  const { name, totalAmount, paidByIndex, splitType, shares } = req.body as {
+    name?: string;
+    totalAmount?: number;
+    paidByIndex?: number;
+    splitType?: string;
+    shares?: unknown;
+  };
+
+  if (!name || typeof name !== "string" || !name.trim()) {
+    res.status(400).json({ error: "name is required." });
+    return;
+  }
+  if (typeof totalAmount !== "number" || totalAmount <= 0) {
+    res.status(400).json({ error: "totalAmount must be a positive number." });
+    return;
+  }
+  if (typeof paidByIndex !== "number" || paidByIndex < 0) {
+    res.status(400).json({ error: "paidByIndex must be a non-negative integer." });
+    return;
+  }
+  if (!splitType || !SPLIT_TYPES.includes(splitType)) {
+    res.status(400).json({ error: `splitType must be one of: ${SPLIT_TYPES.join(", ")}.` });
+    return;
+  }
+  if (!Array.isArray(shares) || shares.some((s) => typeof s !== "number")) {
+    res.status(400).json({ error: "shares must be an array of numbers." });
+    return;
+  }
+
+  try {
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: "User not found." }); return; }
+
+    const session = await getSessionById(String(req.params.id));
+    if (!session) { res.status(404).json({ error: "Session not found." }); return; }
+    if (!isSessionMember(session, viewer.id)) { res.status(403).json({ error: "Access denied." }); return; }
+    if (session.lockedAt) { res.status(423).json({ error: "Session is locked and cannot be modified." }); return; }
+    if (paidByIndex >= session.participants.length) {
+      res.status(400).json({ error: "paidByIndex out of range." });
+      return;
+    }
+    if ((shares as number[]).length !== session.participants.length) {
+      res.status(400).json({ error: `shares must have exactly ${session.participants.length} entries.` });
+      return;
+    }
+
+    const bill = await updateBillInSession(String(req.params.id), String(req.params.billId), {
+      name: name.trim(),
+      totalAmount,
+      paidByIndex,
+      splitType: splitType as SplitType,
+      shares: shares as number[],
+    });
+
+    res.json({
+      id: bill.id,
+      name: bill.name,
+      totalAmount: bill.totalAmount,
+      paidByIndex: bill.paidByIndex,
+      paidBy: session.participants[bill.paidByIndex],
+      splitType: bill.splitType,
+      shares: bill.shares,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg === "Bill not found") { res.status(404).json({ error: msg }); return; }
+    res.status(500).json({ error: "Failed to update bill." });
+  }
+}
+
+export async function deleteBill(req: Request, res: Response): Promise<void> {
+  try {
+    const viewer = await findUserById(res.locals.userId as string);
+    if (!viewer) { res.status(401).json({ error: "User not found." }); return; }
+
+    const session = await getSessionById(String(req.params.id));
+    if (!session) { res.status(404).json({ error: "Session not found." }); return; }
+    if (!isSessionMember(session, viewer.id)) { res.status(403).json({ error: "Access denied." }); return; }
+    if (session.lockedAt) { res.status(423).json({ error: "Session is locked and cannot be modified." }); return; }
+
+    await deleteBillFromSession(String(req.params.id), String(req.params.billId));
+    res.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg === "Bill not found") { res.status(404).json({ error: msg }); return; }
+    res.status(500).json({ error: "Failed to delete bill." });
   }
 }
 

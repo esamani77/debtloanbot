@@ -91,6 +91,15 @@ export async function openSplitSession(
     ],
   ];
 
+  if (session.bills.length > 0 && !session.lockedAt) {
+    buttons.push([
+      Markup.button.callback(
+        t.splitBtnEditBills,
+        `split_edit_bills:${sessionId}`,
+      ),
+    ]);
+  }
+
   if (session.bills.length > 0) {
     buttons.push([
       Markup.button.callback(

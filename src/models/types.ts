@@ -39,6 +39,7 @@ export interface SessionData extends Scenes.WizardSession {
   feedbackTargetTelegramId?: string;
   feedbackTargetName?: string;
   splitDraft?: SplitDraft;
+  editBillId?: string;
   pendingSettlementDebtorId?: string;
 }
 

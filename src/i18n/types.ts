@@ -233,10 +233,17 @@ export interface Translations {
   splitMenuNewSplit: string;
   splitSessionDetail: (name: string | null, currency: string, participants: string[], billCount: number, status: string, sym: string) => string;
   splitBtnAddBillToSession: string;
+  splitBtnEditBills: string;
   splitBtnRecalculate: string;
   splitBtnShareSession: string;
   splitNoSessions: string;
   splitAddingBillToSession: (name: string | null) => string;
+  splitEditBillsList: (bills: Array<{ name: string; totalAmount: number; currency: string }>) => string;
+  splitBtnEditBill: (name: string) => string;
+  splitBtnDeleteBill: (name: string) => string;
+  splitBillDeleted: (name: string) => string;
+  splitBillDeleteFailed: string;
+  splitEditBillAskName: (current: string) => string;
 
   // Split participant picker (3-mode)
   splitPickParticipantMode: (index: number, total: number) => string;

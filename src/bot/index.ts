@@ -7,6 +7,7 @@ import { nicknameSetupScene } from "./scenes/nicknameSetup";
 import { feedbackScene } from "./scenes/feedbackScene";
 import { splitScene } from "./scenes/splitScene";
 import { editTransactionScene } from "./scenes/editTransaction";
+import { editBillScene, EDIT_BILL } from "./scenes/editBillScene";
 import { startHandler, processStartPayload } from "./commands/start";
 import { inviteHandler } from "./commands/invite";
 import { contactsHandler } from "./commands/contacts";
@@ -57,6 +58,7 @@ import {
   getBankAccountsForParticipants,
   joinSession,
   isSessionMember,
+  deleteBillFromSession,
 } from "../services/splitService";
 import { computeNetBalances, simplifyDebts } from "../utils/debtSimplification";
 import { currencySymbol as currSym } from "../utils/currency";
@@ -195,6 +197,7 @@ const stage = new Scenes.Stage<BotContext>([
   feedbackScene,
   splitScene,
   editTransactionScene,
+  editBillScene,
 ]);
 bot.use(stage.middleware());
 
@@ -685,6 +688,81 @@ bot.action(/^split_recalculate:(.+)$/, async (ctx) => {
 bot.action(/^split_reshare:(.+)$/, async (ctx) => {
   await ctx.answerCbQuery();
   await reshareSession(ctx, ctx.match[1]);
+});
+
+// Split — edit bills: show list of bills with edit/delete buttons
+bot.action(/^split_edit_bills:(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const sessionId = ctx.match[1];
+  const t = useT(ctx.session.userLanguage ?? Language.EN);
+  const session = await getSessionById(sessionId);
+  if (!session) { await ctx.reply(t.splitSessionNotFound); return; }
+  if (session.lockedAt) { await ctx.reply('🔒 This split is locked.'); return; }
+  if (session.bills.length === 0) { await ctx.reply('📋 No bills to edit.'); return; }
+
+  const sym = currencySymbol(session.currency, ctx.session.userLanguage);
+  const buttons = session.bills.map((b) => [
+    Markup.button.callback(t.splitBtnEditBill(b.name), `split_edit_bill:${b.id}:${sessionId}`),
+    Markup.button.callback(t.splitBtnDeleteBill(b.name), `split_del_bill:${b.id}:${sessionId}`),
+  ]);
+  buttons.push([Markup.button.callback('↩️ Back', `split_open:${sessionId}`)]);
+
+  const text = t.splitEditBillsList(
+    session.bills.map((b) => ({ name: b.name, totalAmount: b.totalAmount, currency: sym }))
+  );
+  await ctx.editMessageText(text, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) });
+});
+
+// Split — delete a single bill
+bot.action(/^split_del_bill:([^:]+):(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const billId = ctx.match[1];
+  const sessionId = ctx.match[2];
+  const t = useT(ctx.session.userLanguage ?? Language.EN);
+  const session = await getSessionById(sessionId);
+  if (!session) { await ctx.reply(t.splitSessionNotFound); return; }
+  if (session.lockedAt) { await ctx.reply('🔒 This split is locked.'); return; }
+  const bill = session.bills.find((b) => b.id === billId);
+  if (!bill) { await ctx.reply(t.splitBillDeleteFailed); return; }
+
+  try {
+    await deleteBillFromSession(sessionId, billId);
+    await ctx.editMessageText(t.splitBillDeleted(bill.name), { parse_mode: 'Markdown' });
+    await openSplitSession(ctx, sessionId);
+  } catch {
+    await ctx.reply(t.splitBillDeleteFailed);
+  }
+});
+
+// Split — enter edit bill scene
+bot.action(/^split_edit_bill:([^:]+):(.+)$/, async (ctx) => {
+  await ctx.answerCbQuery();
+  const billId = ctx.match[1];
+  const sessionId = ctx.match[2];
+  const session = await getSessionById(sessionId);
+  if (!session) return;
+  const bill = session.bills.find((b) => b.id === billId);
+  if (!bill) return;
+
+  ctx.session.editBillId = billId;
+  ctx.session.splitDraft = {
+    sessionId,
+    currency: session.currency,
+    participants: session.participants,
+    participantTelegramIds: session.participantTelegramIds,
+    participantCount: session.participants.length,
+    collectingParticipantIndex: session.participants.length,
+    bills: [],
+    currentShareIndex: 0,
+    currentBill: {
+      name: bill.name,
+      totalAmount: bill.totalAmount,
+      paidByIndex: bill.paidByIndex,
+      splitType: bill.splitType as 'EQUAL' | 'PERCENTAGE' | 'CUSTOM',
+      shares: [...bill.shares],
+    },
+  };
+  await ctx.scene.enter(EDIT_BILL);
 });
 
 // Split — join via share link

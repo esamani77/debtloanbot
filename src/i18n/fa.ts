@@ -363,10 +363,18 @@ export const fa: Translations = {
     return `🧾 *${name ?? 'بدون نام'}*\n💱 ${currency} (${sym})\n👥 ${participants.join('، ')}\n📋 ${billCount} هزینه\n${statusLabels[status] ?? status}`;
   },
   splitBtnAddBillToSession: '➕ افزودن هزینه',
+  splitBtnEditBills: '✏️ ویرایش هزینه‌ها',
   splitBtnRecalculate: '🧮 محاسبه مجدد',
   splitBtnShareSession: '🔗 اشتراک‌گذاری',
   splitNoSessions: '🧾 *تقسیم هزینه*\n\nهنوز تقسیمی ندارید. همین الان شروع کنید!',
   splitAddingBillToSession: (name) => `➕ *افزودن هزینه به "${name ?? 'تقسیم'}"*\n\nاین هزینه مربوط به چه بود؟`,
+  splitEditBillsList: (bills) =>
+    `✏️ *یک هزینه برای ویرایش یا حذف انتخاب کنید:*\n\n${bills.map((b, i) => `${i + 1}. ${b.name} — ${b.totalAmount} ${b.currency}`).join('\n')}`,
+  splitBtnEditBill: (name) => `✏️ ${name}`,
+  splitBtnDeleteBill: (name) => `🗑️ ${name}`,
+  splitBillDeleted: (name) => `✅ هزینه *${name}* حذف شد.`,
+  splitBillDeleteFailed: '❌ حذف هزینه ناموفق بود.',
+  splitEditBillAskName: (current) => `📝 نام جدید این هزینه را وارد کنید.\n\nنام فعلی: *${current}*\n\n_(برای نگه‌داشتن نام فعلی، همان را ارسال کنید)_`,
 
   splitSharedSummary: (sessionName, currency, createdAt, participants, balances, transfers, sym, bankAccounts, bills) => {
     const title = sessionName ? `*${sessionName}*` : '*خلاصه تقسیم*';

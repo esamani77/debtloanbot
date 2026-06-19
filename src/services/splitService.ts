@@ -184,6 +184,41 @@ export async function updateSessionMeta(
   await prisma.splitSession.update({ where: { id }, data });
 }
 
+export async function updateBillInSession(sessionId: string, billId: string, data: BillInput): Promise<BillItem> {
+  const bill = await prisma.billItem.findUnique({ where: { id: billId } });
+  if (!bill || bill.sessionId !== sessionId) throw new Error('Bill not found');
+
+  const updated = await prisma.billItem.update({
+    where: { id: billId },
+    data: {
+      name: data.name,
+      totalAmount: data.totalAmount,
+      paidByIndex: data.paidByIndex,
+      splitType: data.splitType,
+      shares: data.shares,
+    },
+  });
+
+  const session = await prisma.splitSession.findUnique({ where: { id: sessionId }, select: { status: true } });
+  if (session && session.status !== SplitStatus.DRAFT) {
+    await resetSessionToDraft(sessionId);
+  }
+
+  return updated;
+}
+
+export async function deleteBillFromSession(sessionId: string, billId: string): Promise<void> {
+  const bill = await prisma.billItem.findUnique({ where: { id: billId } });
+  if (!bill || bill.sessionId !== sessionId) throw new Error('Bill not found');
+
+  await prisma.billItem.delete({ where: { id: billId } });
+
+  const session = await prisma.splitSession.findUnique({ where: { id: sessionId }, select: { status: true } });
+  if (session && session.status !== SplitStatus.DRAFT) {
+    await resetSessionToDraft(sessionId);
+  }
+}
+
 export async function replaceAllBills(sessionId: string, bills: BillInput[]): Promise<void> {
   await prisma.$transaction([
     prisma.billItem.deleteMany({ where: { sessionId } }),
