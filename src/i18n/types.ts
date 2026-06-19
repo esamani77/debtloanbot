@@ -98,7 +98,7 @@ export interface Translations {
   txTypeLabelLoan: string;
   txSaved: (typeLabel: string, symbol: string, amount: string, contactName: string, note?: string) => string;
 
-  // Notification to contact
+  // Notification to contact (Telegram — Markdown)
   notifyBorrowed: (name: string, symbol: string, amount: string) => string;
   notifyLent: (name: string, symbol: string, amount: string) => string;
   notifyNote: (note: string) => string;
@@ -108,6 +108,26 @@ export interface Translations {
   notifyDeletedDebt: (name: string, symbol: string, amount: string) => string;
   notifySettledTransaction: (name: string, symbol: string, amount: string) => string;
   notifySettledAll: (name: string) => string;
+
+  // Push / email / in-app notification titles & bodies (plain text, no Markdown)
+  notifyPushTitleBorrowed: (name: string) => string;
+  notifyPushTitleLent: (name: string) => string;
+  notifyPushTitleEdited: (name: string) => string;
+  notifyPushTitleSettled: (name: string) => string;
+  notifyPushTitleDeleted: (name: string) => string;
+  notifyPushTitleSettledAll: (name: string) => string;
+  notifyPushTitleSettlementRequest: (name: string) => string;
+  notifyPushTitleSplitResults: (creatorName: string, sessionName: string | null) => string;
+  notifyPushTitleRecurring: (name: string) => string;
+  notifyPushTitleRecurringFired: string;
+  notifyPushBodyAmount: (sym: string, amount: string, note?: string) => string;
+  notifyPushBodySettled: (sym: string, amount: string) => string;
+  notifyPushBodyDeleted: (sym: string, amount: string) => string;
+  notifyPushBodySettledAll: (name: string) => string;
+  notifyPushBodySettlementRequest: (name: string, sym: string, amount: string, bankName: string, cardNumber: string) => string;
+  notifyPushBodySplitResults: (sym: string, balance: number) => string;
+  notifyPushBodyRecurring: (intervalLabel: string, sym: string, amount: string, note?: string) => string;
+  notifyPushBodyRecurringFired: (intervalLabel: string, sym: string, amount: string, contactName: string) => string;
 
   // Settle (bot flow)
   btnSettle: string;

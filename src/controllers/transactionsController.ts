@@ -71,9 +71,9 @@ export async function createTransaction(req: Request, res: Response): Promise<vo
     const tgFull = note ? `${tgMsg}\n${contactT.notifyNote(note)}` : tgMsg;
 
     const title = type === 'DEBT'
-      ? `${getDisplayName(viewer)} recorded a debt`
-      : `${getDisplayName(viewer)} recorded a loan`;
-    const body = `${sym} ${transaction.amount.toFixed(2)}${note ? ` — ${note}` : ''}`;
+      ? contactT.notifyPushTitleBorrowed(getDisplayName(viewer))
+      : contactT.notifyPushTitleLent(getDisplayName(viewer));
+    const body = contactT.notifyPushBodyAmount(sym, transaction.amount.toFixed(2), note);
 
     createAndNotify(
       contact.id,
@@ -116,8 +116,8 @@ export async function updateTransaction(req: Request, res: Response): Promise<vo
       : contactT.notifyEditedDebt(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
     const tgFull = transaction.note ? `${tgMsg}\n${contactT.notifyNote(transaction.note)}` : tgMsg;
 
-    const title = `${getDisplayName(viewer)} edited a transaction`;
-    const body = `${sym} ${transaction.amount.toFixed(2)}${transaction.note ? ` — ${transaction.note}` : ''}`;
+    const title = contactT.notifyPushTitleEdited(getDisplayName(viewer));
+    const body = contactT.notifyPushBodyAmount(sym, transaction.amount.toFixed(2), transaction.note ?? undefined);
 
     createAndNotify(
       contact.id,
@@ -153,8 +153,8 @@ export async function settleTransaction(req: Request, res: Response): Promise<vo
     const sym = currencySymbol(relationship.currency, contact.language);
     const tgMsg = contactT.notifySettledTransaction(getDisplayName(viewer), sym, transaction.amount.toFixed(2));
 
-    const title = `${getDisplayName(viewer)} settled a transaction`;
-    const body = `${sym} ${transaction.amount.toFixed(2)} marked as settled`;
+    const title = contactT.notifyPushTitleSettled(getDisplayName(viewer));
+    const body = contactT.notifyPushBodySettled(sym, transaction.amount.toFixed(2));
 
     createAndNotify(
       contact.id,
@@ -193,8 +193,8 @@ export async function deleteTransaction(req: Request, res: Response): Promise<vo
       ? contactT.notifyDeletedLoan(getDisplayName(viewer), sym, deletedTransaction.amount.toFixed(2))
       : contactT.notifyDeletedDebt(getDisplayName(viewer), sym, deletedTransaction.amount.toFixed(2));
 
-    const title = `${getDisplayName(viewer)} deleted a transaction`;
-    const body = `${sym} ${deletedTransaction.amount.toFixed(2)} was removed`;
+    const title = contactT.notifyPushTitleDeleted(getDisplayName(viewer));
+    const body = contactT.notifyPushBodyDeleted(sym, deletedTransaction.amount.toFixed(2));
 
     createAndNotify(
       contact.id,

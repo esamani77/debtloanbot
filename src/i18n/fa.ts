@@ -171,6 +171,36 @@ export const fa: Translations = {
   notifySettledAll: (name) =>
     `✅ *${name}* همه تراکنش‌ها را تسویه کرد.`,
 
+  // Push / email / in-app titles & bodies (plain text)
+  notifyPushTitleBorrowed: (name) => `${name} یک بدهی ثبت کرد`,
+  notifyPushTitleLent: (name) => `${name} یک قرض ثبت کرد`,
+  notifyPushTitleEdited: (name) => `${name} یک تراکنش را ویرایش کرد`,
+  notifyPushTitleSettled: (name) => `${name} یک تراکنش را تسویه کرد`,
+  notifyPushTitleDeleted: (name) => `${name} یک تراکنش را حذف کرد`,
+  notifyPushTitleSettledAll: (name) => `${name} همه تراکنش‌ها را تسویه کرد`,
+  notifyPushTitleSettlementRequest: (name) => `${name} درخواست تسویه کرد`,
+  notifyPushTitleSplitResults: (creatorName, sessionName) =>
+    sessionName ? `نتایج تقسیم: ${sessionName}` : `${creatorName} نتایج تقسیم را به اشتراک گذاشت`,
+  notifyPushTitleRecurring: (name) => `تراکنش تکراری از ${name}`,
+  notifyPushTitleRecurringFired: 'تراکنش تکراری اجرا شد',
+  notifyPushBodyAmount: (sym, amount, note) =>
+    note ? `${sym} ${amount} — ${note}` : `${sym} ${amount}`,
+  notifyPushBodySettled: (sym, amount) => `${sym} ${amount} تسویه شد`,
+  notifyPushBodyDeleted: (sym, amount) => `${sym} ${amount} حذف شد`,
+  notifyPushBodySettledAll: (name) => `همه بدهی‌ها با ${name} تسویه شدند`,
+  notifyPushBodySettlementRequest: (name, sym, amount, bankName, cardNumber) =>
+    `${name} درخواست ${sym} ${amount} دارد — ${bankName} ${cardNumber}`,
+  notifyPushBodySplitResults: (sym, balance) =>
+    balance === 0
+      ? `همه چیز تسویه است`
+      : balance > 0
+        ? `${sym} ${Math.abs(balance).toFixed(2)} به شما بدهکارند`
+        : `${sym} ${Math.abs(balance).toFixed(2)} بدهکارید`,
+  notifyPushBodyRecurring: (intervalLabel, sym, amount, note) =>
+    note ? `${intervalLabel} · ${sym} ${amount} — ${note}` : `${intervalLabel} · ${sym} ${amount}`,
+  notifyPushBodyRecurringFired: (intervalLabel, sym, amount, contactName) =>
+    `${intervalLabel} · ${sym} ${amount} با ${contactName}`,
+
   // Settle (bot flow)
   btnSettle: '✅ تسویه',
   txSettleConfirm: (typeLabel, sym, amount) =>

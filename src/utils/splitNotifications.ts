@@ -78,20 +78,11 @@ export async function notifySplitParticipants({
     );
 
     if (dbUser) {
-      const splitTitle = sessionName
-        ? `Split results: ${sessionName}`
-        : `${creatorName} shared split results`;
-      const splitBody = myBalance === 0
-        ? `You're all settled up in this split`
-        : myBalance > 0
-          ? `You are owed ${sym} ${Math.abs(myBalance).toFixed(2)}`
-          : `You owe ${sym} ${Math.abs(myBalance).toFixed(2)}`;
-
       createAndNotify(
         dbUser.id,
         NotificationType.SPLIT_SHARED,
-        splitTitle,
-        splitBody,
+        T.notifyPushTitleSplitResults(creatorName, sessionName),
+        T.notifyPushBodySplitResults(sym, myBalance),
         { splitId: shareToken },
         tgMsg,
       ).catch(() => {});

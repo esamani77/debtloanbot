@@ -97,8 +97,8 @@ export async function settleAllTransactions(req: Request, res: Response): Promis
       createAndNotify(
         contact.id,
         NotificationType.TRANSACTION_SETTLED,
-        `${getDisplayName(viewer)} settled all transactions`,
-        `All debts between you and ${getDisplayName(viewer)} are now settled`,
+        contactT.notifyPushTitleSettledAll(getDisplayName(viewer)),
+        contactT.notifyPushBodySettledAll(getDisplayName(viewer)),
         { contactId: viewer.id },
         tgMsg,
         { reply_markup: { inline_keyboard: [[{ text: contactT.btnSendFeedback, callback_data: `tx_feedback:${viewer.telegramId ?? viewer.id}` }]] } },
@@ -156,13 +156,11 @@ export async function requestSettlement(req: Request, res: Response): Promise<vo
       acct.cardNumber,
       acct.accountNumber,
     );
-    const body = `${senderName} is requesting ${sym} ${amount.toFixed(2)} — ${acct.bankName} ${acct.cardNumber}`;
-
     createAndNotify(
       contact.id,
       NotificationType.SETTLEMENT_REQUESTED,
-      `${senderName} requested settlement`,
-      body,
+      contactT.notifyPushTitleSettlementRequest(senderName),
+      contactT.notifyPushBodySettlementRequest(senderName, sym, amount.toFixed(2), acct.bankName, acct.cardNumber),
       { contactId: viewer.id },
       tgMsg,
     ).catch(() => {});

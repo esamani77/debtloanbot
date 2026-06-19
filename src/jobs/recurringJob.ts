@@ -37,8 +37,8 @@ async function processRecurringTransactions(): Promise<void> {
       createAndNotify(
         creator.id,
         NotificationType.RECURRING_TRANSACTION,
-        `Recurring transaction fired`,
-        `${intervalLabel} · ${creatorSym} ${transaction.amount.toFixed(2)} with ${getDisplayName(contact)}`,
+        creatorT.notifyPushTitleRecurringFired,
+        creatorT.notifyPushBodyRecurringFired(intervalLabel, creatorSym, transaction.amount.toFixed(2), getDisplayName(contact)),
         { transactionId: transaction.id, contactId: contact.id },
         creatorT.recurringMaterialized(intervalLabel, creatorSym, transaction.amount.toFixed(2), getDisplayName(contact)),
       ).catch(() => {});
@@ -53,8 +53,8 @@ async function processRecurringTransactions(): Promise<void> {
       createAndNotify(
         contact.id,
         NotificationType.RECURRING_TRANSACTION,
-        `Recurring transaction from ${getDisplayName(creator)}`,
-        `${intervalLabel} · ${contactSym} ${transaction.amount.toFixed(2)}${item.note ? ` — ${item.note}` : ""}`,
+        contactT.notifyPushTitleRecurring(getDisplayName(creator)),
+        contactT.notifyPushBodyRecurring(intervalLabel, contactSym, transaction.amount.toFixed(2), item.note ?? undefined),
         { transactionId: transaction.id, contactId: creator.id },
         `${tgMsg}${noteMsgPart}${recurringPart}`,
       ).catch(() => {});

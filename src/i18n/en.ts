@@ -168,6 +168,36 @@ export const en: Translations = {
   notifySettledAll: (name) =>
     `✅ *${name}* marked all transactions as settled.`,
 
+  // Push / email / in-app titles & bodies (plain text)
+  notifyPushTitleBorrowed: (name) => `${name} recorded a debt`,
+  notifyPushTitleLent: (name) => `${name} recorded a loan`,
+  notifyPushTitleEdited: (name) => `${name} edited a transaction`,
+  notifyPushTitleSettled: (name) => `${name} settled a transaction`,
+  notifyPushTitleDeleted: (name) => `${name} deleted a transaction`,
+  notifyPushTitleSettledAll: (name) => `${name} settled all transactions`,
+  notifyPushTitleSettlementRequest: (name) => `${name} requested settlement`,
+  notifyPushTitleSplitResults: (creatorName, sessionName) =>
+    sessionName ? `Split results: ${sessionName}` : `${creatorName} shared split results`,
+  notifyPushTitleRecurring: (name) => `Recurring transaction from ${name}`,
+  notifyPushTitleRecurringFired: 'Recurring transaction fired',
+  notifyPushBodyAmount: (sym, amount, note) =>
+    note ? `${sym} ${amount} — ${note}` : `${sym} ${amount}`,
+  notifyPushBodySettled: (sym, amount) => `${sym} ${amount} marked as settled`,
+  notifyPushBodyDeleted: (sym, amount) => `${sym} ${amount} was removed`,
+  notifyPushBodySettledAll: (name) => `All debts with ${name} are now settled`,
+  notifyPushBodySettlementRequest: (name, sym, amount, bankName, cardNumber) =>
+    `${name} is requesting ${sym} ${amount} — ${bankName} ${cardNumber}`,
+  notifyPushBodySplitResults: (sym, balance) =>
+    balance === 0
+      ? `You're all settled up`
+      : balance > 0
+        ? `You are owed ${sym} ${Math.abs(balance).toFixed(2)}`
+        : `You owe ${sym} ${Math.abs(balance).toFixed(2)}`,
+  notifyPushBodyRecurring: (intervalLabel, sym, amount, note) =>
+    note ? `${intervalLabel} · ${sym} ${amount} — ${note}` : `${intervalLabel} · ${sym} ${amount}`,
+  notifyPushBodyRecurringFired: (intervalLabel, sym, amount, contactName) =>
+    `${intervalLabel} · ${sym} ${amount} with ${contactName}`,
+
   // Settle (bot flow)
   btnSettle: '✅ Settle',
   txSettleConfirm: (typeLabel, sym, amount) =>
