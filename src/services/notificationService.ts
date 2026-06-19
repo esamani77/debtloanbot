@@ -40,7 +40,7 @@ export async function createAndNotify(
     // 1. Persist in-app notification
     prisma.notification.create({
       data: { userId, type, title, body, data: (data ?? {}) as object },
-    }).catch(() => {}),
+    }).catch((err) => { console.error('[notify] DB create failed:', err?.message ?? err); }),
 
     // 2. Telegram
     user.telegramId
