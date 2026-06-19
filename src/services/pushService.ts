@@ -1,4 +1,6 @@
 import webpush from 'web-push';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 import { PushPlatform } from '@prisma/client';
 import prisma from '../db/prisma';
 
@@ -8,6 +10,16 @@ const VAPID_EMAIL = process.env.VAPID_EMAIL ?? 'mailto:noreply@debtmate.app';
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
+
+// Initialise Firebase Admin once if credentials are provided
+if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON && getApps().length === 0) {
+  try {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    initializeApp({ credential: cert(serviceAccount) });
+  } catch {
+    console.warn('[push] Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON — FCM disabled');
+  }
 }
 
 export interface PushPayload {
@@ -38,9 +50,30 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
           }
         }
       } else {
-        // FCM/APNs — stub until Firebase Admin SDK is configured
-        if (sub.fcmToken) {
-          console.warn('[push] FCM not configured — skipping token', sub.fcmToken.slice(0, 10));
+        // FCM — Android / iOS
+        if (!sub.fcmToken) return;
+        if (getApps().length === 0) {
+          console.warn('[push] FCM not configured (FIREBASE_SERVICE_ACCOUNT_JSON missing)');
+          return;
+        }
+
+        const fcmData = payload.data
+          ? Object.fromEntries(Object.entries(payload.data).map(([k, v]) => [k, String(v)]))
+          : undefined;
+
+        try {
+          await getMessaging().send({
+            token: sub.fcmToken,
+            notification: { title: payload.title, body: payload.body },
+            ...(fcmData && { data: fcmData }),
+            android: { priority: 'high' },
+            apns: { payload: { aps: { sound: 'default' } } },
+          });
+        } catch (err: unknown) {
+          const code = (err as { errorInfo?: { code?: string } }).errorInfo?.code;
+          if (code === 'messaging/registration-token-not-registered') {
+            await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
+          }
         }
       }
     }),
